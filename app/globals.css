@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/*
+ * Semantic design tokens — "European nights" palette (PRD §14, style guide by
+ * BigMac Bobby). Components consume tokens only; no hardcoded design-system
+ * hexes outside this file. Both this file and postcss.config.mjs are
+ * load-bearing for Tailwind v4 — never delete either (Fanbet 2026-05-29).
+ */
+:root {
+  --night: #060a1a;
+  --night-2: #0a1026;
+  --night-3: #101a3a;
+  --line: rgba(146, 168, 224, 0.14);
+  --line-soft: rgba(146, 168, 224, 0.08);
+  --ink: #eaf0ff;
+  --muted: #8c98c0;
+  --muted-2: #5e6a92;
+  --glow: #2e6bff;
+  --glow-2: #5fa2ff;
+  --chz: #ff1257;
+  --chz-2: #ff4d80;
+  --star: #f6c76a;
+  --ok: #34d6a5;
+}
+
+@theme inline {
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-night-3: var(--night-3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-glow: var(--glow);
+  --color-glow-2: var(--glow-2);
+  --color-chz: var(--chz);
+  --color-chz-2: var(--chz-2);
+  --color-star: var(--star);
+  --color-ok: var(--ok);
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+body {
+  background:
+    radial-gradient(1100px 650px at 78% -8%, rgba(46, 107, 255, 0.28), transparent 60%),
+    radial-gradient(800px 550px at 10% 4%, rgba(95, 162, 255, 0.1), transparent 55%),
+    linear-gradient(180deg, #070c1e 0%, #060a1a 38%, #050814 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

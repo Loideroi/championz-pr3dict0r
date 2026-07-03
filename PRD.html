@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>₵h@mpi0nz Pr3dict0r — PRD v1.1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#060A1A; --night-2:#0A1026; --night-3:#101A3A;
+    --line:rgba(146,168,224,.14); --line-soft:rgba(146,168,224,.08);
+    --ink:#EAF0FF; --muted:#8C98C0; --muted-2:#5E6A92;
+    --glow:#2E6BFF; --glow-2:#5FA2FF; --chz:#FF1257; --chz-2:#ff4d80;
+    --star:#F6C76A; --ok:#34D6A5; --r:16px; --maxw:960px;
+    --fd:"Archivo",system-ui,sans-serif; --fb:"Inter",system-ui,sans-serif;
+    --fm:"Space Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--night);color:var(--ink);font-family:var(--fb);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--glow-2);text-decoration:none} a:hover{text-decoration:underline}
+  h1,h2,h3,h4{font-family:var(--fd);line-height:1.05;letter-spacing:-.01em;margin:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .mono{font-family:var(--fm)}
+  .eyebrow{font-family:var(--fm);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--glow-2)}
+  .muted{color:var(--muted)}
+  .sky{position:fixed;inset:0;z-index:-1;background:
+    radial-gradient(1100px 650px at 78% -8%, rgba(46,107,255,.28), transparent 60%),
+    radial-gradient(800px 550px at 10% 4%, rgba(95,162,255,.10), transparent 55%),
+    linear-gradient(180deg,#070C1E 0%, #060A1A 38%, #050814 100%);}
+
+  header.hero{padding:76px 0 34px}
+  .kick{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+  .pill{font-family:var(--fm);font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);display:inline-flex;align-items:center;gap:8px}
+  .pill.ok{color:var(--ok);border-color:rgba(52,214,165,.35)}
+  .pill.warn{color:var(--star);border-color:rgba(246,199,106,.35)}
+  h1.title{font-size:clamp(38px,7vw,74px);font-weight:900;text-transform:uppercase;letter-spacing:-.03em}
+  h1.title .glowtext{color:transparent;background:linear-gradient(180deg,#cfe0ff,#5FA2FF 60%,#2E6BFF);-webkit-background-clip:text;background-clip:text}
+  .lede{max-width:640px;color:var(--muted);font-size:16.5px;margin:18px 0 8px}
+  .meta{margin-top:22px;border:1px solid var(--line);border-radius:14px;padding:14px 18px;background:rgba(255,255,255,.025);font-size:13.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+  .meta b{font-family:var(--fm);font-weight:400;color:var(--glow-2)}
+  .master-note{margin-top:14px;border:1px solid rgba(246,199,106,.35);background:rgba(246,199,106,.06);border-radius:12px;padding:12px 16px;font-size:13.5px;color:var(--star)}
+
+  nav.toc{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,rgba(6,10,26,.95),rgba(6,10,26,.85));backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft);overflow-x:auto}
+  nav.toc .wrap{display:flex;gap:4px;padding:10px 22px;white-space:nowrap}
+  nav.toc a{font-family:var(--fm);font-size:11.5px;color:var(--muted);padding:6px 10px;border-radius:8px}
+  nav.toc a:hover{color:var(--ink);background:rgba(255,255,255,.05);text-decoration:none}
+
+  section{padding:44px 0 8px}
+  .sec-head{margin-bottom:20px}
+  .sec-head h2{font-size:clamp(24px,3.6vw,36px);font-weight:800;text-transform:uppercase;letter-spacing:-.02em}
+  .sec-head p{color:var(--muted);margin:8px 0 0;font-size:15px;max-width:680px}
+  h3{font-size:18px;font-weight:800;text-transform:uppercase;margin:26px 0 10px}
+  h4{font-size:15px;font-weight:700;margin:18px 0 8px;color:var(--glow-2)}
+  p,li{font-size:14.5px;color:var(--ink)}
+  ul,ol{padding-left:22px;margin:8px 0}
+  li{margin-bottom:6px}
+  li::marker{color:var(--glow-2)}
+  .card{border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(180deg,var(--night-2),rgba(10,16,38,.55));padding:20px 22px;margin:16px 0}
+  .card.gold{border-color:rgba(246,199,106,.3);background:rgba(246,199,106,.05)}
+  .card.pink{border-color:rgba(255,18,87,.3);background:rgba(255,18,87,.05)}
+  .card.green{border-color:rgba(52,214,165,.3);background:rgba(52,214,165,.04)}
+  code,pre{font-family:var(--fm);font-size:12.5px}
+  code{background:rgba(95,162,255,.10);border:1px solid var(--line-soft);border-radius:6px;padding:1px 6px;color:var(--glow-2)}
+  pre{background:#04060f;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;color:var(--glow-2);line-height:1.5;box-shadow:inset 0 0 24px rgba(46,107,255,.08)}
+  pre code{background:none;border:0;padding:0}
+  .tablewrap{overflow-x:auto;margin:14px 0}
+  table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;min-width:560px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line-soft);font-size:13.5px;vertical-align:top}
+  th{font-family:var(--fm);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.025)}
+  tr:last-child td{border-bottom:0}
+  td b{color:var(--star)}
+  .pts5{color:var(--star)} .pts3{color:var(--glow-2)} .pts1{color:var(--ok)} .pts0{color:var(--muted-2)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .stat{border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden;background:rgba(255,255,255,.02)}
+  .stat .accent{position:absolute;top:0;left:0;height:3px;width:100%;background:linear-gradient(90deg,var(--glow),transparent)}
+  .stat.chz .accent{background:linear-gradient(90deg,var(--chz),transparent)}
+  .stat .v{font-family:var(--fd);font-weight:900;font-size:30px}
+  .stat .l{font-family:var(--fm);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+  .check li{list-style:none;position:relative;padding-left:26px}
+  .check li::before{content:"☐";position:absolute;left:0;color:var(--glow-2)}
+  .quote{border-left:3px solid var(--star);padding:6px 16px;margin:12px 0;color:var(--muted);font-style:italic}
+  footer{border-top:1px solid var(--line-soft);margin-top:56px;padding:30px 0 40px;color:var(--muted-2);font-size:12.5px;font-family:var(--fm);display:flex;flex-direction:column;gap:6px}
+  @media (max-width:760px){ .split{grid-template-columns:1fr} .meta{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="sky"></div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kick">
+      <span class="pill" style="color:var(--glow-2)">★ UEFA Champions League 2026/27</span>
+      <span class="pill warn">PRD · v1.1.0 · grilled 2026-07-04</span>
+      <span class="pill ok">Master file: PRD.md</span>
+    </div>
+    <h1 class="title">₵h@mpi0nz<br><span class="glowtext">Pr3dict0r</span></h1>
+    <p class="lede">A staking-based score-prediction pool on Chiliz Chain for the 2026/27 Champions League.
+    Stake CHZ, call the 90-minute scorelines, climb two leaderboards from matchday one to Madrid —
+    while a UEFA-fed oracle does the admin's job for free.</p>
+    <div class="meta">
+      <span>Predecessor <b>W0rld CUP Pr3dict0r (WC 2026)</b></span>
+      <span>Chain <b>Chiliz 88888 · Spicy 88882</b></span>
+      <span>Domain <b>pr3dict0r.com → Vercel (Loideroi)</b></span>
+      <span>Repo <b>personal GitHub (Loideroi)</b></span>
+      <span>Final <b>Sat 5 Jun 2027 · Metropolitano, Madrid</b></span>
+      <span>Services <b>free tier only</b></span>
+    </div>
+    <div class="master-note">⚠ This HTML is the human-readable mirror. <span class="mono">PRD.md</span> is the master —
+    edits land there first, then get mirrored here. If they disagree, the .md wins.</div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#summary">Summary</a><a href="#twopronged">Two-Pronged Entry</a><a href="#scoring">Scoring</a>
+  <a href="#editing">Editing</a><a href="#data">UEFA Data</a><a href="#oracle">Oracle</a><a href="#contract">Contract</a>
+  <a href="#wallet">Wallet</a><a href="#telegram">Telegram</a><a href="#signup">Sign-up</a><a href="#design">Design</a>
+  <a href="#terms">T&amp;Cs</a><a href="#security">Security</a><a href="#wow">Ways of Working</a>
+  <a href="#deploy">Deploy</a><a href="#milestones">Milestones</a><a href="#open">Decisions</a><a href="#accept">Launch Gate</a>
+</div></nav>
+
+<main class="wrap">
+
+<section id="summary">
+  <div class="sec-head"><div class="eyebrow">§1–3</div><h2>Summary &amp; heritage</h2>
+  <p>Five big evolutions over the World Cup predictor. Everything else is a proven reuse per the predecessor's REUSE_GUIDE.</p></div>
+  <ol>
+    <li><b>Two-pronged entry</b> — early birds play the whole season (1,100 CHZ); latecomers join the knockout (550 CHZ).</li>
+    <li><b>Hands-off ops</b> — results flow automatically from UEFA's own (unofficial) JSON API. Routine per-match admin work: <b>zero</b>.</li>
+    <li><b>Radically cheaper gas</b> — claim-time scoring deletes the O(users × matches) settlement loops.</li>
+    <li><b>Community on Telegram</b> — results channel + feedback group + optional account linking.</li>
+    <li><b>New look</b> — the "European nights" glow aesthetic, credited to <b>BigMac Bobby</b> in the footer.</li>
+  </ol>
+  <div class="card">
+    <h4>Reused from the predecessor</h4>
+    <p class="muted" style="font-size:13.5px">Staking/prediction/claim flow · 5/3/1 scoring + knockout bonuses · 60-min lockout ·
+    single-file <code>matches.json</code> (now generated, not hand-authored) · knockout feeder resolution (extended to two-legged ties) ·
+    numbering-independent bracket verification (re-pointed FIFA → UEFA) · ERC-1271 dual-path signature verification ·
+    Supabase read-model · UUPS upgrade toolchain · the 18-finding audit checklist as regression baseline ·
+    <b>all 6 locales at launch</b> (en, es, fr, it, pt-BR, tr — D10; ⚠ 6× content in the August crunch) ·
+    <b>AI Match Insights, automated per-matchday</b> (en generation from UEFA data → 5-locale translation via the merge tooling; empty-safe, may lag fixtures — D11).</p>
+    <h4>Deleted</h4>
+    <p class="muted" style="font-size:13.5px">Per-user settlement (<code>batchSettleUserPoints</code>) · in-app feedback (→ Telegram) ·
+    hand-authored fixtures · the 512.82-CHZ fee math.</p>
+  </div>
+</section>
+
+<section id="twopronged">
+  <div class="sec-head"><div class="eyebrow">§4 · flagship change</div><h2>The two-pronged predictor</h2>
+  <p>One season, two stages, two pools, exactly two paying leaderboards — and one cosmetic crown for the end-to-end story.</p></div>
+  <div class="split">
+    <div class="stat"><span class="accent"></span><div class="v mono">1,100 <span style="font-size:16px">CHZ</span></div>
+      <div class="l">Full Season pass · hard close at MD1 kickoff (8 Sep 2026)</div>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">500 → League Pool · 500 → Knockout Pool · 100 → admin fee.
+      One transaction, both stages, automatically. No late league entry (D1).</p></div>
+    <div class="stat chz"><span class="accent"></span><div class="v mono">550 <span style="font-size:16px">CHZ</span></div>
+      <div class="l">Knockout pass · on sale from MD1 kickoff → T-60 of the last play-off first-leg (~17 Feb 2027)</div>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">500 → Knockout Pool · 50 → admin fee. The shop is never closed (D4):
+      September buyers wait as engaged spectators; final-day joiners see exactly which matches are already locked (0 pts) before paying.
+      Non-refundable from purchase.</p></div>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Leaderboard</th><th>Who</th><th>Points from</th><th>Pays</th><th>When</th></tr></thead>
+    <tbody>
+      <tr><td><b>Stage 1 — League Phase</b></td><td>Full Season only</td><td>144 league matches (MD1–MD8)</td><td>League Pool, top-20 split</td><td><b>immediately after MD8 finalizes</b> (~early Feb 2027; D3 — the payout post is the knockout campaign)</td></tr>
+      <tr><td><b>Stage 2 — Knockout</b></td><td>Everyone — all restart at 0</td><td>45 knockout matches</td><td>Knockout Pool, top-20 split</td><td>after the final (5 Jun 2027)</td></tr>
+      <tr><td>Season View</td><td>Everyone</td><td>Stage 1 + Stage 2 combined</td><td><b>Ultimate ₵h@mpi0n</b>: on-chain trophy NFT (zero funds) + crown + hall of fame (D8)</td><td>continuous</td></tr>
+    </tbody>
+  </table></div>
+  <p>Top-20 split per pool (proven): <span class="mono">25% · 15% · 10% · 30%÷7 (4–10) · 20%÷10 (11–20)</span>, rounding dust to 1st.</p>
+  <div class="card">
+    <h4>Why this design</h4>
+    <ul>
+      <li><b>Rejected:</b> one leaderboard with a latecomer points-handicap — arbitrary, gameable, every payout contested.</li>
+      <li><b>Rejected:</b> carrying league points into the knockout — latecomers pay the same 550 CHZ for Stage 2; nobody starts behind in a pool they funded equally.</li>
+      <li><b>Rejected:</b> a third paying leaderboard — fewer leaderboards, fatter prizes.</li>
+      <li><b>Fairness invariants:</b> same 550 CHZ per stage for everyone · no points cross a pool boundary · each pool funded only by wallets eligible to win it. Early birds' edge is structural: two shots at prizes + a mid-season payday.</li>
+    </ul>
+  </div>
+  <p><b>Clean economics:</b> flat <b>50 CHZ fee per stage</b> to the admin wallet — no more 512.82-style decimals.
+  Contract enforces <code>msg.value == ENTRY_GROSS</code> exactly. Entries non-refundable from purchase. One entry per wallet per stage.</p>
+  <p><b>Participation floor (D2):</b> a stage that locks with <b>fewer than 20 entrants</b> is void — everyone reclaims the full 550 CHZ,
+  fee included. At ≥ 20, the top-20 split applies as designed. One number, one rule, one T&amp;C sentence.</p>
+</section>
+
+<section id="scoring">
+  <div class="sec-head"><div class="eyebrow">§5</div><h2>Scoring</h2>
+  <p>The proven rubric — now applied to two-legged ties, and always on the 90-minute score.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Prediction</th><th>Points</th><th>Condition</th></tr></thead>
+    <tbody>
+      <tr><td>Exact score</td><td class="pts5">5</td><td>both scores exact (90′)</td></tr>
+      <tr><td>Goal difference</td><td class="pts3">3</td><td>same outcome + same goal difference</td></tr>
+      <tr><td>Outcome</td><td class="pts1">1</td><td>correct W/D/L only</td></tr>
+      <tr><td>Extra time · Penalties · Advancing team</td><td class="pts5">+1 each</td><td>knockout deciders + final only</td></tr>
+    </tbody>
+  </table></div>
+  <div class="card pink">
+    <h4>★ The 90-minute rule (hard requirement)</h4>
+    <p>All scoreline points use the score <b>after 90 minutes</b>, even when the world reports the AET score.
+    The UEFA feed separates these natively: <code>score.regular</code> (90′) vs <code>score.total</code> (incl. ET),
+    plus <code>score.penalty</code> and <code>score.aggregate</code>. Flags derive from
+    <code>winner.match.reason</code> (<span class="mono">WIN_ON_EXTRA_TIME, WIN_ON_PENALTIES, …</span>).
+    A real AET match from archive data must pass in CI before mainnet.</p>
+  </div>
+  <h3>Two-legged ties (new vs. the World Cup)</h3>
+  <ul>
+    <li><b>Leg 1:</b> normal 5/3/1 on its own 90′ score — no bonuses (a first leg can't go to extra time).</li>
+    <li><b>Leg 2 (decider):</b> 5/3/1 on its own 90′ score <b>plus</b> the three tie bonuses.</li>
+    <li><b>Final:</b> single match, all bonuses. Requires a <code>tieId</code>/decider concept in data + resolution engine — its own build slice.</li>
+  </ul>
+  <p><b>Tie-breaks:</b> points → most exact scores → earliest entry → <i>lowest wallet address ("because computers enjoy order")</i> — canon, preserved.</p>
+</section>
+
+<section id="editing">
+  <div class="sec-head"><div class="eyebrow">§6</div><h2>Editing predictions — a feature, not a loophole</h2>
+  <p>The old contract always allowed overwrites before lockout; the old UI never said so. Now it's front and centre.</p></div>
+  <ul>
+    <li>Editable until <b>60 minutes before kickoff</b> (<code>PREDICTION_LOCKOUT = 3600s</code>). Editing = resubmitting on-chain; <b>the user re-pays gas</b> — which on Chiliz is ~<b>$0.05 for a full 18-match batch</b>. Put that number in the UI copy.</li>
+    <li>Every open, submitted match card shows an <b>"Edit prediction"</b> button + live countdown (<i>"Locks in 2h 14m"</i>).</li>
+    <li>Edit flow pre-fills the current pick, shows an old → new diff before signing, confirms with a toast.</li>
+    <li>Batch "edit matchday" mode: all changes in <b>one transaction</b>.</li>
+    <li>Telegram posts a last-call reminder ~75 minutes before each kickoff cluster.</li>
+    <li>T&amp;Cs state it plainly: change your mind freely, gas is on you.</li>
+  </ul>
+</section>
+
+<section id="data">
+  <div class="sec-head"><div class="eyebrow">§7</div><h2>UEFA data — the source of truth</h2>
+  <p>UEFA's own undocumented JSON API (the one powering uefa.com), via the MIT-licensed <code>uefa-api</code> npm package.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Endpoint</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">match.uefa.com/v5/matches</td><td>fixtures + results (<code>competitionId=1</code> = UCL, confirmed; <code>seasonYear</code> mandatory)</td></tr>
+      <tr><td class="mono">match.uefa.com/v5/livescore</td><td>relayer fast path — payload includes a change-detection <code>hash</code></td></tr>
+      <tr><td class="mono">standings.uefa.com/v1/standings</td><td>league table (knockout seeding)</td></tr>
+      <tr><td class="mono">comp.uefa.com/v2/teams</td><td>the 36 participants</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Package reality:</b> <code>uefa-api</code> v1.0.2, zero dependencies, dormant since June 2024 → treat as a reference implementation we own:
+  pin it, vendor the types, zod-validate every response, patch our copy if UEFA drifts.</p>
+  <div class="card">
+    <h4>Source-adapter pattern — survive API churn</h4>
+    <pre><code>interface ResultSource {
+  id: string;                                  // "uefa-api@1.0.2"
+  fixtures(season: string): Promise&lt;Fixture[]&gt;;
+  result(ref: string): Promise&lt;MatchResult | null&gt;;  // 90' + total + pens + advancer
+  livescore(): Promise&lt;LiveMatch[]&gt;;
+  health(): Promise&lt;SourceHealth&gt;;
+}</code></pre>
+    <p><code>UefaApiSource</code> at launch; <code>FootballDataSource</code> (free tier covers the UCL) specced as fallback.
+    On-chain, an owner-updatable <code>resultSourceRef</code> string declares which feed the oracle relays — swap sources without touching contract logic or frontend.</p>
+  </div>
+  <h3>Fixtures &amp; bracket</h3>
+  <ul>
+    <li><code>matches.json</code> keeps the predecessor's shape but is <b>generated</b> from the feed after the 27 Aug draw (+ <code>uefaMatchId</code>, <code>tieId</code>, <code>legNumber</code>). Never hand-authored.</li>
+    <li>Knockout seeding from league positions (top 8 → R16; 9–24 → play-offs) + February draws; the upstream <code>Match.type</code> (<span class="mono">FIRST_LEG/SECOND_LEG</span>) maps straight onto our tie model.</li>
+    <li>The predecessor's <b>hard verification gate</b> survives, re-pointed at UEFA: no knockout batch broadcasts unless the numbering-independent bracket check passes.</li>
+  </ul>
+  <h3>Official club crests</h3>
+  <p>Primary: <b>football-data.org</b> free tier (<span class="mono">crests.football-data.org/{teamId}.png</span>, 10 req/min, cached server-side).
+  Fallback chain (Fanbet's production pattern, never blank): manual override → football-data crest → img.uefa.com team PNG → coloured monogram —
+  implemented as a plain <code>&lt;img onError&gt;</code> swap (not Radix Avatar; see Fanbet's 2026-05-29 incident).
+  Legal note: crests are trademarks — fine for a prototype, needs clearance for a commercial launch.</p>
+</section>
+
+<section id="oracle">
+  <div class="sec-head"><div class="eyebrow">§8–9</div><h2>The results oracle — "very little maintenance"</h2>
+  <p>Target: an untouched laptop for an entire matchday leaves the system fully settled.</p></div>
+  <pre><code>UEFA API ──▶ Relayer (GitHub Actions, every 5 min on matchdays)
+                │  zod-validate → 90' score + flags → idempotency guard
+                ▼
+     ClPredictor.pushResult(matchId, packed)   [RESULT_ORACLE_ROLE]
+                │                      (provisional, 24h dispute window)
+                ▼
+     auto-finalize ──▶ points computable ──▶ Telegram post + Supabase sync</code></pre>
+  <ul>
+    <li><b>Relayer on GitHub Actions cron</b> (free) — Vercel Hobby crons are <b>daily-only</b>, unusable for match polling; cron-job.org is the documented backup trigger. Every 5 min in matchday windows, hourly otherwise, <code>concurrency.group</code> so runs never overlap, idempotency guard before every submit (Fanbet's proven bot pattern).</li>
+    <li><b>Dedicated oracle wallet</b> holds only gas, has only <code>RESULT_ORACLE_ROLE</code>; owner key never in CI; owner can rotate the oracle any time.</li>
+    <li>Automates: results (90′ + flags), kickoff updates, knockout fixture generation after draws (behind the verification gate), Supabase sync, Telegram posts.</li>
+  </ul>
+  <div class="card green">
+    <h4>Corrections — the undo button</h4>
+    <ul>
+      <li>Results are <b>PROVISIONAL for 24h</b>, then auto-finalize. Admin <code>correctResult()</code> freely inside the window; the relayer also self-corrects if UEFA amends a score. <b>The leaderboard moves immediately, with a ◌ provisional badge (D9)</b> — match night is the engagement moment; Telegram posts carry the same label.</li>
+      <li>Post-finalization corrections require <code>pause()</code> + <code>forceCorrectResult</code> — deliberate friction, loudly evented.</li>
+      <li>Because scoring is computed at claim/freeze time, a pre-payout correction <b>re-scores everyone automatically</b> — no per-user settlements to unwind.</li>
+      <li><b>Non-football outcomes: mirror UEFA verbatim (D6).</b> Whatever <code>score.regular</code> records is the result — forfeits and green-table 3-0s included (<span class="mono">WIN_BY_FORFEIT</span>). The oracle stays perfectly dumb; the T&amp;Cs pre-answer it: <i>"Take it up with Nyon."</i></li>
+      <li>Wrong match (our mistake, not UEFA's)? <code>voidMatch()</code>. Wrong teams pre-kickoff? <code>setMatchTeams()</code>, predictions preserved.</li>
+    </ul>
+  </div>
+  <div class="card pink">
+    <h4>Breakage detection — assume the unofficial API breaks at the worst moment</h4>
+    <ul>
+      <li><b>Schema watch:</b> zod on every response — shape drift raises <span class="mono">SOURCE_SCHEMA_CHANGED</span>, never a silent <code>undefined</code>.</li>
+      <li><b>Staleness watchdog:</b> match finished &gt;2h ago with no result, or zero fixtures on a known matchday → <span class="mono">SOURCE_STALE</span>.</li>
+      <li><b>Alerts:</b> Telegram DM to admin + private ops channel, GitHub Actions failure e-mail as the second wire. Daily "✅ oracle healthy" heartbeat — so silence itself is detectable.</li>
+      <li><b>Degraded mode:</b> app banners "results delayed"; the old manual admin path survives as the emergency fallback. Recovery = swap the adapter + update <code>resultSourceRef</code>; contract and frontend untouched.</li>
+    </ul>
+  </div>
+  <p><b>What's left of the admin console:</b> oracle health dashboard, the correction actions above, stage lifecycle (open/close entry, <code>freezeStage</code>), emergencies (pause, oracle rotation, UUPS upgrade). Routine per-match work: <b>none</b> — down from 2 signed txs + a manual feed cross-check per match.</p>
+</section>
+
+<section id="contract">
+  <div class="sec-head"><div class="eyebrow">§10</div><h2>Contract v3 — ChampionzPredictor.sol</h2>
+  <p>Solidity 0.8.24 (Chiliz ceiling, Shanghai EVM), OpenZeppelin UUPS proxy, Hardhat toolchain, keyless Chiliscan verification.</p></div>
+  <div class="card gold">
+    <h4>★ Gas: beat the World Cup contract</h4>
+    <p>v2's dominant cost was <code>batchSettleUserPoints</code> — admin-paid loops writing ~20k gas per user per match, O(users × matches).
+    v3 <b>deletes the concept</b>: points are a pure function of (predictions, results), computed at read/claim/freeze time.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th></th><th>World Cup v2</th><th>₵h@mpi0nz v3</th></tr></thead>
+      <tbody>
+        <tr><td>Result recording</td><td>admin tx</td><td>oracle tx, packed, ~100k gas</td></tr>
+        <tr><td>Point settlement</td><td>per-match, per-user storage writes + guard slots</td><td><b>none</b> — lazy scoring</td></tr>
+        <tr><td>Leaderboard freeze</td><td>full ranked array + order check</td><td>top-20 only; contract <b>recomputes those 20 on-chain</b> (bounded loop) — trustless, no merkle ceremony</td></tr>
+        <tr><td>Season total (admin+oracle)</td><td>~2 txs + settle batches per match × 189</td><td><b>~1 tx per match</b> + 2 freezes</td></tr>
+      </tbody>
+    </table></div>
+    <p>Also: bit-packed predictions (1 slot) and results (1 slot) · matchday batch submission (1 tx, up to 18 matches) ·
+    custom errors · events over storage · <code>bytes3</code> team codes, no strings in hot paths.
+    Chiliz v2.8.1 (30 Jun 2026) enabled <b>EIP-7702</b> — batched enter+predict UX is a flagged opportunity, not a dependency.</p>
+  </div>
+  <p><b>User gas reality:</b> min gas price 2,501 gwei (EIP-1559, 2,500 base + 1 tip). An 18-match packed batch ≈ 450k gas ≈ <b>1.1 CHZ ≈ $0.05</b>.</p>
+  <p><b>Keys (D5):</b> owner = <span class="mono">0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8</span> — a single hardware-backed key, never in CI, never hot.
+  Multisig rejected as ceremony for a solo operator; the contract caps owner power structurally instead (on-chain freeze recomputation, pause-gated corrections,
+  180-day-locked emergency withdrawal, separate low-value oracle key). <code>feeRecipient</code> defaults to the owner wallet.</p>
+</section>
+
+<section id="wallet">
+  <div class="sec-head"><div class="eyebrow">§11</div><h2>Wallet &amp; chain</h2></div>
+  <ul>
+    <li><b>Socios.com Wallet is mandatory</b> and is a smart-contract account: the dApp <b>MUST support ERC-1271</b> (<code>isValidSignature()</code>), branching contract-vs-EOA on every signature check. Predecessor's dual-path verifier reused verbatim.</li>
+    <li>Only <code>eth_sendTransaction</code>, <code>eth_signTransaction</code>, <code>personal_sign</code> — <b>no typed-data signatures</b>; no permit-style flows anywhere in the product.</li>
+    <li>SCW write-confirmation = poll chain state for the effect (~120s window), never await a relayed receipt.</li>
+    <li>Never overwrite <code>window.ethereum</code>; pick from <code>window.ethereum.providers</code>.</li>
+    <li>Stack: wagmi v2 + viem v2 + Reown AppKit, Socios wallet surfaced via <code>explorerRecommendedWalletIds</code>. Spicy first, then mainnet.</li>
+  </ul>
+</section>
+
+<section id="telegram">
+  <div class="sec-head"><div class="eyebrow">§12</div><h2>Telegram</h2>
+  <p>Three surfaces, one free bot.</p></div>
+  <ul>
+    <li><b>Public channel:</b> entry milestones, T-75min lock reminders, matchday results + points digests, leaderboard moves, corrections, payouts, degraded-mode notices. (Respect 20 msg/min → digest posts.)</li>
+    <li><b>Discussion group:</b> replaces the in-app feedback feature entirely; pinned formats for bugs and rule questions.</li>
+    <li><b>Private ops channel:</b> oracle alerts + daily heartbeat.</li>
+    <li><b>Account linking (optional):</b> <span class="mono">t.me/&lt;bot&gt;?start=&lt;one-time-code&gt;</span> → bot maps code → wallet, stores <code>telegram_user_id</code>, auto-invites to the group. Strictly opt-in, one-tap unlink.</li>
+  </ul>
+</section>
+
+<section id="signup">
+  <div class="sec-head"><div class="eyebrow">§13</div><h2>Sign-up &amp; Supabase</h2></div>
+  <p><b>Flow:</b> connect wallet → pay entry → <b>set username + country (required — the leaderboard renders flags from day one)</b> → optionally link Telegram.</p>
+  <div class="card">
+    <h4>Tables — existing free Supabase project, clearly labelled</h4>
+    <p class="muted" style="font-size:13px">All tables prefixed <code>clp_</code> + <span class="mono">COMMENT ON TABLE … IS 'ChampionsLeague predictor'</span> so later cleanup is one query. Reusing the existing project respects the 2-project free cap and keeps it warm past the 7-day auto-pause.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">clp_user_profiles</td><td>wallet, chain, username, country, telegram id/handle, entry tier</td></tr>
+        <tr><td class="mono">clp_match_cache</td><td>on-chain id ↔ uefaMatchId ↔ football-data ids, kickoff, cached score</td></tr>
+        <tr><td class="mono">clp_leaderboard</td><td>per-stage points cache (chain is truth)</td></tr>
+        <tr><td class="mono">clp_oracle_log</td><td>relayer runs, results, corrections, alerts → admin console + heartbeat</td></tr>
+        <tr><td class="mono">clp_tg_link_codes</td><td>one-time Telegram link codes, TTL'd</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted" style="font-size:13px">RLS: public read; service-role writes only; DB-backed rate limits on profile writes.</p>
+  </div>
+</section>
+
+<section id="design">
+  <div class="sec-head"><div class="eyebrow">§14</div><h2>Design &amp; branding</h2>
+  <p>The style-guide HTML defines the <i>look</i>, not the features: this document is the feature set.</p></div>
+  <ul>
+    <li><b>"European nights":</b> deep navy (<span class="mono">#060A1A</span>), glow blue (<span class="mono">#2E6BFF</span>), CHZ pink (<span class="mono">#FF1257</span>), star gold (<span class="mono">#F6C76A</span>); Archivo display / Inter body / Space Mono data; starfield, glowing scoreboard steppers, pills, stat strips, uppercase display type.</li>
+    <li><b>Footer credit (required):</b> <i>"Design inspired by BigMac Bobby"</i> — all pages.</li>
+    <li>Semantic CSS-variable tokens from day one; no hardcoded hexes in components. Tailwind v4 — both <code>postcss.config.mjs</code> and the <code>@source</code>-bearing globals.css are load-bearing (Fanbet incident).</li>
+    <li>Real interactive elements (<code>aria-pressed</code> toggles), <code>prefers-reduced-motion</code> respected, AA contrast on glow-on-navy.</li>
+  </ul>
+</section>
+
+<section id="terms">
+  <div class="sec-head"><div class="eyebrow">§15</div><h2>Terms &amp; conditions — funnier, still binding</h2></div>
+  <p>The bar to clear, verbatim from the predecessor:</p>
+  <div class="quote">"Lowest wallet address (because computers enjoy order)" · "If you're looking for guaranteed profits, this probably isn't for you."</div>
+  <ul>
+    <li><b>Keep every load-bearing clause:</b> skill-based (no odds, no house edge), 60-min lockout, edits-until-lockout (gas on you), non-refundable entries, provisional-result window, smart-contract risk, public-chain visibility of predictions, eligibility/geo responsibility, <b>UEFA non-affiliation (mandatory)</b>, BigMac Bobby credit.</li>
+    <li><b>Humor direction:</b> the 90-minute rule as support-ticket pre-emption (<i>"Yes, it went to extra time. No, we don't care. Rule 5.1 has been waiting for your email."</i>); the mirror-UEFA rule (<i>"If UEFA awards it 3-0 at a green table, that's the score. Take it up with Nyon."</i>); entry tiers as boarding classes; the oracle (<i>"The robot does not take bribes; it doesn't even take weekends."</i>); the wallet-address tie-break stays — it's canon.</li>
+    <li><b>Six locales (D10):</b> humour is <b>adapted per locale, not translated</b> — the most expensive T&amp;C consequence of the language decision; budgeted in the August crunch.</li>
+    <li><b>Process:</b> counsel-grade structure first, per-locale humor pass second. Edge cases (abandonments, sanctions, withdrawals) are settled by the mirror-UEFA rule.</li>
+  </ul>
+</section>
+
+<section id="security">
+  <div class="sec-head"><div class="eyebrow">§16</div><h2>Security program</h2></div>
+  <div class="card pink">
+    <h4>★ Cross-model adversarial pentest loop</h4>
+    <ol>
+      <li><b>Design &amp; build</b> the contract with the primary model; full unit + fuzz tests.</li>
+      <li><b>Red team with a different model:</b> frozen source + ABI, fresh context, attacker persona, zero design rationale. Severity-ranked findings with PoC sketches.</li>
+      <li><b>Loop:</b> designer fixes → red team re-attacks the diff → repeat until <b>two consecutive clean rounds</b>.</li>
+      <li>Everything logs to <span class="mono">SECURITY_FINDINGS.md</span> — the new Audit.MD and future regression checklist.</li>
+    </ol>
+  </div>
+  <ul>
+    <li><b>Known-weakness scan:</b> Slither (zero-high gate) + Snyk + npm audit; checklist sweep — reentrancy, oracle manipulation/single-source trust, front-running (plaintext predictions: inherited accepted risk, lockout-mitigated), access control, UUPS pitfalls, unbounded loops (freeze bounded at 20), rounding, signature replay (ERC-1271 path), exact-value enforcement.</li>
+    <li><b>Past-hack review:</b> prediction-market/staking incident families — oracle-feed manipulation and admin-key compromise → oracle role separation + owner multisig recommendation.</li>
+    <li><b>Regression baseline:</b> all 18 predecessor audit findings (H-01…L-06) re-checked against v3, incl. the 180-day-locked <code>emergencyWithdraw</code>.</li>
+    <li><b>Ops:</b> low-value gas-only oracle key in Actions secrets; owner key never in CI; rotation calendar; incident runbook (detect → assess → pause → announce ≤1h → remediate → postmortem).</li>
+    <li><b>Geo-fencing (D7):</b> copy Fanbet's production edge block verbatim — HTTP 451 for the same 14 jurisdictions (CN, BD, DZ, EG, NP, AF, KP, IQ, IR, AE, ID, VN, QA, SG) + a T&amp;C eligibility clause. An engineering mitigation, explicitly not legal advice.</li>
+  </ul>
+</section>
+
+<section id="wow">
+  <div class="sec-head"><div class="eyebrow">§17</div><h2>Ways of working</h2>
+  <p>Copied from the Socios redesign repo's proven agent setup.</p></div>
+  <ul>
+    <li><b>rtk token optimization:</b> already wired globally (PreToolUse Bash hook → <span class="mono">rtk hook claude</span>, 60–90% savings). Zero per-project setup; just verify <span class="mono">rtk --version</span>.</li>
+    <li><b>Automation bash guards:</b> copy the redesign repo's <span class="mono">.claude/settings.json</span> allowlist (npm/git/gh/vercel auto-allowed; force-push/rm -rf ask; curl/cloud CLIs/.env reads denied) + grow a project-local allowlist (uefa.com, crests.football-data.org, api.telegram.org, chiliscan.com).</li>
+    <li><b>Matt Pocock skills:</b> <span class="mono">npx skills@latest add mattpocock/skills</span> → run <span class="mono">/setup-matt-pocock-skills</span> (local-markdown issue tracker + 5-label triage, as the redesign repo). <b><span class="mono">/grill-with-docs</span> is mandatory on this PRD</b> before build and on every contested decision — outputs land as ADRs + CONTEXT.md. Also: <span class="mono">tdd</span> for the contract, <span class="mono">to-issues</span> to slice this PRD, git-guardrails, setup-pre-commit.</li>
+    <li><b>Model switching policy</b> (no fully automatic switcher exists — approximate one): <span class="mono">.claude/agents/*.md</span> with <span class="mono">model:</span> frontmatter — haiku for mechanical chores, sonnet default builder, top tier reserved for contract/security/economics; per-stage model/effort overrides in workflow scripts; escalate explicitly.</li>
+    <li><b>Repo hygiene:</b> protected main, branch-per-task, <span class="mono">tsc --noEmit &amp;&amp; test &amp;&amp; build</span> pre-PR, never commit .env.local. Docs: PRD.md (master) + PRD.html + CONTEXT.md + docs/adr/ + .scratch issues + postmortems. CLAUDE.md carries a Fanbet-style "critical contract zones" table.</li>
+    <li><b>SSR safety:</b> no <span class="mono">Date.now()/Math.random()</span>/unpinned locales in render; countdowns mount client-side; locale pinned en-US.</li>
+  </ul>
+</section>
+
+<section id="deploy">
+  <div class="sec-head"><div class="eyebrow">§18–19</div><h2>Deployment, domain &amp; free-tier matrix</h2></div>
+  <ul>
+    <li><b>GitHub:</b> new repo under personal <b>Loideroi</b> (mark.verdegaal@gmail.com); public preferred (unlimited free Actions minutes). ⚠ Actions schedules auto-disable after 60 days of repo inactivity — calendar reminder for the winter break.</li>
+    <li><b>Vercel:</b> Loideroi Hobby account. Daily-cron limit respected (relayer lives on GitHub Actions).</li>
+    <li><b>pr3dict0r.com (GoDaddy, purchased):</b> add the domain in Vercel first, copy the exact records it shows — typically apex <span class="mono">A @ → 216.198.79.1</span> (legacy 76.76.21.21 works), <span class="mono">CNAME www → cname.vercel-dns.com</span> — and <b>delete GoDaddy's default parked A record</b> or verification fails. ≤1h propagation typical.</li>
+    <li><b>Contracts:</b> full staging pass on Spicy (relayer-driven fake matchday from archived UEFA fixtures) → mainnet → keyless Chiliscan verification.</li>
+  </ul>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Service</th><th>Tier</th><th>Limit that matters</th></tr></thead>
+    <tbody>
+      <tr><td>UEFA API (uefa-api)</td><td>free, unofficial</td><td>no SLA → §8 breakage detection</td></tr>
+      <tr><td>football-data.org</td><td>free</td><td>10 req/min (crests + fallback results)</td></tr>
+      <tr><td>GitHub Actions</td><td>free (public repo)</td><td>5-min cron floor · 60-day inactivity auto-disable</td></tr>
+      <tr><td>Vercel</td><td>Hobby</td><td><b>daily crons only</b> · 100 GB · non-commercial</td></tr>
+      <tr><td>Supabase</td><td>free (existing project)</td><td>500 MB DB · 2 projects · 7-day auto-pause</td></tr>
+      <tr><td>Telegram Bot API</td><td>free</td><td>20 msg/min per channel → digests</td></tr>
+      <tr><td>cron-job.org</td><td>free</td><td>backup relayer trigger, 1-min granularity</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="milestones">
+  <div class="sec-head"><div class="eyebrow">§20</div><h2>Milestones</h2></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>Milestone</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">0</td><td>PRD grilled ✅ (2026-07-04, §21) → ADRs cut, issues sliced</td><td>Jul 2026</td></tr>
+      <tr><td class="mono">1</td><td>Repo + agent setup (skills, guards, CI, clp_ tables)</td><td>Jul 2026</td></tr>
+      <tr><td class="mono">2</td><td>Contract v3 on Spicy + pentest loop complete</td><td>Aug 2026</td></tr>
+      <tr><td class="mono">3</td><td>UEFA adapter + relayer + breakage alerts vs archive data</td><td>Aug 2026</td></tr>
+      <tr><td class="mono">4</td><td>Frontend (BigMac Bobby style) + Telegram bot + sign-up + <b>6-locale content pass — the crunch risk</b></td><td>late Aug 2026</td></tr>
+      <tr><td class="mono">5</td><td><b>League draw → generate, verify, push fixtures on-chain</b></td><td>27–31 Aug 2026</td></tr>
+      <tr><td class="mono">6</td><td>Mainnet + pr3dict0r.com live, entries open</td><td>~1 Sep 2026</td></tr>
+      <tr><td class="mono">7</td><td>MD1 — first fully automated matchday</td><td>8–10 Sep 2026</td></tr>
+      <tr><td class="mono">8</td><td>Stage 1 freeze + payout (knockout sales — open since Sep — final push)</td><td>early Feb 2027</td></tr>
+      <tr><td class="mono">9</td><td>Final in Madrid · Stage 2 payout · Ultimate ₵h@mpi0n crowned</td><td>5 Jun 2027</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="open">
+  <div class="sec-head"><div class="eyebrow">§21 · grilled 2026-07-04</div><h2>Decision log</h2>
+  <p>Eleven decisions locked in the grilling session — one question at a time, each with a recommendation. ⚡ marks answers that overrode the recommendation.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>Question</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">D1</td><td>Late league entry?</td><td><b>Hard close at MD1 kickoff.</b> Knockout pass is the latecomer product.</td></tr>
+      <tr><td class="mono">D2</td><td>Small pools</td><td><b>Floor 20 per stage</b> — below: stage void, full 550 refund (fee incl.); at ≥20 the top-20 split applies.</td></tr>
+      <tr><td class="mono">D3</td><td>League payout timing</td><td><b>Immediately after MD8 finalizes</b>; the payout post markets the knockout window's final weeks.</td></tr>
+      <tr><td class="mono">D4 ⚡</td><td>Knockout window</td><td><b>Open at MD1 kickoff (continuous sales), close at T-60 of the last play-off first-leg</b> (~17 Feb). Final-day joiners miss ≤ ~7 locked matches — disclosed at purchase. Non-refundable from purchase.</td></tr>
+      <tr><td class="mono">D5 ⚡</td><td>Owner key</td><td><b>Single hardware-backed key</b> <span class="mono">0x4710…9CF8</span>; structural caps instead of multisig; not singled out in T&amp;Cs.</td></tr>
+      <tr><td class="mono">D6 ⚡</td><td>Forfeits / sanctions</td><td><b>Mirror UEFA verbatim</b> — <span class="mono">score.regular</span> is truth, green-table results included; <span class="mono">voidMatch</span> for our own mistakes only.</td></tr>
+      <tr><td class="mono">D7</td><td>Geo-fencing</td><td><b>Fanbet's 14-jurisdiction HTTP-451 edge block</b> + eligibility clause (mitigation, not legal advice).</td></tr>
+      <tr><td class="mono">D8</td><td>Season crown</td><td><b>On-chain trophy NFT</b> (ERC-721, zero funds) + profile crown + hall of fame.</td></tr>
+      <tr><td class="mono">D9</td><td>Provisional display</td><td><b>Immediate leaderboard movement with ◌ badge</b>; Telegram labels posts "provisional" for 24h.</td></tr>
+      <tr><td class="mono">D10 ⚡</td><td>Languages</td><td><b>All 6 predecessor locales at launch.</b> Accepted: 6× content in the August crunch; T&amp;C humour adapted per locale, not translated.</td></tr>
+      <tr><td class="mono">D11</td><td>Match insights</td><td><b>Kept, automated per-matchday</b>: en generation → 5-locale merge tooling; empty-safe, may lag fixtures.</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Still open (build task, not a decision):</b> lock the exact field names against one live <span class="mono">match.uefa.com/v5</span> payload — typings are community-maintained; a real response may carry extra/renamed fields.</p>
+</section>
+
+<section id="accept">
+  <div class="sec-head"><div class="eyebrow">§22</div><h2>Acceptance criteria — the launch gate</h2></div>
+  <ul class="check">
+    <li>Entries enforced exactly on-chain: 1,100 / 550 CHZ; fees 100 / 50 to <code>feeRecipient</code>.</li>
+    <li>A complete matchday settles end-to-end with <b>zero human actions</b> (result → provisional → finalize → leaderboard → Telegram).</li>
+    <li>A real AET archive match scores on the <b>90-minute</b> score with correct decider bonuses.</li>
+    <li>A corrupted feed response alerts the admin on Telegram within one poll cycle; <code>correctResult</code> self-heals the leaderboard.</li>
+    <li>Submit → edit → overwrite verified on-chain → lock at T-60, through the UI, from a Socios.com Wallet on Spicy.</li>
+    <li>Simulated 18-match matchday oracle gas ≤ 10% of the predecessor's equivalent settle cost for 100 users (measured).</li>
+    <li>Pentest loop: two consecutive clean rounds · Slither zero-high · Snyk clean · 18-item regression checklist green.</li>
+    <li>Username + country captured; flags on the leaderboard; Telegram linking round-trips.</li>
+    <li>All Supabase tables <code>clp_</code>-prefixed and commented <i>ChampionsLeague predictor</i>.</li>
+    <li>Stage-void floor works on Spicy: 19 entrants → all 550s refunded in full.</li>
+    <li>Knockout purchase screen during the first-leg window lists already-locked matches before payment.</li>
+    <li>Geo edge block returns HTTP 451 for the 14 Fanbet jurisdictions.</li>
+    <li>Ultimate ₵h@mpi0n trophy NFT mints to the Season View winner on Spicy.</li>
+    <li>All 6 locales render (UI + T&amp;Cs + MD1 insights); non-translatable fields byte-identical.</li>
+    <li>Footer: "Design inspired by BigMac Bobby". T&amp;Cs legally coherent and measurably funnier in every locale (≥1 new joke per section, adapted not translated; tie-break joke preserved).</li>
+    <li>pr3dict0r.com resolves to production over HTTPS.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex;flex-direction:column;gap:6px">
+    <span>₵h@mpi0nz Pr3dict0r · PRD v1.1.0 · grilled 2026-07-04 · master file: PRD.md</span>
+    <span>Design inspired by BigMac Bobby · Built on Chiliz Chain · Not affiliated with or endorsed by UEFA</span>
+  </div>
+</footer>
+</body>
+</html>
