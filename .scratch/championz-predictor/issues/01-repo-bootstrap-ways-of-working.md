@@ -1,6 +1,6 @@
 # 01 — Repo bootstrap & ways-of-working
 
-Status: ready-for-agent
+Status: done (2026-07-04)
 PRD: ../../PRD.md §17–18 · Decisions: D5, D10 (tooling implications)
 
 ## What to build
@@ -29,3 +29,19 @@ slices can cite them.
 ## Blocked by
 
 None — can start immediately.
+
+## Comments
+
+**2026-07-04 — completed.** Repo: https://github.com/Loideroi/championz-pr3dict0r
+(public, Loideroi account). Evidence per criterion: dev/build/test/typecheck all green
+locally + CI run 28686124459 green; direct-push probe rejected ("protected branch hook
+declined") with required status checks `app` + `contracts`, enforce_admins on;
+rtk verified; bash guards in `.claude/settings.json`; Matt Pocock skills copied from
+the redesign repo into `.claude/skills/` (23 skills) with tracker/triage docs in
+`docs/agents/`; ADRs 0001–0011 = grill decisions D1–D11; CLAUDE.md (with critical
+contract zones table), CONTEXT.md, CONTRIBUTING.md, `.env.example` (no secrets) all
+present. Snyk code scan: 0 issues. Deviations: skills copied from the redesign repo
+instead of `npx skills add` (interactive picker, same content); branch protection uses
+required-status-checks without required-review (solo repo — self-approval impossible);
+`.claude/launch.json` not created (preview tooling permission-bound to the main
+session project — harmless, `npm run dev` works).
