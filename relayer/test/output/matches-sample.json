@@ -1,0 +1,835 @@
+{
+  "generatedFrom": [
+    "test/fixtures/matches-ucl-2026-first20.json",
+    "test/fixtures/matches-ucl-2026-aet.json"
+  ],
+  "source": "uefa-api@1.0.2 (match.uefa.com/v5/matches, competitionId=1)",
+  "teams": {
+    "NAP": {
+      "name": "Napoli",
+      "code": "NAP",
+      "uefaId": "50136",
+      "country": "ITA"
+    },
+    "CHE": {
+      "name": "Chelsea",
+      "code": "CHE",
+      "uefaId": "52914",
+      "country": "ENG"
+    },
+    "MON": {
+      "name": "Monaco",
+      "code": "MON",
+      "uefaId": "50023",
+      "country": "FRA"
+    },
+    "JUV": {
+      "name": "Juventus",
+      "code": "JUV",
+      "uefaId": "50139",
+      "country": "ITA"
+    },
+    "USG": {
+      "name": "Union SG",
+      "code": "USG",
+      "uefaId": "64125",
+      "country": "BEL"
+    },
+    "ATA": {
+      "name": "Atalanta",
+      "code": "ATA",
+      "uefaId": "52816",
+      "country": "ITA"
+    },
+    "ATH": {
+      "name": "Athletic Club",
+      "code": "ATH",
+      "uefaId": "50125",
+      "country": "ESP"
+    },
+    "SPO": {
+      "name": "Sporting CP",
+      "code": "SPO",
+      "uefaId": "50149",
+      "country": "POR"
+    },
+    "PAF": {
+      "name": "Pafos",
+      "code": "PAF",
+      "uefaId": "2609532",
+      "country": "CYP"
+    },
+    "SLA": {
+      "name": "Slavia Praha",
+      "code": "SLA",
+      "uefaId": "52498",
+      "country": "CZE"
+    },
+    "GAL": {
+      "name": "Galatasaray",
+      "code": "GAL",
+      "uefaId": "50067",
+      "country": "TUR"
+    },
+    "PSG": {
+      "name": "Paris",
+      "code": "PSG",
+      "uefaId": "52747",
+      "country": "FRA"
+    },
+    "BEN": {
+      "name": "Benfica",
+      "code": "BEN",
+      "uefaId": "50147",
+      "country": "POR"
+    },
+    "RMA": {
+      "name": "Real Madrid",
+      "code": "RMA",
+      "uefaId": "50051",
+      "country": "ESP"
+    },
+    "BVB": {
+      "name": "B. Dortmund",
+      "code": "BVB",
+      "uefaId": "52758",
+      "country": "GER"
+    },
+    "QAR": {
+      "name": "Qarabağ",
+      "code": "QAR",
+      "uefaId": "60609",
+      "country": "AZE"
+    },
+    "NEW": {
+      "name": "Newcastle",
+      "code": "NEW",
+      "uefaId": "59324",
+      "country": "ENG"
+    },
+    "OLY": {
+      "name": "Olympiacos",
+      "code": "OLY",
+      "uefaId": "2610",
+      "country": "GRE"
+    },
+    "LEV": {
+      "name": "Leverkusen",
+      "code": "LEV",
+      "uefaId": "50109",
+      "country": "GER"
+    },
+    "BOD": {
+      "name": "Bodø/Glimt",
+      "code": "BOD",
+      "uefaId": "59333",
+      "country": "NOR"
+    },
+    "INT": {
+      "name": "Inter",
+      "code": "INT",
+      "uefaId": "50138",
+      "country": "ITA"
+    },
+    "BRU": {
+      "name": "Club Brugge",
+      "code": "BRU",
+      "uefaId": "50043",
+      "country": "BEL"
+    },
+    "ATM": {
+      "name": "Atleti",
+      "code": "ATM",
+      "uefaId": "50124",
+      "country": "ESP"
+    },
+    "LIV": {
+      "name": "Liverpool",
+      "code": "LIV",
+      "uefaId": "7889",
+      "country": "ENG"
+    },
+    "BAY": {
+      "name": "Bayern München",
+      "code": "BAY",
+      "uefaId": "50037",
+      "country": "GER"
+    },
+    "BAR": {
+      "name": "Barcelona",
+      "code": "BAR",
+      "uefaId": "50080",
+      "country": "ESP"
+    },
+    "TOT": {
+      "name": "Tottenham",
+      "code": "TOT",
+      "uefaId": "1652",
+      "country": "ENG"
+    },
+    "ARS": {
+      "name": "Arsenal",
+      "code": "ARS",
+      "uefaId": "52280",
+      "country": "ENG"
+    },
+    "MCI": {
+      "name": "Man City",
+      "code": "MCI",
+      "uefaId": "52919",
+      "country": "ENG"
+    }
+  },
+  "matches": [
+    {
+      "matchId": 1,
+      "phase": 0,
+      "teamA": "NAP",
+      "teamB": "CHE",
+      "kickoffTime": 1769630400,
+      "group": "League",
+      "matchday": 8,
+      "knockout": false,
+      "uefaMatchId": "2046042",
+      "tieId": null,
+      "legNumber": null
+    },
+    {
+      "matchId": 2,
+      "phase": 0,
+      "teamA": "MON",
+      "teamB": "JUV",
+      "kickoffTime": 1769630400,
+      "group": "League",
+      "matchday": 8,
+      "knockout": false,
+      "uefaMatchId": "2046043",
+      "tieId": null,
+      "legNumber": null
+    },
+    {
+      "matchId": 3,
+      "phase": 0,
+      "teamA": "USG",
+      "teamB": "ATA",
+      "kickoffTime": 1769630400,
+      "group": "League",
+      "matchday": 8,
+      "knockout": false,
+      "uefaMatchId": "2046044",
+      "tieId": null,
+      "legNumber": null
+    },
+    {
+      "matchId": 4,
+      "phase": 0,
+      "teamA": "ATH",
+      "teamB": "SPO",
+      "kickoffTime": 1769630400,
+      "group": "League",
+      "matchday": 8,
+      "knockout": false,
+      "uefaMatchId": "2046045",
+      "tieId": null,
+      "legNumber": null
+    },
+    {
+      "matchId": 5,
+      "phase": 0,
+      "teamA": "PAF",
+      "teamB": "SLA",
+      "kickoffTime": 1769630400,
+      "group": "League",
+      "matchday": 8,
+      "knockout": false,
+      "uefaMatchId": "2046046",
+      "tieId": null,
+      "legNumber": null
+    },
+    {
+      "matchId": 6,
+      "phase": 1,
+      "teamA": "GAL",
+      "teamB": "JUV",
+      "kickoffTime": 1771350300,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047762",
+      "tieId": "2002111:50067-50139",
+      "legNumber": 1
+    },
+    {
+      "matchId": 7,
+      "phase": 1,
+      "teamA": "MON",
+      "teamB": "PSG",
+      "kickoffTime": 1771358400,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047761",
+      "tieId": "2002111:50023-52747",
+      "legNumber": 1
+    },
+    {
+      "matchId": 8,
+      "phase": 1,
+      "teamA": "BEN",
+      "teamB": "RMA",
+      "kickoffTime": 1771358400,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047763",
+      "tieId": "2002111:50051-50147",
+      "legNumber": 1
+    },
+    {
+      "matchId": 9,
+      "phase": 1,
+      "teamA": "BVB",
+      "teamB": "ATA",
+      "kickoffTime": 1771359300,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047764",
+      "tieId": "2002111:52758-52816",
+      "legNumber": 1
+    },
+    {
+      "matchId": 10,
+      "phase": 1,
+      "teamA": "QAR",
+      "teamB": "NEW",
+      "kickoffTime": 1771436700,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047768",
+      "tieId": "2002111:59324-60609",
+      "legNumber": 1
+    },
+    {
+      "matchId": 11,
+      "phase": 1,
+      "teamA": "OLY",
+      "teamB": "LEV",
+      "kickoffTime": 1771444800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047765",
+      "tieId": "2002111:2610-50109",
+      "legNumber": 1
+    },
+    {
+      "matchId": 12,
+      "phase": 1,
+      "teamA": "BOD",
+      "teamB": "INT",
+      "kickoffTime": 1771444800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047766",
+      "tieId": "2002111:50138-59333",
+      "legNumber": 1
+    },
+    {
+      "matchId": 13,
+      "phase": 1,
+      "teamA": "BRU",
+      "teamB": "ATM",
+      "kickoffTime": 1771444800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047767",
+      "tieId": "2002111:50043-50124",
+      "legNumber": 1
+    },
+    {
+      "matchId": 14,
+      "phase": 1,
+      "teamA": "ATM",
+      "teamB": "BRU",
+      "kickoffTime": 1771955100,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047775",
+      "tieId": "2002111:50043-50124",
+      "legNumber": 2
+    },
+    {
+      "matchId": 15,
+      "phase": 1,
+      "teamA": "LEV",
+      "teamB": "OLY",
+      "kickoffTime": 1771963200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047773",
+      "tieId": "2002111:2610-50109",
+      "legNumber": 2
+    },
+    {
+      "matchId": 16,
+      "phase": 1,
+      "teamA": "INT",
+      "teamB": "BOD",
+      "kickoffTime": 1771963200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047774",
+      "tieId": "2002111:50138-59333",
+      "legNumber": 2
+    },
+    {
+      "matchId": 17,
+      "phase": 1,
+      "teamA": "NEW",
+      "teamB": "QAR",
+      "kickoffTime": 1771963200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047776",
+      "tieId": "2002111:59324-60609",
+      "legNumber": 2
+    },
+    {
+      "matchId": 18,
+      "phase": 1,
+      "teamA": "ATA",
+      "teamB": "BVB",
+      "kickoffTime": 1772041500,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047772",
+      "tieId": "2002111:52758-52816",
+      "legNumber": 2
+    },
+    {
+      "matchId": 19,
+      "phase": 1,
+      "teamA": "PSG",
+      "teamB": "MON",
+      "kickoffTime": 1772049600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047769",
+      "tieId": "2002111:50023-52747",
+      "legNumber": 2
+    },
+    {
+      "matchId": 20,
+      "phase": 1,
+      "teamA": "JUV",
+      "teamB": "GAL",
+      "kickoffTime": 1772049600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047770",
+      "tieId": "2002111:50067-50139",
+      "legNumber": 2
+    },
+    {
+      "matchId": 21,
+      "phase": 1,
+      "teamA": "RMA",
+      "teamB": "BEN",
+      "kickoffTime": 1772049600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047771",
+      "tieId": "2002111:50051-50147",
+      "legNumber": 2
+    },
+    {
+      "matchId": 22,
+      "phase": 2,
+      "teamA": "GAL",
+      "teamB": "LIV",
+      "kickoffTime": 1773164700,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048048",
+      "tieId": "2002112:50067-7889",
+      "legNumber": 1
+    },
+    {
+      "matchId": 23,
+      "phase": 2,
+      "teamA": "ATA",
+      "teamB": "BAY",
+      "kickoffTime": 1773172800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048050",
+      "tieId": "2002112:50037-52816",
+      "legNumber": 1
+    },
+    {
+      "matchId": 24,
+      "phase": 2,
+      "teamA": "NEW",
+      "teamB": "BAR",
+      "kickoffTime": 1773172800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048051",
+      "tieId": "2002112:50080-59324",
+      "legNumber": 1
+    },
+    {
+      "matchId": 25,
+      "phase": 2,
+      "teamA": "ATM",
+      "teamB": "TOT",
+      "kickoffTime": 1773172800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048052",
+      "tieId": "2002112:1652-50124",
+      "legNumber": 1
+    },
+    {
+      "matchId": 26,
+      "phase": 2,
+      "teamA": "LEV",
+      "teamB": "ARS",
+      "kickoffTime": 1773251100,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048054",
+      "tieId": "2002112:50109-52280",
+      "legNumber": 1
+    },
+    {
+      "matchId": 27,
+      "phase": 2,
+      "teamA": "PSG",
+      "teamB": "CHE",
+      "kickoffTime": 1773259200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048047",
+      "tieId": "2002112:52747-52914",
+      "legNumber": 1
+    },
+    {
+      "matchId": 28,
+      "phase": 2,
+      "teamA": "RMA",
+      "teamB": "MCI",
+      "kickoffTime": 1773259200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048049",
+      "tieId": "2002112:50051-52919",
+      "legNumber": 1
+    },
+    {
+      "matchId": 29,
+      "phase": 2,
+      "teamA": "BOD",
+      "teamB": "SPO",
+      "kickoffTime": 1773259200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048053",
+      "tieId": "2002112:50149-59333",
+      "legNumber": 1
+    },
+    {
+      "matchId": 30,
+      "phase": 2,
+      "teamA": "SPO",
+      "teamB": "BOD",
+      "kickoffTime": 1773769500,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048061",
+      "tieId": "2002112:50149-59333",
+      "legNumber": 2
+    },
+    {
+      "matchId": 31,
+      "phase": 2,
+      "teamA": "CHE",
+      "teamB": "PSG",
+      "kickoffTime": 1773777600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048055",
+      "tieId": "2002112:52747-52914",
+      "legNumber": 2
+    },
+    {
+      "matchId": 32,
+      "phase": 2,
+      "teamA": "MCI",
+      "teamB": "RMA",
+      "kickoffTime": 1773777600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048057",
+      "tieId": "2002112:50051-52919",
+      "legNumber": 2
+    },
+    {
+      "matchId": 33,
+      "phase": 2,
+      "teamA": "ARS",
+      "teamB": "LEV",
+      "kickoffTime": 1773777600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048062",
+      "tieId": "2002112:50109-52280",
+      "legNumber": 2
+    },
+    {
+      "matchId": 34,
+      "phase": 2,
+      "teamA": "BAR",
+      "teamB": "NEW",
+      "kickoffTime": 1773855900,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048059",
+      "tieId": "2002112:50080-59324",
+      "legNumber": 2
+    },
+    {
+      "matchId": 35,
+      "phase": 2,
+      "teamA": "LIV",
+      "teamB": "GAL",
+      "kickoffTime": 1773864000,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048056",
+      "tieId": "2002112:50067-7889",
+      "legNumber": 2
+    },
+    {
+      "matchId": 36,
+      "phase": 2,
+      "teamA": "BAY",
+      "teamB": "ATA",
+      "kickoffTime": 1773864000,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048058",
+      "tieId": "2002112:50037-52816",
+      "legNumber": 2
+    },
+    {
+      "matchId": 37,
+      "phase": 2,
+      "teamA": "TOT",
+      "teamB": "ATM",
+      "kickoffTime": 1773864000,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048060",
+      "tieId": "2002112:1652-50124",
+      "legNumber": 2
+    },
+    {
+      "matchId": 38,
+      "phase": 3,
+      "teamA": "RMA",
+      "teamB": "BAY",
+      "kickoffTime": 1775588400,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048064",
+      "tieId": "2002113:50037-50051",
+      "legNumber": 1
+    },
+    {
+      "matchId": 39,
+      "phase": 3,
+      "teamA": "SPO",
+      "teamB": "ARS",
+      "kickoffTime": 1775588400,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048066",
+      "tieId": "2002113:50149-52280",
+      "legNumber": 1
+    },
+    {
+      "matchId": 40,
+      "phase": 3,
+      "teamA": "PSG",
+      "teamB": "LIV",
+      "kickoffTime": 1775674800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048063",
+      "tieId": "2002113:52747-7889",
+      "legNumber": 1
+    },
+    {
+      "matchId": 41,
+      "phase": 3,
+      "teamA": "BAR",
+      "teamB": "ATM",
+      "kickoffTime": 1775674800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048065",
+      "tieId": "2002113:50080-50124",
+      "legNumber": 1
+    },
+    {
+      "matchId": 42,
+      "phase": 3,
+      "teamA": "ATM",
+      "teamB": "BAR",
+      "kickoffTime": 1776193200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048067",
+      "tieId": "2002113:50080-50124",
+      "legNumber": 2
+    },
+    {
+      "matchId": 43,
+      "phase": 3,
+      "teamA": "LIV",
+      "teamB": "PSG",
+      "kickoffTime": 1776193200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048069",
+      "tieId": "2002113:52747-7889",
+      "legNumber": 2
+    },
+    {
+      "matchId": 44,
+      "phase": 3,
+      "teamA": "ARS",
+      "teamB": "SPO",
+      "kickoffTime": 1776279600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048068",
+      "tieId": "2002113:50149-52280",
+      "legNumber": 2
+    },
+    {
+      "matchId": 45,
+      "phase": 3,
+      "teamA": "BAY",
+      "teamB": "RMA",
+      "kickoffTime": 1776279600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048070",
+      "tieId": "2002113:50037-50051",
+      "legNumber": 2
+    },
+    {
+      "matchId": 46,
+      "phase": 4,
+      "teamA": "PSG",
+      "teamB": "BAY",
+      "kickoffTime": 1777402800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048072",
+      "tieId": "2002114:50037-52747",
+      "legNumber": 1
+    },
+    {
+      "matchId": 47,
+      "phase": 4,
+      "teamA": "ATM",
+      "teamB": "ARS",
+      "kickoffTime": 1777489200,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048071",
+      "tieId": "2002114:50124-52280",
+      "legNumber": 1
+    },
+    {
+      "matchId": 48,
+      "phase": 4,
+      "teamA": "ARS",
+      "teamB": "ATM",
+      "kickoffTime": 1778007600,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048074",
+      "tieId": "2002114:50124-52280",
+      "legNumber": 2
+    },
+    {
+      "matchId": 49,
+      "phase": 4,
+      "teamA": "BAY",
+      "teamB": "PSG",
+      "kickoffTime": 1778094000,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2048073",
+      "tieId": "2002114:50037-52747",
+      "legNumber": 2
+    },
+    {
+      "matchId": 50,
+      "phase": 5,
+      "teamA": "PSG",
+      "teamB": "ARS",
+      "kickoffTime": 1780156800,
+      "group": null,
+      "matchday": null,
+      "knockout": true,
+      "uefaMatchId": "2047742",
+      "tieId": null,
+      "legNumber": null
+    }
+  ]
+}
