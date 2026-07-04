@@ -1,6 +1,6 @@
 # 13 — BigMac Bobby design pass
 
-Status: ready-for-agent
+Status: ready-for-human
 PRD: ../../PRD.md §14
 
 ## What to build
@@ -29,3 +29,23 @@ combinations pass AA contrast. Note the Tailwind v4 hazard: the PostCSS config a
 ## Blocked by
 
 - 08-prediction-ux.md
+
+## Comments
+
+**2026-07-04 — applied across all routes.**
+- **AA contrast measured, not eyeballed**: computed WCAG ratios for every palette
+  token on night/night-2. All pass except `--muted-2` (#5e6a92 → 3.71:1) — lightened
+  to **#727eab** (4.96:1 / 4.74:1), same hue family; every other token was already
+  compliant (ink 17.3, muted 6.9, glow-2 7.6, star 12.5).
+- **Hex audit clean**: `grep '\[#' app components` → 0; the one offender
+  (`from-[#cfe0ff]` hero gradient) became the `--glow-soft` token. Design-system
+  colors live only in `app/globals.css`.
+- **Chrome**: `Starfield` canvas (mock-faithful twinkle; `prefers-reduced-motion`
+  draws one static frame, plus the global CSS animation kill-switch), sticky
+  `SiteNav` (brand mark, aria-current links, wallet pill with live dot), `StatStrip`
+  on home (predictors / prize pools / matches, live from chain, accent top-bars).
+- Verified serving on all routes: nav + canvas + footer credit on /, /enter, /play,
+  /standings; stat strip + tokenized gradient on home. Steppers/pills/toggles were
+  already real controls with aria-pressed (slices 02/07/08).
+- **Remaining (human):** a taste pass in a real browser — spacing/glow judgment is
+  yours; everything mechanical is verified.
