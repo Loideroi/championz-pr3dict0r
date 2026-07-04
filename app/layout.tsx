@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Inter, Space_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { HealthBanner } from "@/components/chrome/HealthBanner";
 import { SiteNav } from "@/components/chrome/SiteNav";
 import { Starfield } from "@/components/chrome/Starfield";
 import "./globals.css";
@@ -42,6 +43,7 @@ export default function RootLayout({
         <Starfield />
         <Providers>
           <SiteNav />
+          <HealthBanner />
           <div className="flex-1 flex flex-col">{children}</div>
         </Providers>
         <footer className="border-t border-line-soft py-6 text-center font-mono text-xs text-muted-2">

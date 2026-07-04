@@ -4,9 +4,16 @@ on:
   schedule:
     # matchday window (UEFA kickoffs 16:45–21:00 UTC): every 5 min
     - cron: "*/5 16-23 * * *"
-    # off-window heartbeat poll: hourly (catches reschedules + late corrections)
+    # off-window poll: hourly (catches reschedules + late corrections)
     - cron: "17 0-15 * * *"
-  workflow_dispatch: {}
+    # daily heartbeat DM — silence itself becomes detectable (PRD §8.3)
+    - cron: "7 7 * * *"
+  workflow_dispatch:
+    inputs:
+      manual_results:
+        description: "Degraded-mode fallback: JSON array of operator results [{uefaMatchId, scoreA90, scoreB90, extraTime?, penalties?, advancerTeamId?}]"
+        required: false
+        type: string
 
 # never overlap runs; never cancel an in-flight push (Fanbet pattern)
 concurrency:
@@ -33,4 +40,18 @@ jobs:
           ORACLE_PRIVATE_KEY: ${{ secrets.ORACLE_PRIVATE_KEY }}
           PREDICTOR_ADDRESS: "0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6"
           RPC_URL: "https://spicy-rpc.chiliz.com"
-        run: node scripts/relay.mjs --map config/staging-map.json
+          CHAIN_ID: "88882"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          EXTRA=""
+          # daily 07:07 UTC schedule → heartbeat DM
+          if [ "${{ github.event.schedule }}" = "7 7 * * *" ]; then EXTRA="--heartbeat"; fi
+          # operator-dispatched manual results → degraded-mode fallback
+          if [ -n "${{ github.event.inputs.manual_results }}" ]; then
+            printf '%s' '${{ github.event.inputs.manual_results }}' > /tmp/manual-results.json
+            EXTRA="$EXTRA --manual /tmp/manual-results.json"
+          fi
+          node scripts/relay.mjs --map config/staging-map.json $EXTRA
