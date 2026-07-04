@@ -26,9 +26,12 @@ export default function Home() {
           Knockout · {formatChz(ENTRY.knockout.gross)} CHZ
         </span>
       </div>
-      <p className="font-mono text-xs text-muted-2">
-        Under construction — walking skeleton lands in build slice 02.
-      </p>
+      <a
+        href="/play"
+        className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-6 py-3 font-semibold text-white"
+      >
+        Try the walking skeleton →
+      </a>
     </main>
   );
 }
