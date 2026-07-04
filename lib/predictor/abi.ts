@@ -117,6 +117,26 @@ export const PREDICTOR_ABI = [
     ],
   },
   {
+    type: "function",
+    name: "exactCountOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "wallet", type: "address" },
+      { name: "stage", type: "uint8" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "enteredAt",
+    stateMutability: "view",
+    inputs: [
+      { name: "", type: "uint8" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ type: "uint40" }],
+  },
+  {
     type: "event",
     name: "Entered",
     inputs: [

@@ -263,6 +263,67 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       expect(r.advancer).to.equal(1n);
     });
 
+    it("decider bonuses (§5.2): leg 1 scores base-only, the decider adds ET/pens/advancer", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches();
+      const w = signers[5];
+      // match 3 (knockout) becomes the decider of tie 7; leg-1 semantics = no tieInfo
+      await c.connect(owner).setTies([3], [7], [true]);
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+
+      // the archived Juve–Gala shape: 3-0 in 90', away advances in ET
+      const ET = 1n << 16n;
+      const AWAY = 1n << 18n;
+      await c.connect(w).submitPrediction(3, pack(3, 0) | ET | AWAY); // calls everything
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      await c.connect(oracle).pushResult(3, pack(3, 0) | ET | AWAY);
+      // exact (5) + ET correct (1) + pens correct-by-omission (1) + advancer (1) = 8
+      expect(await c.pointsOf(w.address, KO)).to.equal(8n);
+      expect(await c.exactCountOf(w.address, KO)).to.equal(1n);
+    });
+
+    it("without decider flag the same flags earn nothing extra", async () => {
+      const { c, oracle, signers, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      const ET = 1n << 16n;
+      await c.connect(w).submitPrediction(3, pack(3, 0) | ET);
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      await c.connect(oracle).pushResult(3, pack(3, 0) | ET);
+      expect(await c.pointsOf(w.address, KO)).to.equal(5n); // exact only — no tieInfo set
+    });
+
+    it("wrong decider calls still score the 90' rubric, each wrong flag earns 0", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(owner).setTies([3], [7], [true]);
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(w).submitPrediction(3, pack(3, 0)); // no flags: 90' in regulation, home advances
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      const ET = 1n << 16n;
+      const AWAY = 1n << 18n;
+      await c.connect(oracle).pushResult(3, pack(3, 0) | ET | AWAY);
+      // exact 5 + ET wrong 0 + pens right-by-omission 1 + advancer wrong 0 = 6
+      expect(await c.pointsOf(w.address, KO)).to.equal(6n);
+    });
+
+    it("records entry timestamps per stage (tie-break #3)", async () => {
+      const { c, signers } = await withMatches();
+      const before = BigInt(await time.latest());
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+      const at = await c.enteredAt(LEAGUE, signers[5].address);
+      expect(at).to.be.gte(before);
+      expect(await c.enteredAt(KO, signers[5].address)).to.equal(at);
+    });
+
+    it("setTies is owner-only and checks match existence", async () => {
+      const { c, owner, signers } = await withMatches();
+      await expect(c.connect(signers[5]).setTies([3], [1], [true])).to.be.reverted;
+      await expect(c.connect(owner).setTies([99], [1], [true])).to.be.revertedWithCustomError(
+        c,
+        "UnknownMatch",
+      );
+    });
+
     it("oracle can reschedule SCHEDULED matches only", async () => {
       const { c, oracle, signers, t0 } = await withMatches();
       const newKick = t0 + 20n * 24n * 3600n;

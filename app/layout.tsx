@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo, Inter, Space_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { SiteNav } from "@/components/chrome/SiteNav";
+import { Starfield } from "@/components/chrome/Starfield";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -37,7 +39,9 @@ export default function RootLayout({
       className={`${archivo.variable} ${inter.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-night text-ink font-body">
+        <Starfield />
         <Providers>
+          <SiteNav />
           <div className="flex-1 flex flex-col">{children}</div>
         </Providers>
         <footer className="border-t border-line-soft py-6 text-center font-mono text-xs text-muted-2">
