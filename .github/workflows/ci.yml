@@ -27,6 +27,26 @@ jobs:
       - name: Build
         run: npm run build
 
+  relayer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Typecheck + test (skips until the relayer package exists)
+        working-directory: relayer
+        run: |
+          if [ -f package.json ]; then
+            npm ci --no-audit --no-fund
+            npm run typecheck
+            npm test
+            npm run build
+          else
+            echo "relayer workspace not initialized yet — skipping"
+          fi
+
   contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15

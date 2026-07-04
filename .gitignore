@@ -38,6 +38,7 @@ yarn-error.log*
 contracts/artifacts/
 contracts/cache/
 contracts/typechain-types/
+contracts/.oracle.key
 
 # vercel
 .vercel
