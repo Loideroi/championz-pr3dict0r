@@ -1,6 +1,6 @@
 # 07 — Scoring engine + leaderboards
 
-Status: ready-for-agent
+Status: ready-for-human
 PRD: ../../PRD.md §5 · Decisions: D9, tie-breaks §5.3
 
 ## What to build
@@ -30,3 +30,25 @@ finalization (D9). Country flags render next to usernames.
 
 - 03-two-stage-economics.md
 - 05-oracle-relayer.md
+
+## Comments
+
+**2026-07-04 — built + upgraded on Spicy; live-data proof lands with the 7–8 Jul cron.**
+- **Contract v3 via UUPS upgrade** (validated, impl → `0x02e6315049fE75612010a9c348eB00438c5c71c1`):
+  tie metadata in appended storage (`tieInfo`, no Game-struct change — upgrade-safe),
+  `setTies` owner wiring from the generated matches.json, decider-only bonuses in lazy
+  scoring (+1 each: ET / pens / advancer, judged bitwise vs the pushed flags),
+  `exactCountOf` + `enteredAt` for the §5.3 tie-break chain. 23/23 tests incl. the
+  archived Juve–Gala decider shape (exact + all flags = 8 pts), leg-1-no-bonus, and
+  wrong-flag partials. Staging matches 3/4 marked deciders on-chain.
+- **Leaderboards**: `/standings` with the three views — Stage 1 (Full Season wallets),
+  Stage 2 (everyone from zero), Season View (combined, 👑 on rank 1, league column
+  "—" for KO-pass wallets, closing the slice-03 carry-over criterion). Tie-break
+  comparator (points → exacts → earliest entry → lowest address, canon preserved) is
+  pure + unit-tested in `lib/predictor/standings.ts`. Provisional badge (D9) shows
+  whenever any completed result is still in its window. Flags/usernames come from
+  `/api/profile` and degrade gracefully until Supabase is configured.
+- Entrants enumerate from `Entered` events + per-wallet reads — fine at staging scale;
+  the `clp_leaderboard` cache takes over in slice 06's sync (noted there).
+- **Remaining (human):** after the 7–8 Jul cron self-settlement, eyeball /standings:
+  match 3 (decider) should show bonus-inflated scores and the ◌ badge for 24h.
