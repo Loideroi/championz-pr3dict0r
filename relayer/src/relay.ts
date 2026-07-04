@@ -43,6 +43,8 @@ export interface RelaySummary {
   corrected: number[];
   skipped: number[];
   errors: { matchId: number; error: string }[];
+  /** chain state per mapped match, as read this run (reused by the watchdog) */
+  states: Map<number, ChainState>;
 }
 
 const FLAG_SUBMITTED = 1n << 20n;
@@ -75,10 +77,11 @@ export async function relayOnce(
   map: MapEntry[],
   nowSeconds: number = Math.floor(Date.now() / 1000),
 ): Promise<RelaySummary> {
-  const summary: RelaySummary = { pushed: [], corrected: [], skipped: [], errors: [] };
+  const summary: RelaySummary = { pushed: [], corrected: [], skipped: [], errors: [], states: new Map() };
   for (const entry of map) {
     try {
       const state = await writer.read(entry.matchId);
+      summary.states.set(entry.matchId, state);
       if (state.completed && !state.provisional) {
         summary.skipped.push(entry.matchId); // finalized — never touch (idempotent)
         continue;
