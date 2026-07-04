@@ -343,6 +343,147 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
     });
   });
 
+  describe("freeze, claims & trophy (slice 11)", () => {
+    /**
+     * Mini-season: 20 full-season wallets (floor exactly met), one league
+     * match + one knockout decider; every wallet predicts differently so the
+     * ranking is fully determined; freeze both stages; claims drain the pools.
+     */
+    async function miniSeason() {
+      const signers = await ethers.getSigners();
+      const [owner, fee, oracle] = signers;
+      const t0 = BigInt(await time.latest());
+      const leagueClose = t0 + 5n * 24n * 3600n;
+      const koClose = t0 + 20n * 24n * 3600n;
+      const F = await ethers.getContractFactory("ChampionzPredictor");
+      const c = await upgrades.deployProxy(
+        F,
+        [owner.address, fee.address, oracle.address, leagueClose, koClose],
+        { kind: "uups" },
+      );
+      await c.connect(owner).addMatches(
+        [t0 + 6n * 24n * 3600n, t0 + 21n * 24n * 3600n],
+        [team("RMA"), team("ARS")],
+        [team("MCI"), team("INT")],
+        [LEAGUE, KO],
+      );
+      await c.connect(owner).setTies([2], [1], [true]);
+
+      const players = signers.slice(5, 25); // exactly 20
+      for (const p of players) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      // player i predicts i-0 for match 1 → result 2-0: i=2 exact(5), others GD/outcome/0
+      for (let i = 0; i < players.length; i++) {
+        await c.connect(players[i]!).submitPrediction(1, pack(Math.min(i, 15), 0));
+      }
+      await time.increaseTo(t0 + 6n * 24n * 3600n + 3600n);
+      await c.connect(oracle).pushResult(1, pack(2, 0));
+      await time.increase(25 * 3600); // finalize the league result
+      await c.lockStage(LEAGUE); // closeAt already passed
+      return { c, owner, fee, oracle, players, t0 };
+    }
+
+    /** expected §5.3 order for miniSeason league: exact(2) > GD(others desc? ...) */
+    function expectedLeagueOrder(players: { address: string }[]): string[] {
+      // result 2-0 (diff 2): i=2 exact; i>2 same sign+wrong diff unless diff matches: i-0 diff=i → only i=2 GD;
+      // i=1 (1-0): win, diff 1 → outcome 1pt; i>=3: win, wrong diff → outcome 1pt; i=0 (0-0): draw → 0.
+      const exact = [players[2]!.address];
+      const outcome = players
+        .filter((_, i) => i !== 0 && i !== 2)
+        .map((p) => p.address); // all 1 pt, 0 exacts — tie-break: entry order (earlier first)
+      const zero = [players[0]!.address];
+      return [...exact, ...outcome, ...zero].map((a) => a);
+    }
+
+    it("freezes with the exact §5.3 order, pays the split, dust to rank 1, pool drains to zero", async () => {
+      const { c, players } = await miniSeason();
+      const ranked = expectedLeagueOrder(players);
+      await expect(c.freezeStage(LEAGUE, ranked)).to.emit(c, "StageFrozen");
+
+      const pool = ethers.parseEther("500") * 20n; // 10,000 CHZ
+      expect(await c.claimable(LEAGUE, ranked[0]!)).to.be.gte((pool * 25n) / 100n); // 25% + dust
+      expect(await c.claimable(LEAGUE, ranked[1]!)).to.equal((pool * 15n) / 100n);
+      expect(await c.claimable(LEAGUE, ranked[2]!)).to.equal((pool * 10n) / 100n);
+      expect(await c.claimable(LEAGUE, ranked[5]!)).to.equal((pool * 30n) / 100n / 7n);
+      expect(await c.claimable(LEAGUE, ranked[15]!)).to.equal((pool * 20n) / 100n / 10n);
+
+      // everyone claims; pool must be exactly zero afterwards
+      for (const addr of ranked) {
+        const signer = await ethers.getSigner(addr);
+        await c.connect(signer).claim(LEAGUE);
+      }
+      expect((await c.stages(LEAGUE)).pool).to.equal(0n);
+    });
+
+    it("rejects wrong order, wrong members, duplicates and double freeze", async () => {
+      const { c, players, owner } = await miniSeason();
+      const ranked = expectedLeagueOrder(players);
+
+      const swapped = [...ranked];
+      [swapped[0], swapped[1]] = [swapped[1]!, swapped[0]!];
+      await expect(c.freezeStage(LEAGUE, swapped)).to.be.revertedWithCustomError(c, "InvalidRanking");
+
+      const outsider = [...ranked];
+      outsider[19] = owner.address; // never entered
+      await expect(c.freezeStage(LEAGUE, outsider)).to.be.revertedWithCustomError(c, "InvalidRanking");
+
+      const dup = [...ranked];
+      dup[19] = dup[0]!;
+      await expect(c.freezeStage(LEAGUE, dup)).to.be.revertedWithCustomError(c, "InvalidRanking");
+
+      await c.freezeStage(LEAGUE, ranked);
+      await expect(c.freezeStage(LEAGUE, ranked)).to.be.revertedWithCustomError(c, "AlreadyDecided");
+    });
+
+    it("cannot freeze before every stage result is finalized (D3 in code)", async () => {
+      const { c, oracle, players, t0 } = await miniSeason();
+      // knockout decider: push a result but do NOT wait out the 24h window
+      await time.increaseTo(t0 + 21n * 24n * 3600n + 3600n);
+      await c.connect(oracle).pushResult(2, pack(1, 1));
+      await c.lockStage(KO); // koClose (t0+20d) already passed; 20 entrants → LOCKED
+      const ranked = expectedLeagueOrder(players); // any 20 entered wallets
+      // result still provisional → freeze must refuse (D3 enforced by code)
+      await expect(c.freezeStage(KO, ranked)).to.be.revertedWithCustomError(c, "StageNotFinal");
+    });
+
+    it("claim guards: not frozen, no share, double claim", async () => {
+      const { c, players } = await miniSeason();
+      await expect(c.connect(players[0]!).claim(LEAGUE)).to.be.revertedWithCustomError(
+        c,
+        "StageNotFrozen",
+      );
+      const ranked = expectedLeagueOrder(players);
+      await c.freezeStage(LEAGUE, ranked);
+      const winner = await ethers.getSigner(ranked[0]!);
+      await c.connect(winner).claim(LEAGUE);
+      await expect(c.connect(winner).claim(LEAGUE)).to.be.revertedWithCustomError(
+        c,
+        "NothingToClaim",
+      );
+    });
+
+    it("measures freeze gas (bounded 20-wallet recomputation)", async () => {
+      const { c, players } = await miniSeason();
+      const ranked = expectedLeagueOrder(players);
+      const tx = await c.freezeStage(LEAGUE, ranked);
+      const rc = await tx.wait();
+      console.log(`      freezeStage gas (20 wallets, 2 matches): ${rc!.gasUsed}`);
+      expect(rc!.gasUsed).to.be.lt(10_000_000n);
+    });
+  });
+
+  describe("ChampionzTrophy (ADR-0008)", () => {
+    it("owner mints one zero-fund trophy; metadata is inline; others cannot mint", async () => {
+      const [owner, champion, rando] = await ethers.getSigners();
+      const T = await ethers.getContractFactory("ChampionzTrophy");
+      const t = await T.deploy(owner.address);
+      await expect(t.connect(rando).mint(champion.address, "2026/27")).to.be.reverted;
+      await expect(t.connect(owner).mint(champion.address, "2026/27")).to.emit(t, "TrophyMinted");
+      expect(await t.ownerOf(1)).to.equal(champion.address);
+      expect(await t.tokenURI(1)).to.contain("Ultimate");
+      expect(await t.tokenURI(1)).to.contain("2026/27");
+    });
+  });
+
   describe("windows & admin", () => {
     it("owner can move a SELLING stage's window; not after it decided", async () => {
       const { c, owner, signers, leagueClose, t0 } = await deploy();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { parseAbiItem } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import {
@@ -22,6 +22,92 @@ const VIEWS: { key: StageView; label: string }[] = [
   { key: "knockout", label: "Stage 2 · Knockout" },
   { key: "season", label: "Season View" },
 ];
+
+/** SCW-safe confirmation: poll until check passes (~120s) — never await receipts. */
+async function pollUntil(check: () => Promise<boolean>): Promise<boolean> {
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    if (await check()) return true;
+    await new Promise((r) => setTimeout(r, 3_000));
+  }
+  return false;
+}
+
+function ClaimBanner() {
+  const { address } = useAccount();
+  const client = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
+  const [busy, setBusy] = useState<number | null>(null);
+  const [message, setMessage] = useState("");
+
+  const claimableLeague = useReadContract({
+    ...contract,
+    functionName: "claimable",
+    args: address ? [STAGE_LEAGUE, address] : undefined,
+    query: { enabled: !!address },
+  });
+  const claimableKO = useReadContract({
+    ...contract,
+    functionName: "claimable",
+    args: address ? [STAGE_KNOCKOUT, address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  async function handleClaim(stage: number, refetch: () => Promise<unknown>) {
+    setBusy(stage);
+    setMessage("Confirm the claim in your wallet…");
+    try {
+      await writeContractAsync({ ...contract, functionName: "claim", args: [stage] });
+    } catch {
+      /* SCW relay — the poll decides */
+    }
+    // poll-for-effect: claimable drops to zero when the claim lands
+    const ok = await pollUntil(async () => {
+      if (!client || !address) return false;
+      return (
+        ((await client.readContract({
+          ...contract,
+          functionName: "claimable",
+          args: [stage, address],
+        })) as bigint) === 0n
+      );
+    });
+    setMessage(ok ? "Claimed — the CHZ is in your wallet. 🏆" : "Not confirmed after 120s — check your wallet.");
+    await refetch();
+    setBusy(null);
+  }
+
+  const banners = [
+    { stage: STAGE_LEAGUE, label: "Stage 1 · League", data: claimableLeague },
+    { stage: STAGE_KNOCKOUT, label: "Stage 2 · Knockout", data: claimableKO },
+  ].filter((b) => (b.data.data ?? 0n) > 0n);
+
+  if (banners.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      {banners.map((b) => (
+        <div
+          key={b.stage}
+          className="flex items-center justify-between rounded-2xl border border-ok/40 bg-ok/10 px-5 py-4"
+        >
+          <p className="font-mono text-sm text-ok">
+            ★ You finished in the {b.label} top 20 —{" "}
+            {(Number(b.data.data! / 10n ** 15n) / 1000).toLocaleString("en-US")} CHZ claimable
+          </p>
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => handleClaim(b.stage, b.data.refetch)}
+            className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-2 font-semibold text-white disabled:opacity-50"
+          >
+            {busy === b.stage ? "Claiming…" : "Claim"}
+          </button>
+        </div>
+      ))}
+      {message && <p className="font-mono text-xs text-muted">{message}</p>}
+    </div>
+  );
+}
 
 export function StandingsPanel() {
   const client = usePublicClient();
@@ -119,6 +205,7 @@ export function StandingsPanel() {
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4">
+      <ClaimBanner />
       <div className="flex flex-wrap items-center gap-2">
         {VIEWS.map((v) => (
           <button
