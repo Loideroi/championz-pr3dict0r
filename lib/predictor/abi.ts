@@ -109,7 +109,11 @@ export const PREDICTOR_ABI = [
     outputs: [
       { name: "scoreA", type: "uint8" },
       { name: "scoreB", type: "uint8" },
+      { name: "extraTime", type: "bool" },
+      { name: "penalties", type: "bool" },
+      { name: "advancer", type: "uint8" },
       { name: "completed", type: "bool" },
+      { name: "provisional", type: "bool" },
     ],
   },
   {
