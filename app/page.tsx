@@ -1,4 +1,5 @@
 import { ENTRY, formatChz } from "@/lib/economics";
+import { StatStrip } from "@/components/chrome/StatStrip";
 
 export default function Home() {
   return (
@@ -9,7 +10,7 @@ export default function Home() {
       <h1 className="font-display text-5xl font-black uppercase tracking-tight sm:text-7xl">
         ₵h@mpi0nz
         <br />
-        <span className="bg-gradient-to-b from-[#cfe0ff] via-glow-2 to-glow bg-clip-text text-transparent">
+        <span className="bg-gradient-to-b from-glow-soft via-glow-2 to-glow bg-clip-text text-transparent">
           Pr3dict0r
         </span>
       </h1>
@@ -26,6 +27,7 @@ export default function Home() {
           Knockout · {formatChz(ENTRY.knockout.gross)} CHZ
         </span>
       </div>
+      <StatStrip />
       <div className="flex gap-3">
         <a
           href="/enter"

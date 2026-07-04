@@ -14,9 +14,11 @@
   --line-soft: rgba(146, 168, 224, 0.08);
   --ink: #eaf0ff;
   --muted: #8c98c0;
-  --muted-2: #5e6a92;
+  /* #5e6a92 in the mock — lightened to pass WCAG AA (4.96:1 on night) */
+  --muted-2: #727eab;
   --glow: #2e6bff;
   --glow-2: #5fa2ff;
+  --glow-soft: #cfe0ff;
   --chz: #ff1257;
   --chz-2: #ff4d80;
   --star: #f6c76a;
@@ -34,6 +36,7 @@
   --color-muted-2: var(--muted-2);
   --color-glow: var(--glow);
   --color-glow-2: var(--glow-2);
+  --color-glow-soft: var(--glow-soft);
   --color-chz: var(--chz);
   --color-chz-2: var(--chz-2);
   --color-star: var(--star);
