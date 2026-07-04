@@ -31,6 +31,12 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     uint256 private constant FLAG_SUBMITTED = 1 << 20;
     uint8 public constant MAX_GOALS = 15;
 
+    // Result-only packing (same low bits as predictions; timestamp on top):
+    // bits 24-63 carry provisionalUntil (uint40) — layout-compatible with v1
+    // results, which simply read as provisionalUntil == 0 (long finalized).
+    uint256 private constant RESULT_TS_SHIFT = 24;
+    uint256 private constant RESULT_TS_MASK = uint256(type(uint40).max) << 24;
+
     uint8 public constant STAGE_LEAGUE = 0;
     uint8 public constant STAGE_KNOCKOUT = 1;
 
@@ -72,6 +78,11 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     mapping(uint8 => mapping(address => bool)) public refunded;
     mapping(address => bool) public fullSeason; // wallet holds the season pass
     mapping(address => mapping(uint16 => uint256)) private predictions;
+    // ---- v2 storage (slice 05) — appended only, never reorder above ----
+    /// @dev 0 (pre-upgrade / unset) means DEFAULT_PROVISIONAL_WINDOW applies.
+    uint40 public provisionalWindow;
+
+    uint40 public constant DEFAULT_PROVISIONAL_WINDOW = 24 hours;
 
     event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass);
     event StageLocked(uint8 indexed stage, uint32 entryCount, uint256 pool, uint256 feesForwarded);
@@ -81,6 +92,8 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     event MatchAdded(uint16 indexed matchId, uint8 stage, uint40 kickoff, bytes3 teamA, bytes3 teamB);
     event PredictionSubmitted(address indexed wallet, uint16 indexed matchId, uint256 packed);
     event ResultPushed(uint16 indexed matchId, uint8 scoreA, uint8 scoreB);
+    event ResultCorrected(uint16 indexed matchId, uint256 oldPacked, uint256 newPacked);
+    event KickoffUpdated(uint16 indexed matchId, uint40 kickoff);
     event OracleRotated(address indexed previousOracle, address indexed newOracle);
 
     error InvalidStakeAmount();
@@ -98,6 +111,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     error MatchAlreadyCompleted();
     error UnknownMatch();
     error NotOracle();
+    error ResultFinalized();
     error InvalidPrediction();
     error InvalidWindow();
     error ZeroAddress();
@@ -277,13 +291,64 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     // ------------------------------------------------------------ oracle ----
 
-    function pushResult(uint16 matchId, uint8 scoreA, uint8 scoreB) external onlyOracle {
+    /// @notice v2: push the full packed result (90′ scores + knockout flags,
+    ///         mirror-UEFA verbatim per ADR-0006). Lands PROVISIONAL for the
+    ///         dispute window (D9: scores count immediately, badge in UI),
+    ///         then finalizes by pure passage of time — no finalize tx.
+    function pushResult(uint16 matchId, uint256 packed) external onlyOracle {
         Game storage g = _match(matchId);
         if (block.timestamp < g.kickoff) revert MatchNotStarted();
         if (g.status == MatchStatus.COMPLETED) revert MatchAlreadyCompleted();
+        if (packed & FLAG_SUBMITTED == 0 || packed & RESULT_TS_MASK != 0) revert InvalidPrediction();
+        (uint8 a, uint8 b) = _scores(packed);
+        if (a > MAX_GOALS || b > MAX_GOALS) revert InvalidPrediction();
         g.status = MatchStatus.COMPLETED;
-        results[matchId] = _pack(scoreA, scoreB);
-        emit ResultPushed(matchId, scoreA, scoreB);
+        uint256 until = block.timestamp + _provisionalWindow();
+        results[matchId] = packed | (until << RESULT_TS_SHIFT);
+        emit ResultPushed(matchId, a, b);
+    }
+
+    /// @notice Oracle self-correction inside the provisional window only
+    ///         (UEFA amends a score; the relayer follows). Post-finalization
+    ///         corrections are the pause-gated slice-12 path — not this.
+    function correctResult(uint16 matchId, uint256 packed) external onlyOracle {
+        uint256 existing = results[matchId];
+        if (existing == 0) revert UnknownMatch();
+        if (block.timestamp >= _provisionalUntil(existing)) revert ResultFinalized();
+        if (packed & FLAG_SUBMITTED == 0 || packed & RESULT_TS_MASK != 0) revert InvalidPrediction();
+        (uint8 a, uint8 b) = _scores(packed);
+        if (a > MAX_GOALS || b > MAX_GOALS) revert InvalidPrediction();
+        // correction re-arms the window
+        uint256 until = block.timestamp + _provisionalWindow();
+        results[matchId] = packed | (until << RESULT_TS_SHIFT);
+        emit ResultCorrected(matchId, existing, packed);
+    }
+
+    /// @notice UEFA reschedules matches; the relayer follows (SCHEDULED only).
+    function batchUpdateKickoffs(uint16[] calldata matchIds, uint40[] calldata kickoffs)
+        external
+        onlyOracle
+    {
+        uint256 n = matchIds.length;
+        if (kickoffs.length != n) revert InvalidWindow();
+        for (uint256 i = 0; i < n; ++i) {
+            Game storage g = _match(matchIds[i]);
+            if (g.status != MatchStatus.SCHEDULED) revert MatchAlreadyCompleted();
+            g.kickoff = kickoffs[i];
+            emit KickoffUpdated(matchIds[i], kickoffs[i]);
+        }
+    }
+
+    function setProvisionalWindow(uint40 window) external onlyOwner {
+        provisionalWindow = window;
+    }
+
+    function _provisionalWindow() private view returns (uint40) {
+        return provisionalWindow == 0 ? DEFAULT_PROVISIONAL_WINDOW : provisionalWindow;
+    }
+
+    function _provisionalUntil(uint256 packedResult) private pure returns (uint256) {
+        return (packedResult & RESULT_TS_MASK) >> RESULT_TS_SHIFT;
     }
 
     function setOracle(address newOracle) external onlyOwner {
@@ -311,9 +376,26 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         }
     }
 
-    function resultOf(uint16 matchId) external view returns (uint8 scoreA, uint8 scoreB, bool completed) {
-        (scoreA, scoreB) = _scores(results[matchId]);
+    function resultOf(uint16 matchId)
+        external
+        view
+        returns (
+            uint8 scoreA,
+            uint8 scoreB,
+            bool extraTime,
+            bool penalties,
+            uint8 advancer,
+            bool completed,
+            bool provisional
+        )
+    {
+        uint256 packed = results[matchId];
+        (scoreA, scoreB) = _scores(packed);
+        extraTime = packed & (1 << 16) != 0;
+        penalties = packed & (1 << 17) != 0;
+        advancer = uint8((packed >> 18) & 3);
         completed = matches[matchId].status == MatchStatus.COMPLETED;
+        provisional = completed && block.timestamp < _provisionalUntil(packed);
     }
 
     // ----------------------------------------------------------- helpers ----
@@ -326,10 +408,6 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     function _match(uint16 matchId) private view returns (Game storage g) {
         g = matches[matchId];
         if (g.kickoff == 0) revert UnknownMatch();
-    }
-
-    function _pack(uint8 a, uint8 b) private pure returns (uint256) {
-        return uint256(a) | (uint256(b) << 8) | FLAG_SUBMITTED;
     }
 
     function _scores(uint256 packed) private pure returns (uint8 a, uint8 b) {

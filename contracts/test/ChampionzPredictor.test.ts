@@ -206,8 +206,8 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       await c.connect(w).enterFullSeason({ value: FULL_SEASON });
       await c.connect(w).submitPredictions([1, 2], [pack(2, 1), pack(3, 0)]);
       await time.increaseTo(t0 + 14n * 24n * 3600n);
-      await c.connect(oracle).pushResult(1, 2, 1); // exact → 5
-      await c.connect(oracle).pushResult(2, 1, 0); // outcome (win, diff 3 vs 1) → 1
+      await c.connect(oracle).pushResult(1, pack(2, 1)); // exact → 5
+      await c.connect(oracle).pushResult(2, pack(1, 0)); // outcome → 1
       expect(await c.pointsOf(w.address, LEAGUE)).to.equal(6n);
       expect(await c.pointsOf(w.address, KO)).to.equal(0n);
     });
@@ -218,10 +218,67 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       await expect(
         c.connect(signers[5]).submitPrediction(99, pack(1, 0)),
       ).to.be.revertedWithCustomError(c, "UnknownMatch");
-      await expect(c.connect(oracle).pushResult(99, 1, 0)).to.be.revertedWithCustomError(
+      await expect(c.connect(oracle).pushResult(99, pack(1, 0))).to.be.revertedWithCustomError(
         c,
         "UnknownMatch",
       );
+    });
+
+    it("provisional lifecycle: immediate points, in-window correction, time finalization", async () => {
+      const { c, signers, oracle, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(w).submitPrediction(1, pack(2, 1));
+      await time.increaseTo(t0 + 14n * 24n * 3600n);
+
+      await c.connect(oracle).pushResult(1, pack(2, 1));
+      let r = await c.resultOf(1);
+      expect(r.provisional).to.be.true;
+      expect(await c.pointsOf(w.address, LEAGUE)).to.equal(5n); // D9: counts immediately
+
+      // UEFA amends the score inside the window — relayer self-corrects
+      await expect(c.connect(oracle).correctResult(1, pack(3, 1)))
+        .to.emit(c, "ResultCorrected");
+      // re-scored automatically: 2-1 vs 3-1 = outcome only (5 → 1), no unwind tx
+      expect(await c.pointsOf(w.address, LEAGUE)).to.equal(1n);
+
+      // window passes → finalized, further oracle correction impossible
+      await time.increase(25 * 3600);
+      r = await c.resultOf(1);
+      expect(r.provisional).to.be.false;
+      await expect(
+        c.connect(oracle).correctResult(1, pack(2, 1)),
+      ).to.be.revertedWithCustomError(c, "ResultFinalized");
+    });
+
+    it("knockout flags round-trip through resultOf", async () => {
+      const { c, oracle, t0 } = await withMatches();
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      const koPacked = pack(1, 1) | (1n << 16n) | (1n << 17n) | (1n << 18n); // ET+pens, advancer=away
+      await c.connect(oracle).pushResult(3, koPacked);
+      const r = await c.resultOf(3);
+      expect([r.scoreA, r.scoreB]).to.deep.equal([1n, 1n]);
+      expect(r.extraTime).to.be.true;
+      expect(r.penalties).to.be.true;
+      expect(r.advancer).to.equal(1n);
+    });
+
+    it("oracle can reschedule SCHEDULED matches only", async () => {
+      const { c, oracle, signers, t0 } = await withMatches();
+      const newKick = t0 + 20n * 24n * 3600n;
+      await expect(c.connect(oracle).batchUpdateKickoffs([1], [newKick]))
+        .to.emit(c, "KickoffUpdated")
+        .withArgs(1, newKick);
+      expect((await c.matches(1)).kickoff).to.equal(newKick);
+      await expect(c.connect(signers[5]).batchUpdateKickoffs([1], [newKick])).to.be.revertedWithCustomError(
+        c,
+        "NotOracle",
+      );
+      await time.increaseTo(newKick + 3600n);
+      await c.connect(oracle).pushResult(1, pack(0, 0));
+      await expect(
+        c.connect(oracle).batchUpdateKickoffs([1], [newKick]),
+      ).to.be.revertedWithCustomError(c, "MatchAlreadyCompleted");
     });
   });
 
