@@ -163,7 +163,16 @@ export function PlayPanel() {
     const map = new Map<number, ScorePick>();
     resultReads.data?.forEach((r, i) => {
       if (r.status !== "success") return;
-      const [scoreA, scoreB, completed] = r.result as readonly [number, number, boolean];
+      // v2+ resultOf: [scoreA, scoreB, extraTime, penalties, advancer, completed, provisional]
+      const [scoreA, scoreB, , , , completed] = r.result as readonly [
+        number,
+        number,
+        boolean,
+        boolean,
+        number,
+        boolean,
+        boolean,
+      ];
       if (completed) map.set(completedIds[i], { scoreA, scoreB });
     });
     return map;
