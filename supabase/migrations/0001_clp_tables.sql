@@ -139,11 +139,11 @@ create policy clp_leaderboard_public_read on public.clp_leaderboard
   for select using (true);
 create policy clp_oracle_log_public_read on public.clp_oracle_log
   for select using (true);
--- Link codes are short-lived, single-use and bound to a wallet; public read
--- follows the blanket PRD rule. Tighten to service-role-only if slice 06/10
--- decides the bot never needs anon reads.
-create policy clp_tg_link_codes_public_read on public.clp_tg_link_codes
-  for select using (true);
+-- clp_tg_link_codes is deliberately the EXCEPTION to the public-read rule:
+-- exposing active one-time codes would let anyone bind a victim's wallet to
+-- their own Telegram account. Service-role only — the bot and the API both
+-- use the service client, so no anon policy is needed at all.
+-- (No SELECT policy = anon/authenticated reads rejected outright.)
 
 -- No INSERT/UPDATE/DELETE policies on purpose: with RLS enabled and no
 -- matching policy, anon/authenticated writes are rejected outright.
