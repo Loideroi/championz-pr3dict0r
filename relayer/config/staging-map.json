@@ -1,0 +1,30 @@
+[
+  {
+    "matchId": 1,
+    "uefaMatchId": "2048073",
+    "homeTeamId": "50037",
+    "awayTeamId": "52747",
+    "note": "staging RMA-MCI ← archived Bayern-Paris (league). Kicks off T+3d; the cron settles it hands-off once pushResult is allowed."
+  },
+  {
+    "matchId": 2,
+    "uefaMatchId": "2047742",
+    "homeTeamId": "52747",
+    "awayTeamId": "52280",
+    "note": "staging LIV-BAY ← archived Paris-Arsenal FINAL (1-1 90', pens 4-3): proves the 90-minute rule + pens flags live on Spicy. T+4d."
+  },
+  {
+    "matchId": 3,
+    "uefaMatchId": "2047770",
+    "homeTeamId": "50139",
+    "awayTeamId": "50067",
+    "note": "staging ARS-INT ← archived Juventus-Galatasaray AET decider (3-0 90', away advances in ET): the winner.aggregate subtlety, live. T+3d12h."
+  },
+  {
+    "matchId": 4,
+    "uefaMatchId": "2048061",
+    "homeTeamId": "50149",
+    "awayTeamId": "59333",
+    "note": "staging BAR-PSG ← archived Sporting CP-Bodø/Glimt AET (3-0 90' / 5-0 aet, home advances). T+12d."
+  }
+]

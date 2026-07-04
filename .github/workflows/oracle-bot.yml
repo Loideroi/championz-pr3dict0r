@@ -1,0 +1,36 @@
+name: oracle-bot
+
+on:
+  schedule:
+    # matchday window (UEFA kickoffs 16:45–21:00 UTC): every 5 min
+    - cron: "*/5 16-23 * * *"
+    # off-window heartbeat poll: hourly (catches reschedules + late corrections)
+    - cron: "17 0-15 * * *"
+  workflow_dispatch: {}
+
+# never overlap runs; never cancel an in-flight push (Fanbet pattern)
+concurrency:
+  group: oracle-bot
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install + build relayer
+        working-directory: relayer
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Relay results (Spicy staging)
+        working-directory: relayer
+        env:
+          ORACLE_PRIVATE_KEY: ${{ secrets.ORACLE_PRIVATE_KEY }}
+          PREDICTOR_ADDRESS: "0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6"
+          RPC_URL: "https://spicy-rpc.chiliz.com"
+        run: node scripts/relay.mjs --map config/staging-map.json
