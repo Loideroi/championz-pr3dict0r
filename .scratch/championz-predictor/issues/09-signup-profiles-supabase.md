@@ -1,6 +1,6 @@
 # 09 — Sign-up, profiles & Supabase read-model
 
-Status: ready-for-agent
+Status: ready-for-human
 PRD: ../../PRD.md §13
 
 ## What to build
@@ -28,3 +28,20 @@ database (serverless-safe).
 ## Blocked by
 
 - 03-two-stage-economics.md
+
+## Comments
+
+- **2026-07-04 (agent):** Implemented on `feat/signup-profiles`. Migration
+  `supabase/migrations/0001_clp_tables.sql` is **authored but NOT applied** — this
+  environment has no Supabase credentials by design; the operator pastes it into the
+  Supabase SQL editor of the existing predictor project (the file header carries the
+  instructions plus the one-query cleanup listing tables by comment).
+- **2026-07-04 (agent):** All five `clp_` tables carry
+  `COMMENT ON TABLE … IS 'ChampionsLeague predictor'`; RLS = public SELECT, no anon
+  write policies (service-role writes only). The rate-limit state (1/30s, 8/hour)
+  lives on the `clp_user_profiles` row itself — DB-backed and serverless-safe.
+- **2026-07-04 (agent):** Sign-up UI at `/profile`: username + searchable flag-emoji
+  country select, human-readable personal_sign message, dual EOA/ERC-1271
+  verification server-side, entry tier read from `entered(stage, wallet)` on chain.
+  Flags-on-leaderboard integration (rendering these profiles in the leaderboard rows)
+  lands with slice 07 — the first acceptance criterion completes there.
