@@ -1,0 +1,23 @@
+{
+  "name": "@championz/relayer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UEFA results oracle relayer - source adapters, fixture generation, verification",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

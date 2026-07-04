@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-07-04T07:42:44.433Z",
+  "api": "https://match.uefa.com/v5/matches",
+  "competitionId": "1",
+  "requests": [
+    {
+      "url": "https://match.uefa.com/v5/matches?competitionId=1&seasonYear=2026&limit=20&offset=0",
+      "matches": 20
+    },
+    {
+      "url": "https://match.uefa.com/v5/matches?competitionId=1&seasonYear=2026&limit=50&offset=0",
+      "matches": 50
+    }
+  ],
+  "aetMatches": [
+    {
+      "id": "2048061",
+      "teams": "Sporting CP v Bodø/Glimt",
+      "regular": {
+        "away": 0,
+        "home": 3
+      },
+      "total": {
+        "away": 0,
+        "home": 5
+      },
+      "penalty": null,
+      "winnerReason": "WIN_REGULAR"
+    },
+    {
+      "id": "2047770",
+      "teams": "Juventus v Galatasaray",
+      "regular": {
+        "away": 0,
+        "home": 3
+      },
+      "total": {
+        "away": 2,
+        "home": 3
+      },
+      "penalty": null,
+      "winnerReason": "WIN_REGULAR"
+    }
+  ],
+  "seasonYear": "2026"
+}
