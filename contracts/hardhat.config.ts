@@ -19,6 +19,10 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      // floor tests need 20+ entrants at 1,100 CHZ each
+      accounts: { count: 40, accountsBalance: "1000000000000000000000000" },
+    },
     spicy: {
       url: "https://spicy-rpc.chiliz.com",
       chainId: 88882,

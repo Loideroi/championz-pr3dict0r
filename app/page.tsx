@@ -26,12 +26,20 @@ export default function Home() {
           Knockout · {formatChz(ENTRY.knockout.gross)} CHZ
         </span>
       </div>
-      <a
-        href="/play"
-        className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-6 py-3 font-semibold text-white"
-      >
-        Try the walking skeleton →
-      </a>
+      <div className="flex gap-3">
+        <a
+          href="/enter"
+          className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-6 py-3 font-semibold text-white"
+        >
+          Enter the pool →
+        </a>
+        <a
+          href="/play"
+          className="rounded-xl border border-line px-6 py-3 font-semibold text-ink"
+        >
+          Predict
+        </a>
+      </div>
     </main>
   );
 }

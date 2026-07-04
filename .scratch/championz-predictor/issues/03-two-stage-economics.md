@@ -1,6 +1,6 @@
 # 03 — Two-stage economics: passes, pools, windows, floor
 
-Status: ready-for-agent
+Status: ready-for-human
 PRD: ../../PRD.md §4 · Decisions: D1, D2, D3, D4
 
 ## What to build
@@ -30,3 +30,28 @@ window the knockout purchase screen must list exactly which matches are already 
 ## Blocked by
 
 - 02-walking-skeleton-spicy.md
+
+## Comments
+
+**2026-07-04 — built + deployed to Spicy; human staging pass remaining.**
+- Contract v1 (fresh proxy, not an upgrade — v0 was throwaway staging):
+  `0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6` on Spicy, compressed staging windows
+  (league sales close +2d, knockout +30d), 4 staging matches (2 league, 2 knockout —
+  one KO match locks early to demo the D4 disclosure).
+- 15/15 Hardhat tests, one per acceptance criterion: exact 1,100/550 with pool/fee
+  splits; hard close at league `closeAt` (D1); knockout opens the same second league
+  sales close and shuts at its own close (D4); no double entry; full-season auto-in
+  both stages with no second tx; **19 entrants → VOID + full 550 refund fee-included /
+  20 → LOCKED + fees forwarded** (D2); permissionless `lockStage`; stage-gated
+  predictions; batch matchday submit; per-stage lazy scoring.
+- **Design note (small deviation from v0):** the 50-CHZ fee is now ESCROWED per stage
+  and forwarded to `feeRecipient` at stage lock, not instantly at entry — this is what
+  makes the D2 "refund includes the fee" promise solvent. PRD §4.3 wording still says
+  fees flow at entry; consider a PRD patch line.
+- UI: `/enter` with both pass cards (live windows, entrant counts, floor copy), the D4
+  locked-matches disclosure with acknowledge-checkbox gating the pay button; `/play`
+  re-pointed at the multi-match contract. Typecheck/tests/lint/build green.
+- **Remaining (human):** on Spicy — buy a season pass from a real wallet before the
+  +2d close; after it, buy a knockout pass and (from +3d12h-1h) see the ARS–INT
+  disclosure; optionally play out the 19-vs-20 floor with test wallets. Season View
+  "—" column lands with the leaderboard surfaces (slice 07 — noted there).

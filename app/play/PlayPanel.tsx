@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useAppKit } from "@reown/appkit/react";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { hexToString } from "viem";
-import { ENTRY_GROSS_WEI, PREDICTOR_ABI, PREDICTOR_ADDRESS } from "@/lib/predictor/abi";
+import { PREDICTOR_ABI, PREDICTOR_ADDRESS } from "@/lib/predictor/abi";
 import { packPrediction, unpackPrediction } from "@/lib/predictor/packed";
 import { PREDICTION_LOCKOUT_SECONDS } from "@/lib/economics";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
+const MATCH_ID = 1; // walking-skeleton slate: the first match (full slate = slice 08)
 
 /**
  * SCW-safe write confirmation (CLAUDE.md): the Socios.com Wallet relays
@@ -76,13 +77,13 @@ export function PlayPanel() {
 
   const [scoreA, setScoreA] = useState(0);
   const [scoreB, setScoreB] = useState(0);
-  const [busy, setBusy] = useState<"enter" | "predict" | null>(null);
-  const [message, setMessage] = useState<string>("");
-  const [now, setNow] = useState<number | null>(null); // client-mounted clock (SSR safety)
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
     const update = () => setNow(Math.floor(Date.now() / 1000));
-    const first = setTimeout(update, 0); // async first tick keeps hydration clean
+    const first = setTimeout(update, 0);
     const t = setInterval(update, 1_000);
     return () => {
       clearTimeout(first);
@@ -90,33 +91,32 @@ export function PlayPanel() {
     };
   }, []);
 
-  const game = useReadContract({ ...contract, functionName: "game" });
-  const pool = useReadContract({ ...contract, functionName: "pool" });
-  const entryCount = useReadContract({ ...contract, functionName: "entryCount" });
+  const game = useReadContract({ ...contract, functionName: "matches", args: [MATCH_ID] });
+  const stageId = game.data ? Number(game.data[4]) : 0;
   const entered = useReadContract({
     ...contract,
     functionName: "entered",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    args: address && game.data ? [stageId, address] : undefined,
+    query: { enabled: !!address && !!game.data },
   });
   const prediction = useReadContract({
     ...contract,
     functionName: "predictionOf",
-    args: address ? [address] : undefined,
+    args: address ? [address, MATCH_ID] : undefined,
     query: { enabled: !!address },
   });
   const points = useReadContract({
     ...contract,
     functionName: "pointsOf",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    args: address && game.data ? [address, stageId] : undefined,
+    query: { enabled: !!address && !!game.data },
   });
 
   if (!PREDICTOR_ADDRESS) {
     return (
       <p className="font-mono text-sm text-muted">
-        NEXT_PUBLIC_PREDICTOR_ADDRESS is not set — deploy the contract (slice 02) and
-        add the proxy address to .env.local.
+        NEXT_PUBLIC_PREDICTOR_ADDRESS is not set — deploy the contract and add the
+        proxy address to .env.local.
       </p>
     );
   }
@@ -126,39 +126,21 @@ export function PlayPanel() {
   const secondsToLock = now === null ? null : lockAt - now;
   const locked = secondsToLock !== null && secondsToLock <= 0;
   const teamName = (hex: string) => hexToString(hex as `0x${string}`, { size: 3 });
-  const submitted = prediction.data ? unpackPrediction(prediction.data).submitted : false;
   const current = prediction.data ? unpackPrediction(prediction.data) : null;
-
-  async function handleEnter() {
-    setBusy("enter");
-    setMessage("Confirm the 550 CHZ entry in your wallet…");
-    try {
-      await writeContractAsync({ ...contract, functionName: "enter", value: ENTRY_GROSS_WEI });
-    } catch {
-      /* SCW relay may reject the local wait — the poll below decides */
-    }
-    setMessage("Waiting for the entry to land on-chain…");
-    const ok = await pollForEffect(async () => {
-      if (!client || !address) return false;
-      return (await client.readContract({
-        ...contract,
-        functionName: "entered",
-        args: [address],
-      })) as boolean;
-    });
-    setMessage(ok ? "You're in the pool — set your scoreline below." : "Entry not confirmed after 120s — check your wallet and Chiliscan.");
-    await Promise.all([entered.refetch(), pool.refetch(), entryCount.refetch()]);
-    setBusy(null);
-  }
+  const submitted = current?.submitted ?? false;
 
   async function handlePredict() {
     const packed = packPrediction(scoreA, scoreB);
-    setBusy("predict");
+    setBusy(true);
     setMessage(submitted ? "Confirm your edited prediction…" : "Confirm your prediction…");
     try {
-      await writeContractAsync({ ...contract, functionName: "submitPrediction", args: [packed] });
+      await writeContractAsync({
+        ...contract,
+        functionName: "submitPrediction",
+        args: [MATCH_ID, packed],
+      });
     } catch {
-      /* see above */
+      /* SCW relay — the poll decides */
     }
     setMessage("Waiting for the prediction to land on-chain…");
     const ok = await pollForEffect(async () => {
@@ -166,28 +148,21 @@ export function PlayPanel() {
       const p = (await client.readContract({
         ...contract,
         functionName: "predictionOf",
-        args: [address],
+        args: [address, MATCH_ID],
       })) as bigint;
       return p === packed;
     });
     setMessage(
       ok
-        ? `Prediction ${teamName(teamA as string)} ${scoreA}–${scoreB} ${teamName(teamB as string)} locked in — you can edit it until 60 min before kickoff.`
+        ? `Prediction ${teamName(teamA as string)} ${scoreA}–${scoreB} ${teamName(teamB as string)} locked in — editable until 60 min before kickoff.`
         : "Prediction not confirmed after 120s — check your wallet and Chiliscan.",
     );
     await prediction.refetch();
-    setBusy(null);
+    setBusy(false);
   }
 
   return (
     <div className="flex w-full max-w-lg flex-col gap-6 rounded-2xl border border-line bg-night-2/60 p-6">
-      <div className="flex items-center justify-between font-mono text-xs text-muted">
-        <span>
-          Pool: {pool.data !== undefined ? `${Number(pool.data / 10n ** 18n).toLocaleString("en-US")} CHZ` : "…"}
-        </span>
-        <span>Predictors: {entryCount.data?.toString() ?? "…"}</span>
-      </div>
-
       {!isConnected ? (
         <button
           type="button"
@@ -197,30 +172,28 @@ export function PlayPanel() {
           Connect Wallet
         </button>
       ) : !entered.data ? (
-        <button
-          type="button"
-          disabled={busy !== null}
-          onClick={handleEnter}
-          className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-3 font-semibold text-white disabled:opacity-50"
+        <a
+          href="/enter"
+          className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-3 text-center font-semibold text-white"
         >
-          {busy === "enter" ? "Entering…" : "Pay 550 CHZ & enter"}
-        </button>
+          Enter the pool first →
+        </a>
       ) : (
         <>
           <div className="flex items-center justify-center gap-6">
             <span className="font-semibold">{teamName(teamA as string)}</span>
-            <Stepper label="home" value={scoreA} onChange={setScoreA} disabled={locked || busy !== null} />
+            <Stepper label="home" value={scoreA} onChange={setScoreA} disabled={locked || busy} />
             <span className="font-mono text-muted-2">:</span>
-            <Stepper label="away" value={scoreB} onChange={setScoreB} disabled={locked || busy !== null} />
+            <Stepper label="away" value={scoreB} onChange={setScoreB} disabled={locked || busy} />
             <span className="font-semibold">{teamName(teamB as string)}</span>
           </div>
           <button
             type="button"
-            disabled={locked || busy !== null}
+            disabled={locked || busy}
             onClick={handlePredict}
             className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-5 py-3 font-semibold text-white disabled:opacity-50"
           >
-            {busy === "predict"
+            {busy
               ? "Submitting…"
               : locked
                 ? "Predictions locked 🔒"
@@ -243,12 +216,11 @@ export function PlayPanel() {
           )}
           {points.data !== undefined && points.data > 0n && (
             <p className="text-center font-mono text-sm text-star">
-              ★ You scored {points.data.toString()} points
+              ★ You scored {points.data.toString()} points this stage
             </p>
           )}
         </>
       )}
-
       {message && <p className="text-center font-mono text-xs text-muted">{message}</p>}
     </div>
   );

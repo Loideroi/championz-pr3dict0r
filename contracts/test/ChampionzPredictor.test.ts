@@ -2,166 +2,252 @@ import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
-const ENTRY_GROSS = ethers.parseEther("550");
-const ENTRY_FEE = ethers.parseEther("50");
+const FULL_SEASON = ethers.parseEther("1100");
+const KNOCKOUT = ethers.parseEther("550");
+const STAKE = ethers.parseEther("500");
+const FEE = ethers.parseEther("50");
 const LOCKOUT = 3600n;
 const FLAG_SUBMITTED = 1n << 20n;
+const LEAGUE = 0;
+const KO = 1;
 
 function pack(a: number, b: number): bigint {
   return BigInt(a) | (BigInt(b) << 8n) | FLAG_SUBMITTED;
 }
 
-describe("ChampionzPredictor v0 (walking skeleton)", () => {
+const team = (s: string) => "0x" + Buffer.from(s, "utf8").toString("hex");
+
+describe("ChampionzPredictor v1 (two-stage economics)", () => {
   async function deploy() {
-    const [owner, fee, oracle, alice, bob] = await ethers.getSigners();
-    const kickoff = BigInt(await time.latest()) + 7n * 24n * 3600n;
+    const signers = await ethers.getSigners();
+    const [owner, fee, oracle] = signers;
+    const t0 = BigInt(await time.latest());
+    const leagueClose = t0 + 10n * 24n * 3600n; // first MD1 kickoff
+    const koClose = t0 + 40n * 24n * 3600n; // T-60 before last play-off first leg
     const F = await ethers.getContractFactory("ChampionzPredictor");
     const c = await upgrades.deployProxy(
       F,
-      [
-        owner.address,
-        fee.address,
-        oracle.address,
-        kickoff,
-        ethers.encodeBytes32String("RMA").slice(0, 8),
-        ethers.encodeBytes32String("MCI").slice(0, 8),
-      ],
+      [owner.address, fee.address, oracle.address, leagueClose, koClose],
       { kind: "uups" },
     );
-    return { c, owner, fee, oracle, alice, bob, kickoff };
+    return { c, signers, owner, fee, oracle, t0, leagueClose, koClose };
   }
 
-  describe("entry (exact 550, fee flows immediately)", () => {
-    it("accepts exactly 550 CHZ, splits 500 pool / 50 fee", async () => {
-      const { c, fee, alice } = await deploy();
+  /** enough wallets to cross the floor */
+  async function enterMany(c: any, signers: any[], fn: "enterFullSeason" | "enterKnockout", n: number, value: bigint) {
+    for (let i = 0; i < n; i++) {
+      await c.connect(signers[5 + i])[fn]({ value });
+    }
+  }
+
+  describe("full season pass (D1)", () => {
+    it("costs exactly 1,100 and enrolls both stages in one tx", async () => {
+      const { c, signers } = await deploy();
+      const alice = signers[5];
+      await expect(c.connect(alice).enterFullSeason({ value: FULL_SEASON }))
+        .to.emit(c, "Entered")
+        .withArgs(alice.address, LEAGUE, true);
+      expect(await c.entered(LEAGUE, alice.address)).to.be.true;
+      expect(await c.entered(KO, alice.address)).to.be.true; // auto — no Feb tx
+      expect(await c.fullSeason(alice.address)).to.be.true;
+      const league = await c.stages(LEAGUE);
+      const ko = await c.stages(KO);
+      expect(league.pool).to.equal(STAKE);
+      expect(ko.pool).to.equal(STAKE);
+      expect(league.feeEscrow + ko.feeEscrow).to.equal(FEE * 2n); // 100 escrowed
+    });
+
+    it("rejects wrong amounts and double entry", async () => {
+      const { c, signers } = await deploy();
+      const alice = signers[5];
+      await expect(
+        c.connect(alice).enterFullSeason({ value: KNOCKOUT }),
+      ).to.be.revertedWithCustomError(c, "InvalidStakeAmount");
+      await c.connect(alice).enterFullSeason({ value: FULL_SEASON });
+      await expect(
+        c.connect(alice).enterFullSeason({ value: FULL_SEASON }),
+      ).to.be.revertedWithCustomError(c, "AlreadyEntered");
+      await expect(
+        c.connect(alice).enterKnockout({ value: KNOCKOUT }),
+      ).to.be.revertedWithCustomError(c, "SalesNotOpen"); // ko window not open yet anyway
+    });
+
+    it("hard-closes at the first MD1 kickoff — no late league entry", async () => {
+      const { c, signers, leagueClose } = await deploy();
+      await time.increaseTo(leagueClose - 2n);
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON }); // last moment
+      await time.increaseTo(leagueClose);
+      await expect(
+        c.connect(signers[6]).enterFullSeason({ value: FULL_SEASON }),
+      ).to.be.revertedWithCustomError(c, "SalesClosed");
+    });
+  });
+
+  describe("knockout pass (D4 — the shop is never closed)", () => {
+    it("opens the second season sales close and shuts at its own close", async () => {
+      const { c, signers, leagueClose, koClose } = await deploy();
+      await expect(
+        c.connect(signers[5]).enterKnockout({ value: KNOCKOUT }),
+      ).to.be.revertedWithCustomError(c, "SalesNotOpen"); // before MD1 kickoff
+      await time.increaseTo(leagueClose); // season closed ⇒ ko open, same second
+      await c.connect(signers[5]).enterKnockout({ value: KNOCKOUT });
+      expect(await c.entered(KO, signers[5].address)).to.be.true;
+      expect(await c.fullSeason(signers[5].address)).to.be.false;
+      await time.increaseTo(koClose);
+      await expect(
+        c.connect(signers[6]).enterKnockout({ value: KNOCKOUT }),
+      ).to.be.revertedWithCustomError(c, "SalesClosed");
+    });
+
+    it("full-season wallets cannot buy the knockout pass again", async () => {
+      const { c, signers, leagueClose } = await deploy();
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+      await time.increaseTo(leagueClose);
+      await expect(
+        c.connect(signers[5]).enterKnockout({ value: KNOCKOUT }),
+      ).to.be.revertedWithCustomError(c, "AlreadyEntered");
+    });
+  });
+
+  describe("stage floor (D2): lock vs void", () => {
+    it("19 entrants → VOID; everyone reclaims the full 550, fee included", async () => {
+      const { c, signers, leagueClose } = await deploy();
+      await enterMany(c, signers, "enterFullSeason", 19, FULL_SEASON);
+      await time.increaseTo(leagueClose + 1n);
+      await expect(c.lockStage(LEAGUE)).to.emit(c, "StageVoided").withArgs(LEAGUE, 19);
+      const w = signers[5];
+      const before = await ethers.provider.getBalance(w.address);
+      const tx = await c.connect(w).claimRefund(LEAGUE);
+      const rc = await tx.wait();
+      const gas = rc!.gasUsed * rc!.gasPrice;
+      expect((await ethers.provider.getBalance(w.address)) - before + gas).to.equal(
+        STAKE + FEE, // 550 — the FULL per-stage gross
+      );
+      await expect(c.connect(w).claimRefund(LEAGUE)).to.be.revertedWithCustomError(
+        c,
+        "AlreadyRefunded",
+      );
+    });
+
+    it("void league leaves the knockout stage untouched for full-season wallets", async () => {
+      const { c, signers, leagueClose } = await deploy();
+      await enterMany(c, signers, "enterFullSeason", 19, FULL_SEASON);
+      await time.increaseTo(leagueClose + 1n);
+      await c.lockStage(LEAGUE);
+      expect(await c.entered(KO, signers[5].address)).to.be.true;
+      expect((await c.stages(KO)).pool).to.equal(STAKE * 19n);
+    });
+
+    it("20 entrants → LOCKED; escrowed fees forward to the feeRecipient", async () => {
+      const { c, signers, fee, leagueClose } = await deploy();
+      await enterMany(c, signers, "enterFullSeason", 20, FULL_SEASON);
       const before = await ethers.provider.getBalance(fee.address);
-      await expect(c.connect(alice).enter({ value: ENTRY_GROSS })).to.emit(c, "Entered");
-      expect(await c.pool()).to.equal(ethers.parseEther("500"));
-      expect(await c.entryCount()).to.equal(1n);
-      expect((await ethers.provider.getBalance(fee.address)) - before).to.equal(ENTRY_FEE);
-    });
-
-    it("rejects any other amount (predecessor M-03)", async () => {
-      const { c, alice } = await deploy();
-      for (const v of [ethers.parseEther("549"), ethers.parseEther("550.000001"), 0n]) {
-        await expect(c.connect(alice).enter({ value: v })).to.be.revertedWithCustomError(
-          c,
-          "InvalidStakeAmount",
-        );
-      }
-    });
-
-    it("rejects double entry", async () => {
-      const { c, alice } = await deploy();
-      await c.connect(alice).enter({ value: ENTRY_GROSS });
-      await expect(c.connect(alice).enter({ value: ENTRY_GROSS })).to.be.revertedWithCustomError(
+      await time.increaseTo(leagueClose + 1n);
+      await expect(c.lockStage(LEAGUE))
+        .to.emit(c, "StageLocked")
+        .withArgs(LEAGUE, 20, STAKE * 20n, FEE * 20n);
+      expect((await ethers.provider.getBalance(fee.address)) - before).to.equal(FEE * 20n);
+      await expect(c.connect(signers[5]).claimRefund(LEAGUE)).to.be.revertedWithCustomError(
         c,
-        "AlreadyEntered",
+        "StageNotVoid",
       );
+    });
+
+    it("cannot lock early or twice; anyone may lock after close", async () => {
+      const { c, signers, leagueClose } = await deploy();
+      await enterMany(c, signers, "enterFullSeason", 2, FULL_SEASON);
+      await expect(c.lockStage(LEAGUE)).to.be.revertedWithCustomError(c, "StageNotClosed");
+      await time.increaseTo(leagueClose + 1n);
+      await c.connect(signers[9]).lockStage(LEAGUE); // permissionless
+      await expect(c.lockStage(LEAGUE)).to.be.revertedWithCustomError(c, "AlreadyDecided");
     });
   });
 
-  describe("predictions (packed, editable until T-60)", () => {
-    it("round-trips the packed encoding and overwrites on edit", async () => {
-      const { c, alice } = await deploy();
-      await c.connect(alice).enter({ value: ENTRY_GROSS });
-      await c.connect(alice).submitPrediction(pack(2, 1));
-      expect(await c.predictionOf(alice.address)).to.equal(pack(2, 1));
-      await c.connect(alice).submitPrediction(pack(0, 3)); // edit = overwrite
-      expect(await c.predictionOf(alice.address)).to.equal(pack(0, 3));
-    });
-
-    it("requires entry, the submitted flag, and sane scores", async () => {
-      const { c, alice, bob } = await deploy();
-      await c.connect(alice).enter({ value: ENTRY_GROSS });
-      await expect(c.connect(bob).submitPrediction(pack(1, 1))).to.be.revertedWithCustomError(
-        c,
-        "NotEntered",
-      );
-      await expect(c.connect(alice).submitPrediction(1n | (1n << 8n))).to.be.revertedWithCustomError(
-        c,
-        "InvalidPrediction", // missing submitted flag
-      );
-      await expect(c.connect(alice).submitPrediction(pack(16, 0))).to.be.revertedWithCustomError(
-        c,
-        "InvalidPrediction", // > MAX_GOALS
-      );
-    });
-
-    it("locks exactly 60 minutes before kickoff", async () => {
-      const { c, alice, kickoff } = await deploy();
-      await c.connect(alice).enter({ value: ENTRY_GROSS });
-      await time.increaseTo(kickoff - LOCKOUT - 5n);
-      await c.connect(alice).submitPrediction(pack(2, 1)); // still open
-      await time.increaseTo(kickoff - LOCKOUT);
-      await expect(c.connect(alice).submitPrediction(pack(2, 2))).to.be.revertedWithCustomError(
-        c,
-        "PredictionsLocked",
-      );
-    });
-  });
-
-  describe("oracle + lazy scoring", () => {
-    async function settled(predA: number, predB: number, resA: number, resB: number) {
+  describe("matches, predictions & lazy scoring across stages", () => {
+    async function withMatches() {
       const d = await deploy();
-      await d.c.connect(d.alice).enter({ value: ENTRY_GROSS });
-      await d.c.connect(d.alice).submitPrediction(pack(predA, predB));
-      await time.increaseTo(d.kickoff + 2n * 3600n);
-      await d.c.connect(d.oracle).pushResult(resA, resB);
+      const { c, owner, t0, leagueClose } = d;
+      await c.connect(owner).addMatches(
+        [t0 + 12n * 24n * 3600n, t0 + 13n * 24n * 3600n], // league MD1-ish
+        [team("RMA"), team("LIV")],
+        [team("MCI"), team("BAY")],
+        [LEAGUE, LEAGUE],
+      );
+      await c.connect(owner).addMatches(
+        [t0 + 45n * 24n * 3600n],
+        [team("ARS")],
+        [team("INT")],
+        [KO],
+      );
       return d;
     }
 
-    it("only the oracle can push, only after kickoff, only once", async () => {
-      const { c, oracle, alice, kickoff } = await deploy();
-      await expect(c.connect(alice).pushResult(1, 0)).to.be.revertedWithCustomError(c, "NotOracle");
-      await expect(c.connect(oracle).pushResult(1, 0)).to.be.revertedWithCustomError(
-        c,
-        "MatchNotStarted",
-      );
-      await time.increaseTo(kickoff + 1n);
-      await c.connect(oracle).pushResult(1, 0);
-      await expect(c.connect(oracle).pushResult(2, 0)).to.be.revertedWithCustomError(
-        c,
-        "MatchAlreadyCompleted",
-      );
+    it("stage gating: knockout-only wallets cannot predict league matches", async () => {
+      const { c, signers, leagueClose } = await withMatches();
+      await time.increaseTo(leagueClose); // ko sales open; league match 1 not yet locked (kickoff t0+12d)
+      await c.connect(signers[5]).enterKnockout({ value: KNOCKOUT });
+      await expect(
+        c.connect(signers[5]).submitPrediction(1, pack(1, 1)),
+      ).to.be.revertedWithCustomError(c, "NotEntered");
+      await c.connect(signers[5]).submitPrediction(3, pack(2, 0)); // ko match fine
     });
 
-    it("scores 5 exact / 3 goal-diff / 1 outcome / 0 wrong — no settlement tx", async () => {
-      expect(await (await settled(2, 1, 2, 1)).c.pointsOf((await ethers.getSigners())[3].address)).to.equal(5n);
-      expect(await (await settled(3, 2, 2, 1)).c.pointsOf((await ethers.getSigners())[3].address)).to.equal(3n);
-      expect(await (await settled(1, 0, 4, 2)).c.pointsOf((await ethers.getSigners())[3].address)).to.equal(1n);
-      expect(await (await settled(0, 2, 4, 2)).c.pointsOf((await ethers.getSigners())[3].address)).to.equal(0n);
+    it("batch submit is one tx for a whole matchday", async () => {
+      const { c, signers } = await withMatches();
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(signers[5]).submitPredictions([1, 2], [pack(2, 1), pack(0, 0)]);
+      expect(await c.predictionOf(signers[5].address, 1)).to.equal(pack(2, 1));
+      expect(await c.predictionOf(signers[5].address, 2)).to.equal(pack(0, 0));
     });
 
-    it("returns 0 before completion and for non-predictors", async () => {
-      const { c, alice, bob } = await deploy();
-      await c.connect(alice).enter({ value: ENTRY_GROSS });
-      await c.connect(alice).submitPrediction(pack(2, 1));
-      expect(await c.pointsOf(alice.address)).to.equal(0n); // not completed yet
-      const s = await settled(2, 1, 2, 1);
-      expect(await s.c.pointsOf(bob.address)).to.equal(0n); // never predicted
+    it("lazy per-stage scoring sums only that stage's completed matches", async () => {
+      const { c, signers, oracle, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(w).submitPredictions([1, 2], [pack(2, 1), pack(3, 0)]);
+      await time.increaseTo(t0 + 14n * 24n * 3600n);
+      await c.connect(oracle).pushResult(1, 2, 1); // exact → 5
+      await c.connect(oracle).pushResult(2, 1, 0); // outcome (win, diff 3 vs 1) → 1
+      expect(await c.pointsOf(w.address, LEAGUE)).to.equal(6n);
+      expect(await c.pointsOf(w.address, KO)).to.equal(0n);
+    });
+
+    it("unknown match ids revert", async () => {
+      const { c, signers, oracle } = await withMatches();
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+      await expect(
+        c.connect(signers[5]).submitPrediction(99, pack(1, 0)),
+      ).to.be.revertedWithCustomError(c, "UnknownMatch");
+      await expect(c.connect(oracle).pushResult(99, 1, 0)).to.be.revertedWithCustomError(
+        c,
+        "UnknownMatch",
+      );
     });
   });
 
-  describe("access control & upgrade authorization", () => {
-    it("owner rotates the oracle; others cannot", async () => {
-      const { c, owner, alice, bob } = await deploy();
-      await expect(c.connect(alice).setOracle(bob.address)).to.be.reverted;
-      await expect(c.connect(owner).setOracle(bob.address)).to.emit(c, "OracleRotated");
-      expect(await c.oracle()).to.equal(bob.address);
-    });
-
-    it("rejects accidental plain transfers (no receive/fallback, L-04)", async () => {
-      const { c, alice } = await deploy();
+  describe("windows & admin", () => {
+    it("owner can move a SELLING stage's window; not after it decided", async () => {
+      const { c, owner, signers, leagueClose, t0 } = await deploy();
+      await c.connect(owner).setStageWindow(KO, leagueClose, leagueClose + 60n * 24n * 3600n);
       await expect(
-        alice.sendTransaction({ to: await c.getAddress(), value: 1n }),
-      ).to.be.reverted;
+        c.connect(signers[5]).setStageWindow(KO, t0, t0 + 1n),
+      ).to.be.reverted; // not owner
+      await time.increaseTo(leagueClose + 1n);
+      await c.lockStage(LEAGUE); // decides (void, 0 entrants)
+      await expect(
+        c.connect(owner).setStageWindow(LEAGUE, t0, t0 + 1n),
+      ).to.be.revertedWithCustomError(c, "AlreadyDecided");
     });
 
-    it("only the owner can upgrade (UUPS)", async () => {
-      const { c, alice } = await deploy();
-      const F = await ethers.getContractFactory("ChampionzPredictor", alice);
-      await expect(upgrades.upgradeProxy(await c.getAddress(), F)).to.be.reverted;
+    it("initialize validates windows and addresses", async () => {
+      const [owner, fee, oracle] = await ethers.getSigners();
+      const t0 = BigInt(await time.latest());
+      const F = await ethers.getContractFactory("ChampionzPredictor");
+      await expect(
+        upgrades.deployProxy(F, [owner.address, fee.address, oracle.address, t0 + 100n, t0 + 50n], {
+          kind: "uups",
+        }),
+      ).to.be.revertedWithCustomError(F, "InvalidWindow");
     });
   });
 });

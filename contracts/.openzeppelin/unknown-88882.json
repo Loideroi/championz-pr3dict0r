@@ -5,6 +5,11 @@
       "address": "0xfB030Fc43C60093cfCd8696f9796Adf56b1b5990",
       "txHash": "0xa3554e704d659f5450f9b7ca869c92af925241c6e8b9743322bb7d477faf652a",
       "kind": "uups"
+    },
+    {
+      "address": "0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6",
+      "txHash": "0xb9c82168d96feba09d27f82f76a0c9d9e8bb9d9418623a9bd8a00123cbe2f47c",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -179,6 +184,312 @@
           "t_uint40": {
             "label": "uint40",
             "numberOfBytes": "5"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "3a7abb6c3ab306fa991e159e9de66a02ae8c4569bb66e4237fe8e93eca083d58": {
+      "address": "0x295dB804587aCD6a916CBe8a4b2Ec35e3a937873",
+      "txHash": "0x3e51068e4bb2c1d7052f9b27ae78367a85b467cf6c912d93268d047d810939f3",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "feeRecipient",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:65"
+          },
+          {
+            "label": "oracle",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:66"
+          },
+          {
+            "label": "stages",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_struct(StageState)1789_storage)2_storage",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:67"
+          },
+          {
+            "label": "matchCount",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_uint16",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:68"
+          },
+          {
+            "label": "matches",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_uint16,t_struct(Game)1801_storage)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:69"
+          },
+          {
+            "label": "results",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint16,t_uint256)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:70"
+          },
+          {
+            "label": "entered",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_uint8,t_mapping(t_address,t_bool))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:71"
+          },
+          {
+            "label": "refunded",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint8,t_mapping(t_address,t_bool))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:72"
+          },
+          {
+            "label": "fullSeason",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:73"
+          },
+          {
+            "label": "predictions",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_address,t_mapping(t_uint16,t_uint256))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:74"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)224_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(StageState)1789_storage)2_storage": {
+            "label": "struct ChampionzPredictor.StageState[2]",
+            "numberOfBytes": "192"
+          },
+          "t_bytes3": {
+            "label": "bytes3",
+            "numberOfBytes": "3"
+          },
+          "t_enum(MatchStatus)1775": {
+            "label": "enum ChampionzPredictor.MatchStatus",
+            "members": [
+              "SCHEDULED",
+              "COMPLETED"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(StageStatus)1772": {
+            "label": "enum ChampionzPredictor.StageStatus",
+            "members": [
+              "SELLING",
+              "LOCKED",
+              "VOID"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_uint16,t_uint256))": {
+            "label": "mapping(address => mapping(uint16 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_struct(Game)1801_storage)": {
+            "label": "mapping(uint16 => struct ChampionzPredictor.Game)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_uint256)": {
+            "label": "mapping(uint16 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint8 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Game)1801_storage": {
+            "label": "struct ChampionzPredictor.Game",
+            "members": [
+              {
+                "label": "kickoff",
+                "type": "t_uint40",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MatchStatus)1775",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "teamA",
+                "type": "t_bytes3",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "teamB",
+                "type": "t_bytes3",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "stage",
+                "type": "t_uint8",
+                "offset": 12,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(StageState)1789_storage": {
+            "label": "struct ChampionzPredictor.StageState",
+            "members": [
+              {
+                "label": "openAt",
+                "type": "t_uint40",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "closeAt",
+                "type": "t_uint40",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(StageStatus)1772",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "entryCount",
+                "type": "t_uint32",
+                "offset": 11,
+                "slot": "0"
+              },
+              {
+                "label": "pool",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "feeEscrow",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint40": {
+            "label": "uint40",
+            "numberOfBytes": "5"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
           }
         },
         "namespaces": {
