@@ -39,6 +39,12 @@ export default function Home() {
         >
           Predict
         </a>
+        <a
+          href="/standings"
+          className="rounded-xl border border-line px-6 py-3 font-semibold text-ink"
+        >
+          Standings
+        </a>
       </div>
     </main>
   );

@@ -27,6 +27,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     uint256 public constant POINTS_EXACT = 5;
     uint256 public constant POINTS_GOAL_DIFF = 3;
     uint256 public constant POINTS_OUTCOME = 1;
+    uint256 public constant POINTS_BONUS = 1; // per decider flag (§5.2)
 
     uint256 private constant FLAG_SUBMITTED = 1 << 20;
     uint8 public constant MAX_GOALS = 15;
@@ -82,6 +83,15 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     /// @dev 0 (pre-upgrade / unset) means DEFAULT_PROVISIONAL_WINDOW applies.
     uint40 public provisionalWindow;
 
+    // ---- v3 storage (slice 07) — appended only ----
+    /// @dev Tie metadata kept OUT of the Game struct (upgrade-safe append):
+    ///      bit 0 = decider (bonuses apply: PRD §5.2 — second legs + the final),
+    ///      bits 1-16 = tieId (0 = no tie).
+    mapping(uint16 => uint32) public tieInfo;
+    /// @dev Entry timestamps per stage — tie-break #3 (PRD §5.3). Wallets
+    ///      enrolled before this upgrade read 0 (sorts as earliest; staging only).
+    mapping(uint8 => mapping(address => uint40)) public enteredAt;
+
     uint40 public constant DEFAULT_PROVISIONAL_WINDOW = 24 hours;
 
     event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass);
@@ -90,6 +100,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     event Refunded(address indexed wallet, uint8 indexed stage, uint256 amount);
     event StageWindowSet(uint8 indexed stage, uint40 openAt, uint40 closeAt);
     event MatchAdded(uint16 indexed matchId, uint8 stage, uint40 kickoff, bytes3 teamA, bytes3 teamB);
+    event TieSet(uint16 indexed matchId, uint16 tieId, bool decider);
     event PredictionSubmitted(address indexed wallet, uint16 indexed matchId, uint256 packed);
     event ResultPushed(uint16 indexed matchId, uint8 scoreA, uint8 scoreB);
     event ResultCorrected(uint16 indexed matchId, uint256 oldPacked, uint256 newPacked);
@@ -182,6 +193,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     function _enroll(uint8 stage, address wallet) private {
         StageState storage s = stages[stage];
         entered[stage][wallet] = true;
+        enteredAt[stage][wallet] = uint40(block.timestamp); // tie-break #3
         unchecked {
             ++s.entryCount;
         }
@@ -252,6 +264,22 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
             uint16 id = ++matchCount;
             matches[id] = Game(kickoffs[i], MatchStatus.SCHEDULED, teamsA[i], teamsB[i], stageIds[i]);
             emit MatchAdded(id, stageIds[i], kickoffs[i], teamsA[i], teamsB[i]);
+        }
+    }
+
+    /// @notice Wire tie metadata (from the generated matches.json — never
+    ///         hand-authored). Deciders are second legs + the final (§5.2).
+    function setTies(
+        uint16[] calldata matchIds,
+        uint16[] calldata tieIds,
+        bool[] calldata deciders
+    ) external onlyOwner {
+        uint256 n = matchIds.length;
+        if (tieIds.length != n || deciders.length != n) revert InvalidWindow();
+        for (uint256 i = 0; i < n; ++i) {
+            _match(matchIds[i]); // existence check
+            tieInfo[matchIds[i]] = (uint32(tieIds[i]) << 1) | (deciders[i] ? 1 : 0);
+            emit TieSet(matchIds[i], tieIds[i], deciders[i]);
         }
     }
 
@@ -360,7 +388,17 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     // ------------------------------------------------------ lazy scoring ----
 
     /// @notice Pure function of (predictions, results); bounded by matchCount.
+    ///         Scoreline 5/3/1 on the 90′ score for every match; the three +1
+    ///         bonuses (ET / pens / advancer) apply on DECIDERS only (§5.2).
     function pointsOf(address wallet, uint8 stage) public view returns (uint256 total) {
+        uint16 n = matchCount;
+        for (uint16 id = 1; id <= n; ++id) {
+            total += _pointsForMatch(wallet, id, stage);
+        }
+    }
+
+    /// @notice Tie-break #2 (§5.3): count of exact scorelines in a stage.
+    function exactCountOf(address wallet, uint8 stage) external view returns (uint256 count) {
         uint16 n = matchCount;
         for (uint16 id = 1; id <= n; ++id) {
             Game storage g = matches[id];
@@ -369,10 +407,28 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
             if (packed & FLAG_SUBMITTED == 0) continue;
             (uint8 pa, uint8 pb) = _scores(packed);
             (uint8 ra, uint8 rb) = _scores(results[id]);
-            if (pa == ra && pb == rb) total += POINTS_EXACT;
-            else if (int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))) {
-                total += POINTS_GOAL_DIFF;
-            } else if (_sign(pa, pb) == _sign(ra, rb)) total += POINTS_OUTCOME;
+            if (pa == ra && pb == rb) ++count;
+        }
+    }
+
+    function _pointsForMatch(address wallet, uint16 id, uint8 stage) private view returns (uint256 pts) {
+        Game storage g = matches[id];
+        if (g.stage != stage || g.status != MatchStatus.COMPLETED) return 0;
+        uint256 packed = predictions[wallet][id];
+        if (packed & FLAG_SUBMITTED == 0) return 0;
+        uint256 res = results[id];
+        (uint8 pa, uint8 pb) = _scores(packed);
+        (uint8 ra, uint8 rb) = _scores(res);
+        if (pa == ra && pb == rb) pts = POINTS_EXACT;
+        else if (int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))) {
+            pts = POINTS_GOAL_DIFF;
+        } else if (_sign(pa, pb) == _sign(ra, rb)) pts = POINTS_OUTCOME;
+
+        if (tieInfo[id] & 1 == 1) {
+            // decider bonuses: +1 per correctly-called flag (§5)
+            if ((packed >> 16) & 1 == (res >> 16) & 1) pts += POINTS_BONUS;
+            if ((packed >> 17) & 1 == (res >> 17) & 1) pts += POINTS_BONUS;
+            if ((packed >> 18) & 3 == (res >> 18) & 3) pts += POINTS_BONUS;
         }
     }
 
