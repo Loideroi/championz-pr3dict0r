@@ -1,6 +1,6 @@
 # 15 — Match Insights pipeline
 
-Status: ready-for-agent
+Status: ready-for-human
 PRD: ../../PRD.md §7.5 · Decision: D11
 
 ## What to build
@@ -28,3 +28,29 @@ locale files ready for review and merge.
 
 - 04-uefa-source-adapter-fixtures.md
 - 14-i18n-six-locales-terms.md
+
+## Comments
+
+**2026-07-05 — built; design deliberately LLM-free at runtime.**
+- **Design note (evolution of the predecessor's workflow):** insights are
+  deterministic FACTS from the feed (last-5 form via the 90′-rule results, a 3/1/0
+  mini-table over played league matches, knockout/decider context) rendered through
+  per-locale sentence templates (`relayer/src/insights.ts`). Zero API cost, fully
+  reproducible, numerics byte-identical across locales BY CONSTRUCTION — the parity
+  property the predecessor needed merge tooling to enforce. The predecessor's
+  LLM-generated prose was richer; this trades flourish for automation (ADR-0011's
+  priority). A future slice can layer LLM color on top of the same facts.
+- **One command per matchday**: `generate-insights.mjs (--season | --fixtures) --out`
+  → six `<locale>.json` files keyed by uefaMatchId; `rawSeason()` added to the source
+  for a single-pass fetch. Recorded-archive sample committed
+  (`relayer/test/output/insights-sample/`, 50 matches × 6 locales).
+- **Empty-safe rendering**: `components/predict/InsightCard.tsx` fetches static
+  `/insights/<locale>.json`, renders nothing on missing key/file — knockout fixtures
+  pick up insights on the next generator run after each draw (acceptance criterion:
+  proven by keying on uefaMatchId, files regenerated per run).
+- 5 new relayer tests (form strictly-before-kickoff, mini-table density, decider vs
+  table lines, six-locale numeric parity, committed-sample key parity). 71 relayer
+  tests total.
+- **Remaining:** mount `<InsightCard>` in the slate's MatchRow once PR feat/i18n-wiring
+  merges (one line — avoids a cross-PR conflict on that file), and add the generator
+  to the matchday runbook/cron once real 2026/27 fixtures exist post-draw.
