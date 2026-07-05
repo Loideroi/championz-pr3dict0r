@@ -317,7 +317,8 @@ export class UefaApiSource implements ResultSource {
   }
 
   /** All matches of a season, kickoff-ascending, zod-validated. */
-  async fixtures(season: string): Promise<Fixture[]> {
+  /** Raw season payload — the insights generator wants fixture+result in one pass. */
+  async rawSeason(season: string): Promise<UefaMatch[]> {
     const all: UefaMatch[] = [];
     for (let offset = 0; ; offset += this.pageSize) {
       const url =
@@ -327,7 +328,11 @@ export class UefaApiSource implements ResultSource {
       all.push(...page);
       if (page.length < this.pageSize) break;
     }
-    return all.map(toFixture);
+    return all;
+  }
+
+  async fixtures(season: string): Promise<Fixture[]> {
+    return (await this.rawSeason(season)).map(toFixture);
   }
 
   /** Result by UEFA match id; null when the feed has no score yet. */
