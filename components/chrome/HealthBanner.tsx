@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -11,11 +12,14 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
  * errors. Absent env / absent rows → renders nothing (never blocks the app).
  */
 export function HealthBanner() {
-  const [notice, setNotice] = useState<string | null>(null);
+  const t = useTranslations("health");
+  // Boolean state only — the copy itself comes from the (locale-reactive)
+  // translator so switching language re-renders the banner text.
+  const [troubled, setTroubled] = useState(false);
 
   useEffect(() => {
     if (!SUPABASE_URL || !ANON_KEY) return;
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch(
           `${SUPABASE_URL}/rest/v1/clp_oracle_log?kind=eq.run&order=created_at.desc&limit=1`,
@@ -28,24 +32,20 @@ export function HealthBanner() {
         }>;
         if (!row) return;
         const ageMs = Date.now() - new Date(row.created_at).getTime();
-        const troubled =
+        const isTroubled =
           (row.detail?.errors?.length ?? 0) > 0 || (row.detail?.alerts?.length ?? 0) > 0;
-        if (troubled && ageMs < 6 * 3600 * 1000) {
-          setNotice(
-            "Results are delayed — our data feed is having a moment. The leaderboard will catch up automatically; nothing is lost.",
-          );
-        }
+        if (isTroubled && ageMs < 6 * 3600 * 1000) setTroubled(true);
       } catch {
         /* health read is best-effort */
       }
     }, 0);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, []);
 
-  if (!notice) return null;
+  if (!troubled) return null;
   return (
     <div role="status" className="border-b border-star/30 bg-star/10 px-5 py-2 text-center font-mono text-xs text-star">
-      ◌ {notice}
+      ◌ {t("delayed")}
     </div>
   );
 }

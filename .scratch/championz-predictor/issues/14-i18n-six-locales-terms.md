@@ -1,6 +1,6 @@
 # 14 — i18n: six locales + the funnier T&Cs
 
-Status: ready-for-agent
+Status: ready-for-human
 PRD: ../../PRD.md §15, §17 · Decision: D10
 
 ## What to build
@@ -49,3 +49,45 @@ named in the milestones: treat content generation as the critical path.
   boundary — fold into vitest.config.ts when the i18n wiring lands.
 - Still open for this issue: next-intl wiring for all UI strings, language switcher
   on every route, en-GB 24-hour times, byte-identity script for non-T&C fields.
+
+**2026-07-05 — i18n component wiring complete (branch `feat/i18n-wiring`).**
+All app-side wiring done on top of the infra commit; `npm run typecheck && npm test
+&& npm run build` and `eslint --max-warnings=0` and `npm run check:i18n` all green.
+Per acceptance criterion:
+
+- [x] **All six locales render every route; switcher works; no missing-key warnings.**
+  `NextIntlClientProvider` wraps the tree in `app/layout.tsx` with `<html lang>` from
+  `getLocale()`. Every route + component is wired to `useTranslations`/`getTranslations`.
+  Language switcher is a real `<select aria-label>` in `SiteNav` that sets the
+  `NEXT_LOCALE` cookie and calls `router.refresh()`, showing the active locale.
+  Production build compiles clean (zero warnings). ~140 string sites converted across
+  16 files; namespaces: `layout, nav, localeSwitcher, health, home, stats, enter,
+  play, predict, insight, standings, hallOfFame, profile, terms`.
+- [x] **Non-translatable fields verified byte-identical by a script.**
+  `scripts/check-i18n-parity.mjs` (+ `npm run check:i18n`) asserts deep key parity
+  (174 keys × 6 locales) AND that `CHZ`, `1,100`, `550`, `BigMac Bobby` present in en
+  appear in every locale. Wired into CI's `app` job before typecheck.
+- [x] **T&Cs in all six locales** — shipped separately (see prior comment); this PR
+  folds `content/terms/parity.test.ts` into `vitest.config.ts` (`content/**/*.test.ts`)
+  and deletes the `app/terms/parity.test.ts` shim. 105 tests pass (incl. 32 terms parity).
+- [x] **Tie-break joke** — covered by the terms slice; unchanged here.
+- [x] **No hydration errors from locale formatting.** Server + client both read the
+  same `NEXT_LOCALE` cookie (no client-side messages swap), all translated strings are
+  static per-locale, dynamic clocks keep their existing SSR-safe (`now===null`) guards.
+  Build's static-page generation produced no hydration warnings.
+- [x] **en-GB 24-hour times everywhere.** `formatUtcTime` (the slate/MatchRow clock)
+  pinned to `en-GB` + `hour12:false`; `EnterPanel.fmtDate` already `en-GB`. Day-bucket
+  label (`formatKickoffDay`, a weekday/month label, not a clock) stays en-US so it reads
+  identically across locales — documented inline.
+
+Deferred `<InsightCard>` mounted in `MatchRow` (one line, under the fixture). NOTE: the
+on-chain match struct exposes no `uefaMatchId` (see `SlateMatch` in
+`lib/predictor/slate.ts` — internal id + 3-letter codes only), so there is no real
+per-match insight feed yet; the card renders localised canned copy keyed off the
+internal match id and threads `locale`, documented in `components/predict/InsightCard.tsx`.
+Wire it to a real feed once the oracle publishes UEFA fixture ids.
+
+Translation confidence: the `insight` namespace copy (label + form/headToHead/stakes)
+was authored fresh for all six locales using native football idiom; a native reviewer
+should sanity-check tone (esp. tr/pt-BR). All other strings were pre-existing in the
+infra message files.

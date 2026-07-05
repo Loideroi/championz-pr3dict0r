@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Inter, Space_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Providers } from "./providers";
 import { HealthBanner } from "@/components/chrome/HealthBanner";
 import { SiteNav } from "@/components/chrome/SiteNav";
@@ -23,33 +25,41 @@ const spaceMono = Space_Mono({
   weight: ["400", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "₵h@mpi0nz Pr3dict0r — Champions League predictions on Chiliz",
-  description:
-    "Stake CHZ, predict the 90-minute scorelines of the UEFA Champions League 2026/27, climb the leaderboards from matchday one to Madrid.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("layout.metadata");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Active locale comes from the NEXT_LOCALE cookie (i18n/request.ts) — same
+  // value server and client, so <html lang> and the messages never mismatch.
+  const locale = await getLocale();
+  const t = await getTranslations("layout");
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${archivo.variable} ${inter.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-night text-ink font-body">
-        <Starfield />
-        <Providers>
-          <SiteNav />
-          <HealthBanner />
-          <div className="flex-1 flex flex-col">{children}</div>
-        </Providers>
-        <footer className="border-t border-line-soft py-6 text-center font-mono text-xs text-muted-2">
-          Design inspired by BigMac Bobby · Built on Chiliz Chain · Not
-          affiliated with or endorsed by UEFA
-        </footer>
+        <NextIntlClientProvider>
+          <Starfield />
+          <Providers>
+            <SiteNav />
+            <HealthBanner />
+            <div className="flex-1 flex flex-col">{children}</div>
+          </Providers>
+          <footer className="border-t border-line-soft py-6 text-center font-mono text-xs text-muted-2">
+            {t("footer")}
+          </footer>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

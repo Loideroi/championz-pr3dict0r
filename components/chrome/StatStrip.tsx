@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useReadContract } from "wagmi";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 
@@ -31,6 +32,7 @@ function Stat({
 
 /** Mock's stat strip — predictors, live pools, match count, from chain. */
 export function StatStrip() {
+  const t = useTranslations("stats");
   const league = useReadContract({ ...contract, functionName: "stages", args: [BigInt(STAGE_LEAGUE)], query: { enabled: !!PREDICTOR_ADDRESS } });
   const knockout = useReadContract({ ...contract, functionName: "stages", args: [BigInt(STAGE_KNOCKOUT)], query: { enabled: !!PREDICTOR_ADDRESS } });
   const matchCount = useReadContract({ ...contract, functionName: "matchCount", query: { enabled: !!PREDICTOR_ADDRESS } });
@@ -47,9 +49,9 @@ export function StatStrip() {
 
   return (
     <div className="grid w-full max-w-2xl gap-3 sm:grid-cols-3">
-      <Stat value={predictors} label="Predictors" accent="glow" />
-      <Stat value={`${pool} CHZ`} label="Prize pools" accent="chz" />
-      <Stat value={matchCount.data?.toString() ?? "…"} label="Matches on-chain" accent="star" />
+      <Stat value={predictors} label={t("predictors")} accent="glow" />
+      <Stat value={`${pool} CHZ`} label={t("prizePools")} accent="chz" />
+      <Stat value={matchCount.data?.toString() ?? "…"} label={t("matchesOnChain")} accent="star" />
     </div>
   );
 }

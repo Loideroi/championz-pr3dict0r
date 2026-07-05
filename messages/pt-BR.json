@@ -1,0 +1,236 @@
+{
+  "layout": {
+    "metadata": {
+      "title": "₵h@mpi0nz Pr3dict0r — Palpites da Champions League na Chiliz",
+      "description": "Faça staking de CHZ, preveja os placares dos 90 minutos da UEFA Champions League 2026/27 e suba nos rankings da rodada um até Madri."
+    },
+    "footer": "Design inspirado em BigMac Bobby · Construído na Chiliz Chain · Sem afiliação ou endosso da UEFA"
+  },
+  "nav": {
+    "enter": "Entrar",
+    "predict": "Palpitar",
+    "standings": "Classificação",
+    "hallOfFame": "Hall da Fama",
+    "profile": "Perfil",
+    "connect": "Conectar"
+  },
+  "localeSwitcher": {
+    "label": "Idioma"
+  },
+  "health": {
+    "delayed": "Os resultados estão atrasados — nosso feed de dados está tendo um momento. A classificação se atualiza sozinha; nada se perde."
+  },
+  "home": {
+    "tagline": "★ UEFA Champions League 2026/27",
+    "intro": "Faça staking de CHZ, crave os placares dos 90 minutos e suba em dois rankings da rodada um até Madri — enquanto um oráculo alimentado pela UEFA faz o trabalho administrativo.",
+    "fullSeasonPill": "Temporada completa · {amount} CHZ",
+    "knockoutPill": "Mata-mata · {amount} CHZ",
+    "ctaEnter": "Entre no bolão →",
+    "ctaPredict": "Palpitar",
+    "ctaStandings": "Classificação"
+  },
+  "stats": {
+    "predictors": "Palpiteiros",
+    "prizePools": "Premiações",
+    "matchesOnChain": "Partidas on-chain"
+  },
+  "enter": {
+    "metadata": {
+      "title": "Entrar — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "A loja nunca fecha",
+    "heading": "Escolha seu passe",
+    "intro": "Quem chega cedo joga a temporada inteira por 1,100 CHZ. Quem chega depois entra no mata-mata por 550 CHZ assim que as vendas da temporada fecham — mesmos jogos, mesmo dinheiro, classificação zerada. Menos de 20 participantes numa fase? Todo mundo recebe cada wei de volta.",
+    "notConfigured": "Endereço do contrato não configurado.",
+    "connectWallet": "Conectar carteira",
+    "confirmInWallet": "Confirme a entrada na sua carteira…",
+    "waitingOnchain": "Aguardando a entrada chegar on-chain…",
+    "confirmed": "Entrada confirmada — você está dentro. Vá palpitar!",
+    "notConfirmed": "Sem confirmação após 120s — confira sua carteira.",
+    "fullSeason": {
+      "title": "Passe de temporada completa",
+      "split": "500 → Bolão da Liga · 500 → Bolão do Mata-mata · 100 de taxa",
+      "bothStages": "As duas fases, uma transação só",
+      "salesClose": "Vendas encerram: {date}",
+      "entrants": "Participantes: {count} (mínimo 20 ou reembolso total)",
+      "holdsPass": "✓ Você tem o passe da temporada",
+      "entering": "Entrando…",
+      "enterCta": "Entrar na temporada",
+      "salesClosed": "Vendas encerradas"
+    },
+    "knockout": {
+      "title": "Passe do mata-mata",
+      "split": "500 → Bolão do Mata-mata · 50 de taxa",
+      "stage2Only": "Só a Fase 2 — todo mundo começa do 0",
+      "onSale": "À venda: {from} → {to}",
+      "entrants": "Participantes: {count} (mínimo 20 ou reembolso total)",
+      "lockedWarning": "⚠ {count, plural, one {# jogo do mata-mata já está travado} other {# jogos do mata-mata já estão travados}} — você não pontua mais em:",
+      "ackLabel": "Entendo que esses jogos me rendem 0 ponto",
+      "inViaSeason": "✓ Você está no mata-mata (via passe da temporada)",
+      "inPool": "✓ Você está no bolão do mata-mata",
+      "opensLater": "Abre quando as vendas da temporada fecharem",
+      "salesClosed": "Vendas encerradas",
+      "entering": "Entrando…",
+      "ackFirst": "Reconheça primeiro os jogos travados",
+      "joinCta": "Entrar no mata-mata"
+    }
+  },
+  "play": {
+    "metadata": {
+      "title": "Jogar — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Rodada na lousa · Testnet Spicy",
+    "heading": "Crave todos os placares",
+    "intro": "Ajuste seus placares de 90 minutos, trave a rodada inteira em uma transação e edite qualquer palpite livremente até 60 minutos antes do pontapé inicial — mudar de ideia custa só centavos de gás.",
+    "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS não está definido — faça o deploy do contrato e adicione o endereço do proxy ao .env.local.",
+    "connectWallet": "Conectar carteira",
+    "loading": "Carregando a rodada…",
+    "emptySlate": "Ainda não há jogos na lousa — o oráculo não publicou a tabela.",
+    "stageLeague": "Fase de liga",
+    "stageKnockout": "Mata-mata",
+    "stageFallback": "Fase {stage}",
+    "pointsThisStage": "★ {points} pts nesta fase",
+    "confirmBatch": "Confirme {count, plural, one {# palpite} other {# palpites}} na sua carteira — uma transação só…",
+    "waitingBatch": "Aguardando o lote chegar on-chain…",
+    "updatedSingle": "Palpite atualizado — você pode mudar de novo até {time} (T-60).",
+    "updatedMany": "{count} palpites atualizados — cada um pode mudar até 60 minutos antes do seu pontapé inicial (T-60).",
+    "batchNotConfirmed": "Lote sem confirmação após 120s — confira sua carteira e o Chiliscan antes de tentar de novo."
+  },
+  "predict": {
+    "matchRow": {
+      "vs": "vs",
+      "kickoff": "Pontapé inicial {time}",
+      "locksIn": "· Trava em {countdown}",
+      "ft": "FIM {score}",
+      "yourPick": "você: {score}",
+      "noPrediction": "sem palpite",
+      "finalPick": "palpite final",
+      "lockedNoPrediction": "travado — sem palpite",
+      "connectToPredict": "conecte para palpitar",
+      "enterFirst": "Entre primeiro →",
+      "edit": "Editar",
+      "stageZero": "preparar 0–0",
+      "was": "era",
+      "discard": "↺ descartar",
+      "homeScoreLabel": "{teamA} vs {teamB}: mandante",
+      "awayScoreLabel": "{teamA} vs {teamB}: visitante"
+    },
+    "stepper": {
+      "up": "Aumentar placar — {label}",
+      "down": "Diminuir placar — {label}"
+    },
+    "submitBar": {
+      "review": "Revise antes de assinar — {count, plural, one {# mudança} other {# mudanças}}",
+      "edits": "({count, plural, one {# edição} other {# edições}})",
+      "new": "novo →",
+      "submitting": "Enviando…",
+      "lockIn": "Travar {count, plural, one {# palpite} other {# palpites}}",
+      "discardAll": "Descartar tudo",
+      "gasCopy": "Uma transação para a rodada inteira — um lote completo de 18 jogos custa ≈ 1.1 CHZ (~$0.05) de gás. Editar depois é só pagar de novo."
+    }
+  },
+  "insight": {
+    "label": "Momento das equipes:",
+    "form": "Os dois chegam com o gol engatilhado — aqui ninguém aposta num 0 a 0 de dar sono.",
+    "headToHead": "O histórico está rachado no meio; os últimos confrontos foram decididos nos acréscimos.",
+    "stakes": "Quem decide é o sangue-frio, não a tática — noite para o palpiteiro de cabeça fria."
+  },
+  "standings": {
+    "metadata": {
+      "title": "Classificação — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Duas tabelas pagam · uma coroa manda",
+    "heading": "Classificação",
+    "notConfigured": "Endereço do contrato não configurado.",
+    "viewLeague": "Fase 1 · Liga",
+    "viewKnockout": "Fase 2 · Mata-mata",
+    "viewSeason": "Visão da temporada",
+    "provisional": "◌ contém resultados provisórios",
+    "colRank": "#",
+    "colPredictor": "Palpiteiro",
+    "colLeague": "Liga",
+    "colKnockout": "Mata-mata",
+    "colPoints": "Pontos",
+    "reading": "Lendo a chain…",
+    "noEntrants": "Ainda sem participantes — seja o primeiro.",
+    "koPass": "Passe KO",
+    "footnote": "Os pontos são calculados ao vivo do estado da chain — não existem transações de liquidação. A Visão da temporada coroa o ₵h@mpi0n supremo (o NFT do troféu chega com o slice 11).",
+    "claim": {
+      "confirm": "Confirme o resgate na sua carteira…",
+      "claimed": "Resgatado — os CHZ estão na sua carteira. 🏆",
+      "notConfirmed": "Sem confirmação após 120s — confira sua carteira.",
+      "banner": "★ Você terminou no top 20 de {stage} — {amount} CHZ para resgatar",
+      "claiming": "Resgatando…",
+      "cta": "Resgatar"
+    }
+  },
+  "hallOfFame": {
+    "metadata": {
+      "title": "Hall da Fama — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "★ Glória eterna, zero fundos anexos",
+    "heading": "Hall da Fama",
+    "notConfigured": "Contrato do troféu não configurado.",
+    "reading": "Lendo a chain…",
+    "emptyPlinth": "O pedestal está vazio. O ₵h@mpi0n supremo é coroado depois da final em Madri — a melhor soma de Fase 1 + Fase 2 leva o NFT do troféu.",
+    "season": "Temporada {season}",
+    "trophyMeta": "Troféu #{id} · on-chain, para sempre"
+  },
+  "profile": {
+    "metadata": {
+      "title": "Perfil — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Bandeiras desde o dia um",
+    "heading": "Reivindique seu nome",
+    "intro": "A classificação mostra uma bandeira e um nome de usuário, não um endereço de carteira. Escolha um apelido (único por chain), escolha suas cores, assine uma mensagem — pronto. Sem e-mail, sem senha: sua carteira é seu login.",
+    "form": {
+      "tierSeason": "Passe da temporada",
+      "tierKnockout": "Mata-mata",
+      "tierNone": "Não inscrito",
+      "connectPrompt": "Conecte sua carteira para reivindicar um nome de usuário. A Socios.com Wallet funciona em primeira classe.",
+      "connectWallet": "Conectar carteira",
+      "savedLine": "{username} · {country} — salvo",
+      "usernameLabel": "Nome de usuário",
+      "usernamePlaceholder": "3–20 caracteres · letras, números, _",
+      "usernameHint": "Único por chain — este é seu nome na classificação.",
+      "waiting": "Aguardando…",
+      "update": "Atualizar perfil",
+      "signSave": "Assinar e salvar perfil",
+      "signNote": "Você assinará uma mensagem legível (sem transação, sem gás). Carteiras de contrato como a Socios.com Wallet são verificadas via ERC-1271.",
+      "checkWallet": "Confira sua carteira e assine a mensagem…",
+      "saving": "Salvando seu perfil…",
+      "saveFailed": "Falha ao salvar ({status}).",
+      "saved": "Perfil salvo — sua bandeira já tremula na classificação.",
+      "sigFailed": "Assinatura cancelada ou falhou."
+    },
+    "country": {
+      "label": "País",
+      "change": "trocar",
+      "searchPlaceholder": "Buscar países…",
+      "listLabel": "Países",
+      "noMatches": "Nenhum resultado"
+    },
+    "telegram": {
+      "title": "Telegram (opcional)",
+      "intro": "Vincule seu Telegram para receber lembretes de travamento e o convite do grupo da comunidade. Opt-in, desvincula com um toque, nunca obrigatório.",
+      "working": "Trabalhando…",
+      "unlink": "Desvincular Telegram",
+      "openStart": "Abra o Telegram e aperte START →",
+      "waitingSig": "Aguardando a assinatura…",
+      "link": "Vincular Telegram",
+      "sigDeclined": "Assinatura recusada.",
+      "openLinkNote": "Abra o link e aperte START — o código vive 15 minutos.",
+      "linkFailed": "Falha ao vincular.",
+      "unlinked": "Desvinculado — o bot esquece você por completo.",
+      "unlinkFailed": "Falha ao desvincular."
+    }
+  },
+  "terms": {
+    "metadata": {
+      "title": "Termos e Condições — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Mais engraçados que os do antecessor · igualmente vinculantes",
+    "lastUpdated": "Última atualização {date}",
+    "languageLabel": "Idioma"
+  }
+}

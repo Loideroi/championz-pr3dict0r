@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { SlateChange } from "@/lib/predictor/slate";
 
 export type NamedChange = SlateChange & { teamA: string; teamB: string };
@@ -24,15 +25,15 @@ export function SubmitBar({
   onSubmit: () => void;
   onDiscardAll: () => void;
 }) {
+  const t = useTranslations("predict.submitBar");
   if (changes.length === 0) return null;
   const edits = changes.filter((c) => c.old !== null).length;
 
   return (
     <div className="sticky bottom-4 flex flex-col gap-3 rounded-2xl border border-glow/50 bg-night-3/95 p-4 shadow-lg shadow-night/60 backdrop-blur">
       <p className="font-mono text-xs uppercase tracking-widest text-glow-2">
-        Review before signing — {changes.length}{" "}
-        {changes.length === 1 ? "change" : "changes"}
-        {edits > 0 && ` (${edits} ${edits === 1 ? "edit" : "edits"})`}
+        {t("review", { count: changes.length })}
+        {edits > 0 && ` ${t("edits", { count: edits })}`}
       </p>
       <ul className="flex flex-col gap-1 font-mono text-sm">
         {changes.map((c) => (
@@ -48,7 +49,7 @@ export function SubmitBar({
               </>
             ) : (
               <>
-                <span className="text-muted-2">new →</span>
+                <span className="text-muted-2">{t("new")}</span>
                 <span className="font-bold text-glow-2">{fmt(c.next)}</span>
               </>
             )}
@@ -62,9 +63,7 @@ export function SubmitBar({
           onClick={onSubmit}
           className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-5 py-3 font-semibold text-white disabled:opacity-50"
         >
-          {busy
-            ? "Submitting…"
-            : `Lock in ${changes.length} prediction${changes.length === 1 ? "" : "s"}`}
+          {busy ? t("submitting") : t("lockIn", { count: changes.length })}
         </button>
         <button
           type="button"
@@ -72,13 +71,10 @@ export function SubmitBar({
           onClick={onDiscardAll}
           className="rounded-xl border border-line px-4 py-3 text-sm text-muted hover:bg-white/5 disabled:opacity-40"
         >
-          Discard all
+          {t("discardAll")}
         </button>
       </div>
-      <p className="font-mono text-xs text-muted">
-        One transaction for the whole matchday — a full 18-match batch costs ≈ 1.1
-        CHZ (~$0.05) in gas. Editing later just re-pays it.
-      </p>
+      <p className="font-mono text-xs text-muted">{t("gasCopy")}</p>
     </div>
   );
 }

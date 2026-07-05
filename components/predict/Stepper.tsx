@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { MAX_GOALS } from "@/lib/predictor/packed";
 
 /** Scoreboard stepper — the ▲▼ input pattern from the walking skeleton. */
@@ -14,11 +15,12 @@ export function Stepper({
   onChange: (v: number) => void;
   disabled: boolean;
 }) {
+  const t = useTranslations("predict.stepper");
   return (
     <div className="flex flex-col items-center gap-1">
       <button
         type="button"
-        aria-label={`${label} score up`}
+        aria-label={t("up", { label })}
         disabled={disabled}
         onClick={() => onChange(Math.min(MAX_GOALS, value + 1))}
         className="h-6 w-9 rounded-md border border-line bg-white/5 text-xs hover:bg-glow disabled:opacity-40"
@@ -28,7 +30,7 @@ export function Stepper({
       <span className="font-mono text-2xl font-bold text-glow-2">{value}</span>
       <button
         type="button"
-        aria-label={`${label} score down`}
+        aria-label={t("down", { label })}
         disabled={disabled}
         onClick={() => onChange(Math.max(0, value - 1))}
         className="h-6 w-9 rounded-md border border-line bg-white/5 text-xs hover:bg-glow disabled:opacity-40"

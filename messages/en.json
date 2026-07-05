@@ -1,0 +1,236 @@
+{
+  "layout": {
+    "metadata": {
+      "title": "₵h@mpi0nz Pr3dict0r — Champions League predictions on Chiliz",
+      "description": "Stake CHZ, predict the 90-minute scorelines of the UEFA Champions League 2026/27, climb the leaderboards from matchday one to Madrid."
+    },
+    "footer": "Design inspired by BigMac Bobby · Built on Chiliz Chain · Not affiliated with or endorsed by UEFA"
+  },
+  "nav": {
+    "enter": "Enter",
+    "predict": "Predict",
+    "standings": "Standings",
+    "hallOfFame": "Hall of Fame",
+    "profile": "Profile",
+    "connect": "Connect"
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  },
+  "health": {
+    "delayed": "Results are delayed — our data feed is having a moment. The leaderboard will catch up automatically; nothing is lost."
+  },
+  "home": {
+    "tagline": "★ UEFA Champions League 2026/27",
+    "intro": "Stake CHZ, call the 90-minute scorelines, and climb two leaderboards from matchday one to Madrid — while a UEFA-fed oracle does the admin work.",
+    "fullSeasonPill": "Full Season · {amount} CHZ",
+    "knockoutPill": "Knockout · {amount} CHZ",
+    "ctaEnter": "Enter the pool →",
+    "ctaPredict": "Predict",
+    "ctaStandings": "Standings"
+  },
+  "stats": {
+    "predictors": "Predictors",
+    "prizePools": "Prize pools",
+    "matchesOnChain": "Matches on-chain"
+  },
+  "enter": {
+    "metadata": {
+      "title": "Enter — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "The shop is never closed",
+    "heading": "Pick your pass",
+    "intro": "Early birds play the whole season for 1,100 CHZ. Latecomers join the knockout for 550 CHZ the moment season sales close — same matches, same money, fresh leaderboard. Under 20 entrants in a stage? Everyone gets every wei back.",
+    "notConfigured": "Contract address not configured.",
+    "connectWallet": "Connect Wallet",
+    "confirmInWallet": "Confirm the entry in your wallet…",
+    "waitingOnchain": "Waiting for the entry to land on-chain…",
+    "confirmed": "Entry confirmed — you’re in. Go predict!",
+    "notConfirmed": "Not confirmed after 120s — check your wallet.",
+    "fullSeason": {
+      "title": "Full Season pass",
+      "split": "500 → League Pool · 500 → Knockout Pool · 100 fee",
+      "bothStages": "Both stages, one transaction",
+      "salesClose": "Sales close: {date}",
+      "entrants": "Entrants: {count} (floor 20 or full refund)",
+      "holdsPass": "✓ You hold the season pass",
+      "entering": "Entering…",
+      "enterCta": "Enter the season",
+      "salesClosed": "Sales closed"
+    },
+    "knockout": {
+      "title": "Knockout pass",
+      "split": "500 → Knockout Pool · 50 fee",
+      "stage2Only": "Stage 2 only — everyone starts at 0",
+      "onSale": "On sale: {from} → {to}",
+      "entrants": "Entrants: {count} (floor 20 or full refund)",
+      "lockedWarning": "⚠ {count, plural, one {# knockout match has} other {# knockout matches have}} already locked — you can no longer score on:",
+      "ackLabel": "I understand these score 0 points for me",
+      "inViaSeason": "✓ You’re in the knockout (via season pass)",
+      "inPool": "✓ You’re in the knockout pool",
+      "opensLater": "Opens when season sales close",
+      "salesClosed": "Sales closed",
+      "entering": "Entering…",
+      "ackFirst": "Acknowledge locked matches first",
+      "joinCta": "Join the knockout"
+    }
+  },
+  "play": {
+    "metadata": {
+      "title": "Play — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Matchday slate · Spicy testnet",
+    "heading": "Call every scoreline",
+    "intro": "Dial your 90-minute scorelines, lock the whole matchday in one transaction, and edit any pick freely until 60 minutes before its kickoff — changing your mind just re-pays cents of gas.",
+    "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS is not set — deploy the contract and add the proxy address to .env.local.",
+    "connectWallet": "Connect Wallet",
+    "loading": "Loading the slate…",
+    "emptySlate": "No matches on the slate yet — the oracle hasn’t published fixtures.",
+    "stageLeague": "League phase",
+    "stageKnockout": "Knockout",
+    "stageFallback": "Stage {stage}",
+    "pointsThisStage": "★ {points} pts this stage",
+    "confirmBatch": "Confirm {count, plural, one {# prediction} other {# predictions}} in your wallet — one transaction…",
+    "waitingBatch": "Waiting for the batch to land on-chain…",
+    "updatedSingle": "Prediction updated — you can change it again until {time} (T-60).",
+    "updatedMany": "{count} predictions updated — you can change each again until 60 minutes before its kickoff (T-60).",
+    "batchNotConfirmed": "Batch not confirmed after 120s — check your wallet and Chiliscan before retrying."
+  },
+  "predict": {
+    "matchRow": {
+      "vs": "vs",
+      "kickoff": "Kickoff {time}",
+      "locksIn": "· Locks in {countdown}",
+      "ft": "FT {score}",
+      "yourPick": "you: {score}",
+      "noPrediction": "no prediction",
+      "finalPick": "final pick",
+      "lockedNoPrediction": "locked — no prediction",
+      "connectToPredict": "connect to predict",
+      "enterFirst": "Enter first →",
+      "edit": "Edit",
+      "stageZero": "stage 0–0",
+      "was": "was",
+      "discard": "↺ discard",
+      "homeScoreLabel": "{teamA} vs {teamB}: home",
+      "awayScoreLabel": "{teamA} vs {teamB}: away"
+    },
+    "stepper": {
+      "up": "{label} score up",
+      "down": "{label} score down"
+    },
+    "submitBar": {
+      "review": "Review before signing — {count, plural, one {# change} other {# changes}}",
+      "edits": "({count, plural, one {# edit} other {# edits}})",
+      "new": "new →",
+      "submitting": "Submitting…",
+      "lockIn": "Lock in {count, plural, one {# prediction} other {# predictions}}",
+      "discardAll": "Discard all",
+      "gasCopy": "One transaction for the whole matchday — a full 18-match batch costs ≈ 1.1 CHZ (~$0.05) in gas. Editing later just re-pays it."
+    }
+  },
+  "insight": {
+    "label": "Form guide:",
+    "form": "Both sides arrive in scoring form — few here are betting on a goalless bore.",
+    "headToHead": "History is split down the middle; recent meetings have been decided late.",
+    "stakes": "Nerves, not tactics, may settle this one — a night for the cool-headed predictor."
+  },
+  "standings": {
+    "metadata": {
+      "title": "Standings — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Two boards pay · one crown rules",
+    "heading": "Standings",
+    "notConfigured": "Contract address not configured.",
+    "viewLeague": "Stage 1 · League",
+    "viewKnockout": "Stage 2 · Knockout",
+    "viewSeason": "Season View",
+    "provisional": "◌ contains provisional results",
+    "colRank": "#",
+    "colPredictor": "Predictor",
+    "colLeague": "League",
+    "colKnockout": "Knockout",
+    "colPoints": "Points",
+    "reading": "Reading the chain…",
+    "noEntrants": "No entrants yet — be the first.",
+    "koPass": "KO pass",
+    "footnote": "Points compute live from chain state — no settlement transactions exist. Season View crowns the Ultimate ₵h@mpi0n (trophy NFT lands with slice 11).",
+    "claim": {
+      "confirm": "Confirm the claim in your wallet…",
+      "claimed": "Claimed — the CHZ is in your wallet. 🏆",
+      "notConfirmed": "Not confirmed after 120s — check your wallet.",
+      "banner": "★ You finished in the {stage} top 20 — {amount} CHZ claimable",
+      "claiming": "Claiming…",
+      "cta": "Claim"
+    }
+  },
+  "hallOfFame": {
+    "metadata": {
+      "title": "Hall of Fame — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "★ Eternal glory, zero funds attached",
+    "heading": "Hall of Fame",
+    "notConfigured": "Trophy contract not configured.",
+    "reading": "Reading the chain…",
+    "emptyPlinth": "The plinth is empty. The Ultimate ₵h@mpi0n is crowned after the final in Madrid — best combined Stage 1 + Stage 2 score takes the trophy NFT.",
+    "season": "Season {season}",
+    "trophyMeta": "Trophy #{id} · on-chain, forever"
+  },
+  "profile": {
+    "metadata": {
+      "title": "Profile — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Flags from day one",
+    "heading": "Claim your name",
+    "intro": "The leaderboard shows a flag and a username, not a wallet address. Pick a handle (unique per chain), pick your colours, sign one message — done. No email, no password: your wallet is your login.",
+    "form": {
+      "tierSeason": "Season pass",
+      "tierKnockout": "Knockout",
+      "tierNone": "Not entered",
+      "connectPrompt": "Connect your wallet to claim a username. Socios.com Wallet works first-class.",
+      "connectWallet": "Connect Wallet",
+      "savedLine": "{username} · {country} — saved",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "3–20 chars · letters, numbers, _",
+      "usernameHint": "Unique per chain — this is your leaderboard name.",
+      "waiting": "Waiting…",
+      "update": "Update profile",
+      "signSave": "Sign & save profile",
+      "signNote": "You’ll sign one readable message (no transaction, no gas). Contract wallets like Socios.com Wallet are verified via ERC-1271.",
+      "checkWallet": "Check your wallet and sign the message…",
+      "saving": "Saving your profile…",
+      "saveFailed": "Save failed ({status}).",
+      "saved": "Profile saved — your flag flies on the leaderboard.",
+      "sigFailed": "Signature was cancelled or failed."
+    },
+    "country": {
+      "label": "Country",
+      "change": "change",
+      "searchPlaceholder": "Search countries…",
+      "listLabel": "Countries",
+      "noMatches": "No matches"
+    },
+    "telegram": {
+      "title": "Telegram (optional)",
+      "intro": "Link your Telegram to get lock reminders and the community group invite. Opt-in, one-tap unlink, never required.",
+      "working": "Working…",
+      "unlink": "Unlink Telegram",
+      "openStart": "Open Telegram & press START →",
+      "waitingSig": "Waiting for signature…",
+      "link": "Link Telegram",
+      "sigDeclined": "Signature declined.",
+      "openLinkNote": "Open the link and press START — the code lives 15 minutes.",
+      "linkFailed": "Linking failed.",
+      "unlinked": "Unlinked — the bot forgets you entirely.",
+      "unlinkFailed": "Unlink failed."
+    }
+  },
+  "terms": {
+    "metadata": {
+      "title": "Terms & Conditions — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Funnier than the predecessor · still binding",
+    "lastUpdated": "Last updated {date}",
+    "languageLabel": "Language"
+  }
+}

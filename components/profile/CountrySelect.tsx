@@ -6,6 +6,7 @@
  * flag emoji derived from the code. Fully client-side, SSR-deterministic.
  */
 import { useId, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { COUNTRIES, countryName, flagEmoji } from "@/lib/profile/countries";
 
 const MAX_RESULTS = 8;
@@ -19,6 +20,7 @@ export function CountrySelect({
   onChange: (code: string) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations("profile.country");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const listId = useId();
@@ -37,7 +39,7 @@ export function CountrySelect({
         htmlFor={`${listId}-input`}
         className="font-mono text-xs uppercase tracking-widest text-muted"
       >
-        Country
+        {t("label")}
       </label>
       {value && !open ? (
         <button
@@ -51,7 +53,7 @@ export function CountrySelect({
         >
           <span aria-hidden>{flagEmoji(value)}</span>
           <span>{countryName(value)}</span>
-          <span className="ml-auto font-mono text-xs text-muted-2">change</span>
+          <span className="ml-auto font-mono text-xs text-muted-2">{t("change")}</span>
         </button>
       ) : (
         <>
@@ -63,7 +65,7 @@ export function CountrySelect({
             aria-controls={listId}
             aria-autocomplete="list"
             autoComplete="off"
-            placeholder="Search countries…"
+            placeholder={t("searchPlaceholder")}
             value={query}
             disabled={disabled}
             onChange={(e) => {
@@ -77,12 +79,12 @@ export function CountrySelect({
             <ul
               id={listId}
               role="listbox"
-              aria-label="Countries"
+              aria-label={t("listLabel")}
               className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-xl border border-line bg-night-2 shadow-xl"
             >
               {results.length === 0 && (
                 <li className="px-4 py-2 font-mono text-xs text-muted-2">
-                  No matches
+                  {t("noMatches")}
                 </li>
               )}
               {results.map((c) => (

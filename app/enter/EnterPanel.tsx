@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAppKit } from "@reown/appkit/react";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { hexToString } from "viem";
@@ -19,6 +20,7 @@ const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 type LockedMatch = { id: number; teamA: string; teamB: string; kickoff: number };
 
 export function EnterPanel() {
+  const t = useTranslations("enter");
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
@@ -91,7 +93,7 @@ export function EnterPanel() {
   }, [matchCount.data, now, lockedMatches, loadLockedMatches]);
 
   if (!PREDICTOR_ADDRESS) {
-    return <p className="font-mono text-sm text-muted">Contract address not configured.</p>;
+    return <p className="font-mono text-sm text-muted">{t("notConfigured")}</p>;
   }
 
   const leagueOpen =
@@ -108,7 +110,7 @@ export function EnterPanel() {
 
   async function enter(kind: "full" | "ko") {
     setBusy(kind);
-    setMessage("Confirm the entry in your wallet…");
+    setMessage(t("confirmInWallet"));
     try {
       await writeContractAsync({
         ...contract,
@@ -118,7 +120,7 @@ export function EnterPanel() {
     } catch {
       /* SCW relay — the poll decides */
     }
-    setMessage("Waiting for the entry to land on-chain…");
+    setMessage(t("waitingOnchain"));
     const stage = kind === "full" ? STAGE_LEAGUE : STAGE_KNOCKOUT;
     const deadline = Date.now() + 120_000;
     let ok = false;
@@ -133,7 +135,7 @@ export function EnterPanel() {
         })) as boolean);
       if (!ok) await new Promise((r) => setTimeout(r, 3_000));
     }
-    setMessage(ok ? "Entry confirmed — you're in. Go predict!" : "Not confirmed after 120s — check your wallet.");
+    setMessage(ok ? t("confirmed") : t("notConfirmed"));
     await Promise.all([enteredLeague.refetch(), enteredKnockout.refetch(), league.refetch(), knockout.refetch()]);
     setBusy(null);
   }
@@ -147,21 +149,21 @@ export function EnterPanel() {
     <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
       {/* Full Season pass */}
       <div className="flex flex-col gap-4 rounded-2xl border border-line bg-night-2/60 p-6">
-        <p className="font-mono text-xs uppercase tracking-widest text-glow-2">Full Season pass</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{t("fullSeason.title")}</p>
         <p className="font-display text-4xl font-black">
           {formatChz(ENTRY.fullSeason.gross)} <span className="text-lg">CHZ</span>
         </p>
         <ul className="flex flex-col gap-1 font-mono text-xs text-muted">
-          <li>500 → League Pool · 500 → Knockout Pool · 100 fee</li>
-          <li>Both stages, one transaction</li>
-          <li>Sales close: {fmtDate(league.data?.[1])}</li>
-          <li>Entrants: {league.data?.[3]?.toString() ?? "…"} (floor 20 or full refund)</li>
+          <li>{t("fullSeason.split")}</li>
+          <li>{t("fullSeason.bothStages")}</li>
+          <li>{t("fullSeason.salesClose", { date: fmtDate(league.data?.[1]) })}</li>
+          <li>{t("fullSeason.entrants", { count: league.data?.[3]?.toString() ?? "…" })}</li>
         </ul>
         {enteredLeague.data ? (
-          <p className="font-mono text-sm text-ok">✓ You hold the season pass</p>
+          <p className="font-mono text-sm text-ok">{t("fullSeason.holdsPass")}</p>
         ) : !isConnected ? (
           <button type="button" onClick={() => open()} className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-3 font-semibold text-white">
-            Connect Wallet
+            {t("connectWallet")}
           </button>
         ) : (
           <button
@@ -170,29 +172,28 @@ export function EnterPanel() {
             onClick={() => enter("full")}
             className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-3 font-semibold text-white disabled:opacity-40"
           >
-            {leagueOpen ? (busy === "full" ? "Entering…" : "Enter the season") : "Sales closed"}
+            {leagueOpen ? (busy === "full" ? t("fullSeason.entering") : t("fullSeason.enterCta")) : t("fullSeason.salesClosed")}
           </button>
         )}
       </div>
 
       {/* Knockout pass */}
       <div className="flex flex-col gap-4 rounded-2xl border border-line bg-night-2/60 p-6">
-        <p className="font-mono text-xs uppercase tracking-widest text-glow-2">Knockout pass</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{t("knockout.title")}</p>
         <p className="font-display text-4xl font-black">
           {formatChz(ENTRY.knockout.gross)} <span className="text-lg">CHZ</span>
         </p>
         <ul className="flex flex-col gap-1 font-mono text-xs text-muted">
-          <li>500 → Knockout Pool · 50 fee</li>
-          <li>Stage 2 only — everyone starts at 0</li>
-          <li>On sale: {fmtDate(knockout.data?.[0])} → {fmtDate(knockout.data?.[1])}</li>
-          <li>Entrants: {knockout.data?.[3]?.toString() ?? "…"} (floor 20 or full refund)</li>
+          <li>{t("knockout.split")}</li>
+          <li>{t("knockout.stage2Only")}</li>
+          <li>{t("knockout.onSale", { from: fmtDate(knockout.data?.[0]), to: fmtDate(knockout.data?.[1]) })}</li>
+          <li>{t("knockout.entrants", { count: knockout.data?.[3]?.toString() ?? "…" })}</li>
         </ul>
 
         {needsDisclosure && !enteredKnockout.data && (
           <div className="rounded-xl border border-star/40 bg-star/10 p-3 text-xs">
             <p className="mb-2 font-semibold text-star">
-              ⚠ {lockedMatches!.length} knockout {lockedMatches!.length === 1 ? "match has" : "matches have"} already
-              locked — you can no longer score on:
+              {t("knockout.lockedWarning", { count: lockedMatches!.length })}
             </p>
             <ul className="mb-2 font-mono text-muted">
               {lockedMatches!.map((m) => (
@@ -207,18 +208,18 @@ export function EnterPanel() {
                 checked={disclosureAck}
                 onChange={(e) => setDisclosureAck(e.target.checked)}
               />
-              I understand these score 0 points for me
+              {t("knockout.ackLabel")}
             </label>
           </div>
         )}
 
         {enteredKnockout.data ? (
           <p className="font-mono text-sm text-ok">
-            ✓ You&apos;re in the knockout {enteredLeague.data ? "(via season pass)" : "pool"}
+            {enteredLeague.data ? t("knockout.inViaSeason") : t("knockout.inPool")}
           </p>
         ) : !isConnected ? (
           <button type="button" onClick={() => open()} className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-5 py-3 font-semibold text-white">
-            Connect Wallet
+            {t("connectWallet")}
           </button>
         ) : (
           <button
@@ -229,13 +230,13 @@ export function EnterPanel() {
           >
             {!knockoutOpen
               ? now !== null && knockout.data && now < Number(knockout.data[0])
-                ? "Opens when season sales close"
-                : "Sales closed"
+                ? t("knockout.opensLater")
+                : t("knockout.salesClosed")
               : busy === "ko"
-                ? "Entering…"
+                ? t("knockout.entering")
                 : needsDisclosure && !disclosureAck
-                  ? "Acknowledge locked matches first"
-                  : "Join the knockout"}
+                  ? t("knockout.ackFirst")
+                  : t("knockout.joinCta")}
           </button>
         )}
       </div>
