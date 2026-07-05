@@ -15,9 +15,11 @@ owner** (a human action or an irreversible/real-money step Claude will not take 
 - ✅ Snyk on app code: 0 issues.
 - ✅ Predecessor `Audit.MD` 18-finding regression re-checked (all green; H-05 emergency
   withdrawal added this slice).
-- 👤 **Mainnet deploy** — from a **fresh owner-key ceremony** (NOT the Spicy deployer
-  `0x4710…`, which is staging only per ADR-0005). Claude will prepare the exact
-  `deploy.ts` invocation but will **not** broadcast to mainnet without your explicit go.
+- ✅ **Mainnet deploy** — v6 live on Chiliz 88888, proxy
+  `0x742c6963a81012bc7949F0058Fba07c8d1A80c4d`, impl verified on Chiliscan. Owner =
+  `0x4710…` (your explicit choice), league sales open, real Sep/Feb windows. See
+  `contracts/deployments.md`. ⚠ **Fund the oracle `0xB57C…` with mainnet gas** before
+  the season, and add fixtures after the 27 Aug draw.
 
 ## Economics gate (PRD §22)
 
