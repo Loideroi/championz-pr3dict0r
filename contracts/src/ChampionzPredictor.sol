@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 /// @title ChampionzPredictor — v1: two-stage economics (build slice 03)
 /// @notice Two stages, two pools, two passes (PRD §4, ADRs 0001–0004):
@@ -14,7 +15,12 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 ///         gross entry, fee included — therefore fees are ESCROWED per stage
 ///         and only forwarded to the feeRecipient when the stage locks with a
 ///         quorum (D2). Scoring stays lazy: no settlement loops anywhere.
-contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract ChampionzPredictor is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable
+{
     // ---- economics (PRD §4.3 — lockstep with lib/economics.ts) ----
     uint256 public constant FULL_SEASON_GROSS = 1100 ether;
     uint256 public constant KNOCKOUT_GROSS = 550 ether;
@@ -49,7 +55,8 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     enum MatchStatus {
         SCHEDULED,
-        COMPLETED
+        COMPLETED,
+        VOIDED // slice 12: our own fixture mistakes only (ADR-0006) — never scores
     }
 
     struct StageState {
@@ -98,6 +105,11 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     mapping(uint8 => address[]) private stageWinners;
     mapping(uint8 => mapping(address => uint256)) public claimable;
 
+    // ---- v5 storage (slice 12) — appended AFTER v4, never reorder above ----
+    /// @dev Transparency pointer to the oracle's feed (PRD §7.2), e.g.
+    ///      "uefa-api:match.uefa.com/v5". Owner-updatable, loudly evented.
+    string public resultSourceRef;
+
     uint40 public constant DEFAULT_PROVISIONAL_WINDOW = 24 hours;
 
     event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass);
@@ -114,6 +126,10 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     event ResultCorrected(uint16 indexed matchId, uint256 oldPacked, uint256 newPacked);
     event KickoffUpdated(uint16 indexed matchId, uint40 kickoff);
     event OracleRotated(address indexed previousOracle, address indexed newOracle);
+    event ForceCorrected(uint16 indexed matchId, uint256 oldPacked, uint256 newPacked);
+    event MatchVoided(uint16 indexed matchId);
+    event MatchTeamsSet(uint16 indexed matchId, bytes3 teamA, bytes3 teamB);
+    event ResultSourceSet(string previousRef, string newRef);
 
     error InvalidStakeAmount();
     error AlreadyEntered();
@@ -177,7 +193,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     // ------------------------------------------------------------ entry ----
 
     /// @notice One transaction, both stages (PRD §4.1). Exact 1,100 CHZ.
-    function enterFullSeason() external payable {
+    function enterFullSeason() external payable whenNotPaused {
         if (msg.value != FULL_SEASON_GROSS) revert InvalidStakeAmount();
         StageState storage league = stages[STAGE_LEAGUE];
         if (block.timestamp < league.openAt) revert SalesNotOpen();
@@ -193,7 +209,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     }
 
     /// @notice Latecomer pass — on sale the moment season sales close (D4).
-    function enterKnockout() external payable {
+    function enterKnockout() external payable whenNotPaused {
         if (msg.value != KNOCKOUT_GROSS) revert InvalidStakeAmount();
         StageState storage ko = stages[STAGE_KNOCKOUT];
         if (block.timestamp < ko.openAt) revert SalesNotOpen();
@@ -237,7 +253,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     /// @notice D2: a voided stage refunds the FULL gross per stage — 550,
     ///         fee included. A voided full-season wallet claims per stage.
-    function claimRefund(uint8 stage) external {
+    function claimRefund(uint8 stage) external whenNotPaused {
         StageState storage s = _stage(stage);
         if (s.status != StageStatus.VOID) revert StageNotVoid();
         if (!entered[stage][msg.sender]) revert NotEntered();
@@ -298,7 +314,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     // ------------------------------------------------------- predictions ----
 
-    function submitPrediction(uint16 matchId, uint256 packed) external {
+    function submitPrediction(uint16 matchId, uint256 packed) external whenNotPaused {
         Game storage g = _match(matchId);
         if (!entered[g.stage][msg.sender]) revert NotEntered();
         if (block.timestamp >= g.kickoff - PREDICTION_LOCKOUT) revert PredictionsLocked();
@@ -310,7 +326,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     }
 
     /// @notice One transaction per matchday (PRD §6/§10) — arrays must align.
-    function submitPredictions(uint16[] calldata matchIds, uint256[] calldata packeds) external {
+    function submitPredictions(uint16[] calldata matchIds, uint256[] calldata packeds) external whenNotPaused {
         uint256 n = matchIds.length;
         if (packeds.length != n) revert InvalidPrediction();
         for (uint256 i = 0; i < n; ++i) {
@@ -336,7 +352,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     ///         mirror-UEFA verbatim per ADR-0006). Lands PROVISIONAL for the
     ///         dispute window (D9: scores count immediately, badge in UI),
     ///         then finalizes by pure passage of time — no finalize tx.
-    function pushResult(uint16 matchId, uint256 packed) external onlyOracle {
+    function pushResult(uint16 matchId, uint256 packed) external onlyOracle whenNotPaused {
         Game storage g = _match(matchId);
         if (block.timestamp < g.kickoff) revert MatchNotStarted();
         if (g.status == MatchStatus.COMPLETED) revert MatchAlreadyCompleted();
@@ -352,7 +368,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     /// @notice Oracle self-correction inside the provisional window only
     ///         (UEFA amends a score; the relayer follows). Post-finalization
     ///         corrections are the pause-gated slice-12 path — not this.
-    function correctResult(uint16 matchId, uint256 packed) external onlyOracle {
+    function correctResult(uint16 matchId, uint256 packed) external onlyOracle whenNotPaused {
         uint256 existing = results[matchId];
         if (existing == 0) revert UnknownMatch();
         if (block.timestamp >= _provisionalUntil(existing)) revert ResultFinalized();
@@ -368,8 +384,8 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     /// @notice UEFA reschedules matches; the relayer follows (SCHEDULED only).
     function batchUpdateKickoffs(uint16[] calldata matchIds, uint40[] calldata kickoffs)
         external
-        onlyOracle
     {
+        if (msg.sender != oracle && msg.sender != owner()) revert NotOracle();
         uint256 n = matchIds.length;
         if (kickoffs.length != n) revert InvalidWindow();
         for (uint256 i = 0; i < n; ++i) {
@@ -390,6 +406,58 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     function _provisionalUntil(uint256 packedResult) private pure returns (uint256) {
         return (packedResult & RESULT_TS_MASK) >> RESULT_TS_SHIFT;
+    }
+
+    // ------------------------------------------- admin console (slice 12) ----
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /// @notice Post-finalization correction — DELIBERATE FRICTION: reverts
+    ///         unless paused (PRD §8.2). Pre-payout, lazy scoring re-scores
+    ///         everyone automatically; loudly evented for the community.
+    function forceCorrectResult(uint16 matchId, uint256 packed) external onlyOwner whenPaused {
+        Game storage g = _match(matchId);
+        if (g.status != MatchStatus.COMPLETED) revert MatchNotStarted();
+        if (packed & FLAG_SUBMITTED == 0 || packed & RESULT_TS_MASK != 0) revert InvalidPrediction();
+        (uint8 a, uint8 b) = _scores(packed);
+        if (a > MAX_GOALS || b > MAX_GOALS) revert InvalidPrediction();
+        uint256 old = results[matchId];
+        results[matchId] = packed | (block.timestamp << RESULT_TS_SHIFT); // window over: stays final
+        emit ForceCorrected(matchId, old, packed);
+    }
+
+    /// @notice Scoped to OUR OWN fixture mistakes only (ADR-0006) — UEFA's
+    ///         decisions are mirrored, never voided. A voided match simply
+    ///         never scores (lazy scoring skips non-COMPLETED).
+    function voidMatch(uint16 matchId) external onlyOwner {
+        Game storage g = _match(matchId);
+        if (stageFrozen[g.stage]) revert AlreadyDecided(); // too late — payouts computed
+        g.status = MatchStatus.VOIDED;
+        delete results[matchId];
+        emit MatchVoided(matchId);
+    }
+
+    /// @notice Fix a wrong fixture pre-kickoff (predecessor upgrade parity).
+    ///         Predictions are preserved; holders can revise until T-60.
+    function setMatchTeams(uint16 matchId, bytes3 teamA, bytes3 teamB) external onlyOwner {
+        Game storage g = _match(matchId);
+        if (g.status != MatchStatus.SCHEDULED) revert MatchAlreadyCompleted();
+        if (block.timestamp >= g.kickoff) revert PredictionsLocked();
+        g.teamA = teamA;
+        g.teamB = teamB;
+        emit MatchTeamsSet(matchId, teamA, teamB);
+    }
+
+    /// @notice Transparency: which feed the oracle claims to relay (PRD §7.2).
+    function setResultSource(string calldata ref) external onlyOwner {
+        emit ResultSourceSet(resultSourceRef, ref);
+        resultSourceRef = ref;
     }
 
     function setOracle(address newOracle) external onlyOwner {
@@ -454,7 +522,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         emit StageFrozen(stage, ranked[0], payCount, pool_);
     }
 
-    function claim(uint8 stage) external {
+    function claim(uint8 stage) external whenNotPaused {
         if (!stageFrozen[stage]) revert StageNotFrozen();
         uint256 amount = claimable[stage][msg.sender];
         if (amount == 0) revert NothingToClaim();
@@ -482,6 +550,7 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         for (uint16 id = 1; id <= n; ++id) {
             Game storage g = matches[id];
             if (g.stage != stage) continue;
+            if (g.status == MatchStatus.VOIDED) continue; // never scores, never blocks
             if (g.status != MatchStatus.COMPLETED) revert StageNotFinal();
             if (block.timestamp < _provisionalUntil(results[id])) revert StageNotFinal();
         }
