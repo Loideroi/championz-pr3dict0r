@@ -471,6 +471,107 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
     });
   });
 
+  describe("admin console & corrections (slice 12)", () => {
+    async function withMatches12() {
+      const d = await deploy();
+      const { c, owner, t0 } = d;
+      await c.connect(owner).addMatches(
+        [t0 + 12n * 24n * 3600n, t0 + 13n * 24n * 3600n],
+        [team("RMA"), team("LIV")],
+        [team("MCI"), team("BAY")],
+        [LEAGUE, LEAGUE],
+      );
+      return d;
+    }
+
+    it("pause freezes the money paths; unpause restores them", async () => {
+      const { c, owner, signers } = await withMatches12();
+      await c.connect(owner).pause();
+      await expect(
+        c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON }),
+      ).to.be.revertedWithCustomError(c, "EnforcedPause");
+      await c.connect(owner).unpause();
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+    });
+
+    it("forceCorrectResult: only owner, only paused, only completed; result stays final", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches12();
+      const w = signers[5];
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(w).submitPrediction(1, pack(2, 1));
+      await time.increaseTo(t0 + 12n * 24n * 3600n + 2n * 3600n);
+      await c.connect(oracle).pushResult(1, pack(1, 1));
+      await time.increase(25 * 3600); // finalized
+
+      await expect(
+        c.connect(owner).forceCorrectResult(1, pack(2, 1)),
+      ).to.be.revertedWithCustomError(c, "ExpectedPause"); // friction: must pause first
+      await c.connect(owner).pause();
+      await expect(c.connect(oracle).forceCorrectResult(1, pack(2, 1))).to.be.reverted; // owner only
+      await expect(c.connect(owner).forceCorrectResult(1, pack(2, 1))).to.emit(c, "ForceCorrected");
+      await c.connect(owner).unpause();
+      // re-scored automatically, and STILL final (no re-opened window)
+      expect(await c.pointsOf(w.address, LEAGUE)).to.equal(5n);
+      const r = await c.resultOf(1);
+      expect(r.provisional).to.be.false;
+      await expect(c.connect(oracle).correctResult(1, pack(0, 0))).to.be.revertedWithCustomError(
+        c,
+        "ResultFinalized",
+      );
+    });
+
+    it("voidMatch: never scores, never blocks freezing; blocked after freeze", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches12();
+      const players = signers.slice(5, 25);
+      for (const p of players) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      for (let i = 0; i < players.length; i++) {
+        await c.connect(players[i]!).submitPredictions([1, 2], [pack(Math.min(i, 15), 0), pack(2, 0)]);
+      }
+      await time.increaseTo(t0 + 12n * 24n * 3600n + 2n * 3600n);
+      await c.connect(oracle).pushResult(1, pack(2, 0));
+      // match 2 was our own mistake — void it instead of ever settling it
+      await c.connect(owner).voidMatch(2);
+      expect(await c.pointsOf(players[2]!.address, LEAGUE)).to.equal(5n); // match 1 only
+      await time.increase(25 * 3600);
+      await c.lockStage(LEAGUE);
+      // freezing works although match 2 never completed (VOIDED is skipped)
+      const ranked = [
+        players[2]!.address,
+        ...players.filter((_, i) => i !== 0 && i !== 2).map((p) => p.address),
+        players[0]!.address,
+      ];
+      await c.freezeStage(LEAGUE, ranked);
+      await expect(c.connect(owner).voidMatch(1)).to.be.revertedWithCustomError(c, "AlreadyDecided");
+    });
+
+    it("setMatchTeams pre-kickoff only, predictions preserved", async () => {
+      const { c, owner, signers } = await withMatches12();
+      const w = signers[5];
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(w).submitPrediction(1, pack(3, 3));
+      await expect(c.connect(owner).setMatchTeams(1, team("ARS"), team("INT"))).to.emit(
+        c,
+        "MatchTeamsSet",
+      );
+      expect(await c.predictionOf(w.address, 1)).to.equal(pack(3, 3)); // preserved
+      expect((await c.matches(1)).teamA).to.equal(team("ARS").toLowerCase());
+    });
+
+    it("setResultSource is a loud transparency pointer; owner may reschedule too", async () => {
+      const { c, owner, signers, t0 } = await withMatches12();
+      await expect(c.connect(owner).setResultSource("uefa-api:match.uefa.com/v5")).to.emit(
+        c,
+        "ResultSourceSet",
+      );
+      expect(await c.resultSourceRef()).to.equal("uefa-api:match.uefa.com/v5");
+      await expect(c.connect(signers[5]).setResultSource("evil")).to.be.reverted;
+      // owner (not just oracle) can fix kickoffs from the console
+      const newKick = t0 + 20n * 24n * 3600n;
+      await c.connect(owner).batchUpdateKickoffs([1], [newKick]);
+      expect((await c.matches(1)).kickoff).to.equal(newKick);
+    });
+  });
+
   describe("ChampionzTrophy (ADR-0008)", () => {
     it("owner mints one zero-fund trophy; metadata is inline; others cannot mint", async () => {
       const [owner, champion, rando] = await ethers.getSigners();
