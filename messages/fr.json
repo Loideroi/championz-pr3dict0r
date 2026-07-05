@@ -129,6 +129,12 @@
       "gasCopy": "Une transaction pour toute la journée — un lot complet de 18 matchs coûte ≈ 1.1 CHZ (~$0.05) de gas. Modifier plus tard ne fait que le repayer."
     }
   },
+  "insight": {
+    "label": "État de forme :",
+    "form": "Les deux équipes arrivent en jambes devant le but — personne ici ne parie sur un 0-0 soporifique.",
+    "headToHead": "L'historique est partagé en deux ; leurs dernières confrontations se sont jouées dans le temps additionnel.",
+    "stakes": "Ce sont les nerfs, pas la tactique, qui trancheront — une soirée pour le pronostiqueur au sang-froid."
+  },
   "standings": {
     "metadata": {
       "title": "Classement — ₵h@mpi0nz Pr3dict0r"

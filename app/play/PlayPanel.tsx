@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAppKit } from "@reown/appkit/react";
 import {
   useAccount,
@@ -32,7 +33,6 @@ import { SubmitBar, type NamedChange } from "@/components/predict/SubmitBar";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 const STAGES = [STAGE_LEAGUE, STAGE_KNOCKOUT] as const;
-const STAGE_LABELS = ["League phase", "Knockout"] as const;
 
 /**
  * SCW-safe write confirmation (CLAUDE.md): the Socios.com Wallet relays
@@ -56,6 +56,7 @@ function usePollForEffect() {
 }
 
 export function PlayPanel() {
+  const t = useTranslations("play");
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
@@ -218,9 +219,8 @@ export function PlayPanel() {
     const staged = changes;
     if (staged.length === 0) return;
     const { matchIds, packeds } = toBatchArgs(staged);
-    const plural = staged.length === 1 ? "" : "s";
     setBusy(true);
-    setMessage(`Confirm ${staged.length} prediction${plural} in your wallet — one transaction…`);
+    setMessage(t("confirmBatch", { count: staged.length }));
     try {
       await writeContractAsync({
         ...contract,
@@ -230,7 +230,7 @@ export function PlayPanel() {
     } catch {
       /* SCW relay — the poll decides */
     }
-    setMessage("Waiting for the batch to land on-chain…");
+    setMessage(t("waitingBatch"));
     const ok = await pollForEffect(async () => {
       if (!client || !address) return false;
       const reads = await Promise.all(
@@ -249,24 +249,19 @@ export function PlayPanel() {
       const single = staged.length === 1 ? slate.find((m) => m.id === staged[0].matchId) : undefined;
       setMessage(
         single
-          ? `Prediction updated — you can change it again until ${formatUtcTime(lockAt(single))} (T-60).`
-          : `${staged.length} predictions updated — you can change each again until 60 minutes before its kickoff (T-60).`,
+          ? t("updatedSingle", { time: formatUtcTime(lockAt(single)) })
+          : t("updatedMany", { count: staged.length }),
       );
       setDrafts(new Map());
     } else {
-      setMessage("Batch not confirmed after 120s — check your wallet and Chiliscan before retrying.");
+      setMessage(t("batchNotConfirmed"));
     }
     await predictionReads.refetch();
     setBusy(false);
   }
 
   if (!configured) {
-    return (
-      <p className="font-mono text-sm text-muted">
-        NEXT_PUBLIC_PREDICTOR_ADDRESS is not set — deploy the contract and add the
-        proxy address to .env.local.
-      </p>
-    );
+    return <p className="font-mono text-sm text-muted">{t("notConfigured")}</p>;
   }
 
   const loading = matchCount.isPending || (count > 0 && matchReads.isPending);
@@ -279,26 +274,31 @@ export function PlayPanel() {
           onClick={() => open()}
           className="self-center rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-3 font-semibold text-white"
         >
-          Connect Wallet
+          {t("connectWallet")}
         </button>
       )}
 
       {loading ? (
-        <p className="text-center font-mono text-sm text-muted">Loading the slate…</p>
+        <p className="text-center font-mono text-sm text-muted">{t("loading")}</p>
       ) : slate.length === 0 ? (
-        <p className="text-center font-mono text-sm text-muted">
-          No matches on the slate yet — the oracle hasn&apos;t published fixtures.
-        </p>
+        <p className="text-center font-mono text-sm text-muted">{t("emptySlate")}</p>
       ) : (
-        groups.map((group) => (
+        groups.map((group) => {
+          const stageLabel =
+            group.stage === STAGE_LEAGUE
+              ? t("stageLeague")
+              : group.stage === STAGE_KNOCKOUT
+                ? t("stageKnockout")
+                : t("stageFallback", { stage: group.stage });
+          return (
           <section key={`${group.stage}|${group.dayKey}`} className="flex flex-col gap-3">
             <header className="flex items-baseline justify-between gap-3">
               <h2 className="font-mono text-xs uppercase tracking-[0.24em] text-glow-2">
-                {STAGE_LABELS[group.stage] ?? `Stage ${group.stage}`} · {group.dayLabel}
+                {stageLabel} · {group.dayLabel}
               </h2>
               {pointsByStage[group.stage] !== null && pointsByStage[group.stage]! > 0n && (
                 <p className="font-mono text-xs text-star">
-                  ★ {pointsByStage[group.stage]!.toString()} pts this stage
+                  {t("pointsThisStage", { points: pointsByStage[group.stage]!.toString() })}
                 </p>
               )}
             </header>
@@ -328,7 +328,8 @@ export function PlayPanel() {
               })}
             </ul>
           </section>
-        ))
+          );
+        })
       )}
 
       <SubmitBar

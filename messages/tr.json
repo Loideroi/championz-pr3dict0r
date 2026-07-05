@@ -129,6 +129,12 @@
       "gasCopy": "Tüm maç haftası için tek işlem — 18 maçlık tam paket ≈ 1.1 CHZ (~$0.05) gas tutar. Sonradan düzenlemek sadece bunu yeniden öder."
     }
   },
+  "insight": {
+    "label": "Form durumu:",
+    "form": "İki takım da gol formunda geliyor — burada kimse golsüz bir maça oynamıyor.",
+    "headToHead": "Geçmiş tam ortadan ikiye bölünmüş; son karşılaşmalar uzatmalarda belli oldu.",
+    "stakes": "Bunu taktik değil, soğukkanlılık belirleyecek — sakin tahmincinin gecesi."
+  },
   "standings": {
     "metadata": {
       "title": "Puan Durumu — ₵h@mpi0nz Pr3dict0r"

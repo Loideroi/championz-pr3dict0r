@@ -129,6 +129,12 @@
       "gasCopy": "Una transazione per l’intera giornata — un lotto completo di 18 partite costa ≈ 1.1 CHZ (~$0.05) di gas. Modificare più tardi significa solo ripagarlo."
     }
   },
+  "insight": {
+    "label": "Stato di forma:",
+    "form": "Entrambe arrivano con il gol nelle gambe — qui nessuno punta su uno 0-0 soporifero.",
+    "headToHead": "I precedenti sono in perfetto equilibrio; gli ultimi incroci si sono decisi nel recupero.",
+    "stakes": "A decidere saranno i nervi, non la tattica — una serata per il pronosticatore a sangue freddo."
+  },
   "standings": {
     "metadata": {
       "title": "Classifica — ₵h@mpi0nz Pr3dict0r"

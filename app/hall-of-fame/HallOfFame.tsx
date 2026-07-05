@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { usePublicClient } from "wagmi";
 
 const TROPHY_ADDRESS = (process.env.NEXT_PUBLIC_TROPHY_ADDRESS ?? "") as `0x${string}`;
@@ -36,6 +37,7 @@ interface Champion {
 }
 
 export function HallOfFame() {
+  const t = useTranslations("hallOfFame");
   const client = usePublicClient();
   const [champions, setChampions] = useState<Champion[] | null>(null);
 
@@ -63,19 +65,16 @@ export function HallOfFame() {
   }, [client]);
 
   if (!TROPHY_ADDRESS) {
-    return <p className="font-mono text-sm text-muted">Trophy contract not configured.</p>;
+    return <p className="font-mono text-sm text-muted">{t("notConfigured")}</p>;
   }
   if (champions === null) {
-    return <p className="font-mono text-sm text-muted">Reading the chain…</p>;
+    return <p className="font-mono text-sm text-muted">{t("reading")}</p>;
   }
   if (champions.length === 0) {
     return (
       <div className="max-w-md rounded-2xl border border-star/30 bg-star/5 p-8">
         <p className="text-5xl">🏆</p>
-        <p className="mt-4 font-mono text-sm text-muted">
-          The plinth is empty. The Ultimate ₵h@mpi0n is crowned after the final in
-          Madrid — best combined Stage 1 + Stage 2 score takes the trophy NFT.
-        </p>
+        <p className="mt-4 font-mono text-sm text-muted">{t("emptyPlinth")}</p>
       </div>
     );
   }
@@ -84,11 +83,11 @@ export function HallOfFame() {
       {champions.map((c) => (
         <div key={c.tokenId} className="rounded-2xl border border-star/40 bg-star/10 p-8">
           <p className="text-5xl">👑</p>
-          <p className="mt-3 font-display text-xl font-black uppercase">Season {c.season}</p>
+          <p className="mt-3 font-display text-xl font-black uppercase">{t("season", { season: c.season })}</p>
           <p className="mt-1 font-mono text-sm text-star">
             {c.owner.slice(0, 6)}…{c.owner.slice(-4)}
           </p>
-          <p className="mt-2 font-mono text-xs text-muted-2">Trophy #{c.tokenId} · on-chain, forever</p>
+          <p className="mt-2 font-mono text-xs text-muted-2">{t("trophyMeta", { id: c.tokenId })}</p>
         </div>
       ))}
     </div>

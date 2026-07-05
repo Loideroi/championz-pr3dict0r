@@ -10,6 +10,7 @@
  * submit handler only.
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAppKit } from "@reown/appkit/react";
 import { useAccount, useChainId, useReadContract, useSignMessage } from "wagmi";
 import {
@@ -32,6 +33,7 @@ type SavedProfile = {
 };
 
 export function ProfileForm() {
+  const t = useTranslations("profile.form");
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -61,12 +63,12 @@ export function ProfileForm() {
   const entryTierLabel = !PREDICTOR_ADDRESS
     ? "—"
     : enteredLeague.data
-      ? "Season pass"
+      ? t("tierSeason")
       : enteredKnockout.data
-        ? "Knockout"
+        ? t("tierKnockout")
         : enteredLeague.isLoading || enteredKnockout.isLoading
           ? "…"
-          : "Not entered";
+          : t("tierNone");
 
   const loadProfile = useCallback(async () => {
     if (!address) return;
@@ -115,9 +117,9 @@ export function ProfileForm() {
         country,
         new Date().toISOString(),
       );
-      setNotice({ kind: "ok", text: "Check your wallet and sign the message…" });
+      setNotice({ kind: "ok", text: t("checkWallet") });
       const signature = await signMessageAsync({ message });
-      setNotice({ kind: "ok", text: "Saving your profile…" });
+      setNotice({ kind: "ok", text: t("saving") });
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,17 +139,17 @@ export function ProfileForm() {
       if (!res.ok) {
         setNotice({
           kind: "err",
-          text: json.error ?? `Save failed (${res.status}).`,
+          text: json.error ?? t("saveFailed", { status: res.status }),
         });
         return;
       }
       if (json.profile) setSaved(json.profile);
       setNotice({
         kind: "ok",
-        text: "Profile saved — your flag flies on the leaderboard.",
+        text: t("saved"),
       });
     } catch {
-      setNotice({ kind: "err", text: "Signature was cancelled or failed." });
+      setNotice({ kind: "err", text: t("sigFailed") });
     } finally {
       setBusy(false);
     }
@@ -156,16 +158,13 @@ export function ProfileForm() {
   if (!isConnected) {
     return (
       <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-line bg-night-2/60 p-6">
-        <p className="text-sm text-muted">
-          Connect your wallet to claim a username. Socios.com Wallet works
-          first-class.
-        </p>
+        <p className="text-sm text-muted">{t("connectPrompt")}</p>
         <button
           type="button"
           onClick={() => open()}
           className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-3 font-semibold text-white"
         >
-          Connect Wallet
+          {t("connectWallet")}
         </button>
       </div>
     );
@@ -188,8 +187,11 @@ export function ProfileForm() {
 
       {saved && (
         <p className="rounded-xl border border-ok/30 bg-ok/10 px-4 py-3 font-mono text-sm text-ok">
-          <span aria-hidden>{flagEmoji(saved.countryCode)}</span> {saved.username}{" "}
-          · {countryName(saved.countryCode)} — saved
+          <span aria-hidden>{flagEmoji(saved.countryCode)}</span>{" "}
+          {t("savedLine", {
+            username: saved.username,
+            country: countryName(saved.countryCode),
+          })}
         </p>
       )}
 
@@ -198,7 +200,7 @@ export function ProfileForm() {
           htmlFor="clp-username"
           className="font-mono text-xs uppercase tracking-widest text-muted"
         >
-          Username
+          {t("usernameLabel")}
         </label>
         <input
           id="clp-username"
@@ -206,14 +208,12 @@ export function ProfileForm() {
           value={username}
           disabled={busy}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="3–20 chars · letters, numbers, _"
+          placeholder={t("usernamePlaceholder")}
           maxLength={20}
           autoComplete="off"
           className="rounded-xl border border-line bg-night-3/60 px-4 py-3 text-sm text-ink placeholder:text-muted-2 focus:border-glow-2 focus:outline-none disabled:opacity-40"
         />
-        <p className="font-mono text-xs text-muted-2">
-          Unique per chain — this is your leaderboard name.
-        </p>
+        <p className="font-mono text-xs text-muted-2">{t("usernameHint")}</p>
       </div>
 
       <CountrySelect value={country} onChange={setCountry} disabled={busy} />
@@ -223,13 +223,10 @@ export function ProfileForm() {
         disabled={busy || !username || !country}
         className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-5 py-3 font-semibold text-white disabled:opacity-40"
       >
-        {busy ? "Waiting…" : saved ? "Update profile" : "Sign & save profile"}
+        {busy ? t("waiting") : saved ? t("update") : t("signSave")}
       </button>
 
-      <p className="font-mono text-xs text-muted-2">
-        You&apos;ll sign one readable message (no transaction, no gas). Contract
-        wallets like Socios.com Wallet are verified via ERC-1271.
-      </p>
+      <p className="font-mono text-xs text-muted-2">{t("signNote")}</p>
 
       {notice && (
         <p

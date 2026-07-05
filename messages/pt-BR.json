@@ -129,6 +129,12 @@
       "gasCopy": "Uma transação para a rodada inteira — um lote completo de 18 jogos custa ≈ 1.1 CHZ (~$0.05) de gás. Editar depois é só pagar de novo."
     }
   },
+  "insight": {
+    "label": "Momento das equipes:",
+    "form": "Os dois chegam com o gol engatilhado — aqui ninguém aposta num 0 a 0 de dar sono.",
+    "headToHead": "O histórico está rachado no meio; os últimos confrontos foram decididos nos acréscimos.",
+    "stakes": "Quem decide é o sangue-frio, não a tática — noite para o palpiteiro de cabeça fria."
+  },
   "standings": {
     "metadata": {
       "title": "Classificação — ₵h@mpi0nz Pr3dict0r"

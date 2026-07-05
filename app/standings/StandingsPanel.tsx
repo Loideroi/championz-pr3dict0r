@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { parseAbiItem } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
@@ -17,10 +18,11 @@ const ENTERED_EVENT = parseAbiItem(
   "event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass)",
 );
 
-const VIEWS: { key: StageView; label: string }[] = [
-  { key: "league", label: "Stage 1 · League" },
-  { key: "knockout", label: "Stage 2 · Knockout" },
-  { key: "season", label: "Season View" },
+/** view key → messages key for its label (translated at render). */
+const VIEWS: { key: StageView; labelKey: "viewLeague" | "viewKnockout" | "viewSeason" }[] = [
+  { key: "league", labelKey: "viewLeague" },
+  { key: "knockout", labelKey: "viewKnockout" },
+  { key: "season", labelKey: "viewSeason" },
 ];
 
 /** SCW-safe confirmation: poll until check passes (~120s) — never await receipts. */
@@ -34,6 +36,7 @@ async function pollUntil(check: () => Promise<boolean>): Promise<boolean> {
 }
 
 function ClaimBanner() {
+  const t = useTranslations("standings");
   const { address } = useAccount();
   const client = usePublicClient();
   const { writeContractAsync } = useWriteContract();
@@ -55,7 +58,7 @@ function ClaimBanner() {
 
   async function handleClaim(stage: number, refetch: () => Promise<unknown>) {
     setBusy(stage);
-    setMessage("Confirm the claim in your wallet…");
+    setMessage(t("claim.confirm"));
     try {
       await writeContractAsync({ ...contract, functionName: "claim", args: [stage] });
     } catch {
@@ -72,14 +75,14 @@ function ClaimBanner() {
         })) as bigint) === 0n
       );
     });
-    setMessage(ok ? "Claimed — the CHZ is in your wallet. 🏆" : "Not confirmed after 120s — check your wallet.");
+    setMessage(ok ? t("claim.claimed") : t("claim.notConfirmed"));
     await refetch();
     setBusy(null);
   }
 
   const banners = [
-    { stage: STAGE_LEAGUE, label: "Stage 1 · League", data: claimableLeague },
-    { stage: STAGE_KNOCKOUT, label: "Stage 2 · Knockout", data: claimableKO },
+    { stage: STAGE_LEAGUE, label: t("viewLeague"), data: claimableLeague },
+    { stage: STAGE_KNOCKOUT, label: t("viewKnockout"), data: claimableKO },
   ].filter((b) => (b.data.data ?? 0n) > 0n);
 
   if (banners.length === 0) return null;
@@ -91,8 +94,10 @@ function ClaimBanner() {
           className="flex items-center justify-between rounded-2xl border border-ok/40 bg-ok/10 px-5 py-4"
         >
           <p className="font-mono text-sm text-ok">
-            ★ You finished in the {b.label} top 20 —{" "}
-            {(Number(b.data.data! / 10n ** 15n) / 1000).toLocaleString("en-US")} CHZ claimable
+            {t("claim.banner", {
+              stage: b.label,
+              amount: (Number(b.data.data! / 10n ** 15n) / 1000).toLocaleString("en-US"),
+            })}
           </p>
           <button
             type="button"
@@ -100,7 +105,7 @@ function ClaimBanner() {
             onClick={() => handleClaim(b.stage, b.data.refetch)}
             className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-2 font-semibold text-white disabled:opacity-50"
           >
-            {busy === b.stage ? "Claiming…" : "Claim"}
+            {busy === b.stage ? t("claim.claiming") : t("claim.cta")}
           </button>
         </div>
       ))}
@@ -110,6 +115,7 @@ function ClaimBanner() {
 }
 
 export function StandingsPanel() {
+  const t = useTranslations("standings");
   const client = usePublicClient();
   const [view, setView] = useState<StageView>("season");
   const [rows, setRows] = useState<StandingRow[] | null>(null);
@@ -198,7 +204,7 @@ export function StandingsPanel() {
   }, [load]);
 
   if (!PREDICTOR_ADDRESS) {
-    return <p className="font-mono text-sm text-muted">Contract address not configured.</p>;
+    return <p className="font-mono text-sm text-muted">{t("notConfigured")}</p>;
   }
 
   const sorted = rows ? rowsForView(rows, view) : null;
@@ -217,12 +223,12 @@ export function StandingsPanel() {
               view === v.key ? "border-glow-2 text-glow-2" : "border-line text-muted"
             }`}
           >
-            {v.label}
+            {t(v.labelKey)}
           </button>
         ))}
         {hasProvisional && (
           <span className="ml-auto rounded-full border border-star/40 px-3 py-1 font-mono text-xs text-star">
-            ◌ contains provisional results
+            {t("provisional")}
           </span>
         )}
       </div>
@@ -231,24 +237,24 @@ export function StandingsPanel() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line-soft font-mono text-xs uppercase tracking-widest text-muted">
-              <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Predictor</th>
-              {view === "season" && <th className="px-4 py-3 text-right">League</th>}
-              {view === "season" && <th className="px-4 py-3 text-right">Knockout</th>}
-              <th className="px-4 py-3 text-right">Points</th>
+              <th className="px-4 py-3 text-left">{t("colRank")}</th>
+              <th className="px-4 py-3 text-left">{t("colPredictor")}</th>
+              {view === "season" && <th className="px-4 py-3 text-right">{t("colLeague")}</th>}
+              {view === "season" && <th className="px-4 py-3 text-right">{t("colKnockout")}</th>}
+              <th className="px-4 py-3 text-right">{t("colPoints")}</th>
             </tr>
           </thead>
           <tbody>
             {sorted === null ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center font-mono text-xs text-muted">
-                  Reading the chain…
+                  {t("reading")}
                 </td>
               </tr>
             ) : sorted.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center font-mono text-xs text-muted">
-                  No entrants yet — be the first.
+                  {t("noEntrants")}
                 </td>
               </tr>
             ) : (
@@ -262,7 +268,7 @@ export function StandingsPanel() {
                     {r.username ?? `${r.address.slice(0, 6)}…${r.address.slice(-4)}`}
                     {!r.fullSeason && (
                       <span className="ml-2 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted">
-                        KO pass
+                        {t("koPass")}
                       </span>
                     )}
                   </td>
@@ -286,10 +292,7 @@ export function StandingsPanel() {
         </table>
       </div>
 
-      <p className="font-mono text-xs text-muted-2">
-        Points compute live from chain state — no settlement transactions exist. Season
-        View crowns the Ultimate ₵h@mpi0n (trophy NFT lands with slice 11).
-      </p>
+      <p className="font-mono text-xs text-muted-2">{t("footnote")}</p>
       {error && <p className="font-mono text-xs text-chz-2">{error}</p>}
     </div>
   );

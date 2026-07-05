@@ -57,7 +57,12 @@ export function kickoffDayKey(kickoff: number): string {
   return new Date(kickoff * 1000).toISOString().slice(0, 10);
 }
 
-/** Pinned en-US + UTC — safe in render (CLAUDE.md SSR rule). */
+/**
+ * Pinned en-US + UTC day bucket, e.g. "Wed, Jan 20" — safe in render
+ * (CLAUDE.md SSR rule). This is a weekday/month label, not a clock time, so the
+ * en-GB 24-hour mandate (PRD §9) doesn't apply here; it stays en-US so the day
+ * label reads identically regardless of the UI locale.
+ */
 export function formatKickoffDay(kickoff: number): string {
   return new Date(kickoff * 1000).toLocaleDateString("en-US", {
     timeZone: "UTC",
@@ -67,9 +72,12 @@ export function formatKickoffDay(kickoff: number): string {
   });
 }
 
-/** Pinned en-US + UTC clock time, e.g. "20:00 UTC". */
+/**
+ * Pinned en-GB + UTC 24-hour clock time, e.g. "20:00 UTC" (PRD §9: kickoff
+ * times render 24-hour en-GB on every route regardless of the UI locale).
+ */
 export function formatUtcTime(ts: number): string {
-  const t = new Date(ts * 1000).toLocaleTimeString("en-US", {
+  const t = new Date(ts * 1000).toLocaleTimeString("en-GB", {
     timeZone: "UTC",
     hour: "2-digit",
     minute: "2-digit",

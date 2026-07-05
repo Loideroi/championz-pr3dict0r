@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAccount, useChainId, useSignMessage } from "wagmi";
 
 /**
@@ -8,6 +9,7 @@ import { useAccount, useChainId, useSignMessage } from "wagmi";
  * press Start in Telegram → linked. One-tap unlink. Strictly optional.
  */
 export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null }) {
+  const t = useTranslations("profile.telegram");
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { signMessageAsync } = useSignMessage();
@@ -23,7 +25,7 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
       const signature = await signMessageAsync({ message: msg }); // personal_sign — SCW-safe
       return { message: msg, signature };
     } catch {
-      setMessage("Signature declined.");
+      setMessage(t("sigDeclined"));
       return null;
     }
   }
@@ -41,9 +43,9 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
       const json = await res.json();
       if (res.ok) {
         setDeepLink(json.deepLink);
-        setMessage("Open the link and press START — the code lives 15 minutes.");
+        setMessage(t("openLinkNote"));
       } else {
-        setMessage(json.error ?? "Linking failed.");
+        setMessage(json.error ?? t("linkFailed"));
       }
     }
     setBusy(false);
@@ -62,9 +64,9 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
       if (res.ok) {
         setLinked(false);
         setDeepLink(null);
-        setMessage("Unlinked — the bot forgets you entirely.");
+        setMessage(t("unlinked"));
       } else {
-        setMessage("Unlink failed.");
+        setMessage(t("unlinkFailed"));
       }
     }
     setBusy(false);
@@ -74,11 +76,8 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
 
   return (
     <div className="flex w-full max-w-md flex-col gap-3 rounded-2xl border border-line bg-night-2/60 p-5">
-      <p className="font-mono text-xs uppercase tracking-widest text-glow-2">Telegram (optional)</p>
-      <p className="text-sm text-muted">
-        Link your Telegram to get lock reminders and the community group invite. Opt-in,
-        one-tap unlink, never required.
-      </p>
+      <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{t("title")}</p>
+      <p className="text-sm text-muted">{t("intro")}</p>
       {linked ? (
         <button
           type="button"
@@ -86,7 +85,7 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
           onClick={handleUnlink}
           className="rounded-xl border border-line px-4 py-2 font-semibold text-ink disabled:opacity-50"
         >
-          {busy ? "Working…" : "Unlink Telegram"}
+          {busy ? t("working") : t("unlink")}
         </button>
       ) : deepLink ? (
         <a
@@ -95,7 +94,7 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
           rel="noopener noreferrer"
           className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-4 py-2 text-center font-semibold text-white"
         >
-          Open Telegram & press START →
+          {t("openStart")}
         </a>
       ) : (
         <button
@@ -104,7 +103,7 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
           onClick={handleLink}
           className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-4 py-2 font-semibold text-white disabled:opacity-50"
         >
-          {busy ? "Waiting for signature…" : "Link Telegram"}
+          {busy ? t("waitingSig") : t("link")}
         </button>
       )}
       {message && <p className="font-mono text-xs text-muted">{message}</p>}

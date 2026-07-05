@@ -1,6 +1,9 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { Stepper } from "@/components/predict/Stepper";
+import { InsightCard } from "@/components/predict/InsightCard";
+import type { AppLocale } from "@/i18n/config";
 import {
   formatCountdown,
   formatUtcTime,
@@ -44,6 +47,8 @@ export function MatchRow({
   onEdit: () => void;
   onDiscard: () => void;
 }) {
+  const t = useTranslations("predict.matchRow");
+  const activeLocale = useLocale() as AppLocale;
   const editable = phase === "open" && connected && entered && !busy;
   const changed = draft !== null && !samePick(draft, onchain);
 
@@ -56,24 +61,27 @@ export function MatchRow({
       {/* fixture */}
       <div className="flex min-w-0 flex-col gap-1">
         <p className="font-semibold">
-          {match.teamA} <span className="text-muted-2">vs</span> {match.teamB}
+          {match.teamA} <span className="text-muted-2">{t("vs")}</span> {match.teamB}
         </p>
         <p className="font-mono text-xs text-muted">
-          Kickoff {formatUtcTime(match.kickoff)}
+          {t("kickoff", { time: formatUtcTime(match.kickoff) })}
           {phase === "open" && secondsToLock !== null && (
-            <span className="text-star"> · Locks in {formatCountdown(secondsToLock)}</span>
+            <span className="text-star"> {t("locksIn", { countdown: formatCountdown(secondsToLock) })}</span>
           )}
         </p>
+        {/* Pre-match insight (deferred mount — see InsightCard). The on-chain
+            match struct has no uefaMatchId, so we thread the internal id. */}
+        <InsightCard uefaMatchId={String(match.id)} locale={activeLocale} />
       </div>
 
       {/* state */}
       {phase === "completed" ? (
         <div className="flex items-center gap-4">
           <p className="font-mono text-lg font-bold">
-            FT {result ? fmtPick(result) : "—"}
+            {t("ft", { score: result ? fmtPick(result) : "—" })}
           </p>
           <p className={`font-mono text-xs ${onchain && result && samePick(onchain, result) ? "text-star" : "text-muted"}`}>
-            {onchain ? `you: ${fmtPick(onchain)}` : "no prediction"}
+            {onchain ? t("yourPick", { score: fmtPick(onchain) }) : t("noPrediction")}
           </p>
         </div>
       ) : phase === "locked" ? (
@@ -82,18 +90,18 @@ export function MatchRow({
           <p className="font-mono text-sm text-muted">
             {onchain ? (
               <>
-                final pick <span className="font-bold text-ink">{fmtPick(onchain)}</span>
+                {t("finalPick")} <span className="font-bold text-ink">{fmtPick(onchain)}</span>
               </>
             ) : (
-              "locked — no prediction"
+              t("lockedNoPrediction")
             )}
           </p>
         </div>
       ) : !connected ? (
-        <p className="font-mono text-xs text-muted">connect to predict</p>
+        <p className="font-mono text-xs text-muted">{t("connectToPredict")}</p>
       ) : !entered ? (
         <a href="/enter" className="font-mono text-sm text-chz-2 underline underline-offset-4">
-          Enter first →
+          {t("enterFirst")}
         </a>
       ) : draft === null && onchain !== null ? (
         // submitted, still open — editing is a feature, not a loophole
@@ -105,21 +113,21 @@ export function MatchRow({
             onClick={onEdit}
             className="rounded-lg border border-line bg-white/5 px-3 py-2 text-sm font-semibold hover:bg-glow disabled:opacity-40"
           >
-            Edit
+            {t("edit")}
           </button>
         </div>
       ) : (
         // steppers: fresh pick or an in-flight edit
         <div className="flex items-center gap-3">
           <Stepper
-            label={`${match.teamA} vs ${match.teamB}: home`}
+            label={t("homeScoreLabel", { teamA: match.teamA, teamB: match.teamB })}
             value={draft?.scoreA ?? 0}
             disabled={!editable}
             onChange={(v) => onDraft({ scoreA: v, scoreB: draft?.scoreB ?? 0 })}
           />
           <span className="font-mono text-muted-2">:</span>
           <Stepper
-            label={`${match.teamA} vs ${match.teamB}: away`}
+            label={t("awayScoreLabel", { teamA: match.teamA, teamB: match.teamB })}
             value={draft?.scoreB ?? 0}
             disabled={!editable}
             onChange={(v) => onDraft({ scoreA: draft?.scoreA ?? 0, scoreB: v })}
@@ -132,13 +140,13 @@ export function MatchRow({
                 onClick={() => onDraft({ scoreA: 0, scoreB: 0 })}
                 className="font-mono text-xs text-glow-2 underline underline-offset-4 disabled:opacity-40"
               >
-                stage 0–0
+                {t("stageZero")}
               </button>
             ) : (
               <>
                 {onchain !== null && (
                   <p className="font-mono text-xs text-muted">
-                    was <s>{fmtPick(onchain)}</s>
+                    {t("was")} <s>{fmtPick(onchain)}</s>
                   </p>
                 )}
                 <button
@@ -147,7 +155,7 @@ export function MatchRow({
                   onClick={onDiscard}
                   className="font-mono text-xs text-muted underline underline-offset-4 disabled:opacity-40"
                 >
-                  ↺ discard
+                  {t("discard")}
                 </button>
               </>
             )}

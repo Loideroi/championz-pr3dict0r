@@ -129,6 +129,12 @@
       "gasCopy": "Una transacción para toda la jornada — un lote completo de 18 partidos cuesta ≈ 1.1 CHZ (~$0.05) de gas. Editar después solo vuelve a pagarlo."
     }
   },
+  "insight": {
+    "label": "Estado de forma:",
+    "form": "Los dos llegan de cara al gol — pocos apuestan aquí por un 0-0 de bostezo.",
+    "headToHead": "El historial está partido por la mitad; los últimos duelos se decidieron en el descuento.",
+    "stakes": "Esto puede decidirlo el temple, no la táctica — noche para el predictor de sangre fría."
+  },
   "standings": {
     "metadata": {
       "title": "Clasificación — ₵h@mpi0nz Pr3dict0r"

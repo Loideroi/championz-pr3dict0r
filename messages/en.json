@@ -129,6 +129,12 @@
       "gasCopy": "One transaction for the whole matchday — a full 18-match batch costs ≈ 1.1 CHZ (~$0.05) in gas. Editing later just re-pays it."
     }
   },
+  "insight": {
+    "label": "Form guide:",
+    "form": "Both sides arrive in scoring form — few here are betting on a goalless bore.",
+    "headToHead": "History is split down the middle; recent meetings have been decided late.",
+    "stakes": "Nerves, not tactics, may settle this one — a night for the cool-headed predictor."
+  },
   "standings": {
     "metadata": {
       "title": "Standings — ₵h@mpi0nz Pr3dict0r"
