@@ -184,6 +184,7 @@ contract ChampionzPredictor is
             revert InvalidWindow();
         }
         __Ownable_init(owner_);
+        __Pausable_init();
         feeRecipient = feeRecipient_;
         oracle = oracle_;
         stages[STAGE_LEAGUE] = StageState(uint40(block.timestamp), leagueCloseAt, StageStatus.SELLING, 0, 0, 0);
