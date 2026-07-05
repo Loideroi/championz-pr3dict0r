@@ -1,10 +1,11 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { spicy } from "@reown/appkit/networks";
+import { chiliz, spicy } from "@reown/appkit/networks";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 
 /**
- * Wallet connection — Reown AppKit + wagmi on Chiliz Spicy (88882) for the
- * walking skeleton; mainnet (88888) joins at cutover (issue 16).
+ * Wallet connection — Reown AppKit + wagmi on Chiliz Chain. The active network
+ * is env-driven: mainnet (88888) in production, Spicy testnet (88882) otherwise,
+ * so the modal always offers the same chain the deployed contract lives on.
  *
  * Socios.com Wallet rules (CLAUDE.md): it is an ERC-1271 smart-contract
  * account reached via WalletConnect — never overwrite window.ethereum, never
@@ -13,7 +14,12 @@ import type { AppKitNetwork } from "@reown/appkit/networks";
  */
 export const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
-export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [spicy];
+// Pick the network from NEXT_PUBLIC_CHAIN_ID (inlined at build). Defaults to
+// Spicy so env-less CI builds and local dev stay on testnet.
+const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "88882");
+const primaryNetwork: AppKitNetwork = chainId === chiliz.id ? chiliz : spicy;
+
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [primaryNetwork];
 
 export const wagmiAdapter = new WagmiAdapter({
   // AppKit requires a non-empty id at construction; the placeholder keeps
