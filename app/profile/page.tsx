@@ -1,4 +1,5 @@
 import { ProfileForm } from "@/components/profile/ProfileForm";
+import { LinkTelegram } from "@/components/profile/LinkTelegram";
 
 export const metadata = {
   title: "Profile — ₵h@mpi0nz Pr3dict0r",
@@ -19,6 +20,7 @@ export default function ProfilePage() {
         email, no password: your wallet is your login.
       </p>
       <ProfileForm />
+      <LinkTelegram />
     </main>
   );
 }
