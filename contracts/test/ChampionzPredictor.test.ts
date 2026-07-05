@@ -406,6 +406,12 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       expect(await c.claimable(LEAGUE, ranked[5]!)).to.equal((pool * 30n) / 100n / 7n);
       expect(await c.claimable(LEAGUE, ranked[15]!)).to.equal((pool * 20n) / 100n / 10n);
 
+      // claims are gated by the H-2b challenge window
+      await expect(c.connect(await ethers.getSigner(ranked[0]!)).claim(LEAGUE)).to.be.revertedWithCustomError(
+        c,
+        "ChallengeWindowOpen",
+      );
+      await time.increase(24 * 3600 + 1);
       // everyone claims; pool must be exactly zero afterwards
       for (const addr of ranked) {
         const signer = await ethers.getSigner(addr);
@@ -453,6 +459,7 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       );
       const ranked = expectedLeagueOrder(players);
       await c.freezeStage(LEAGUE, ranked);
+      await time.increase(24 * 3600 + 1); // pass the challenge window
       const winner = await ethers.getSigner(ranked[0]!);
       await c.connect(winner).claim(LEAGUE);
       await expect(c.connect(winner).claim(LEAGUE)).to.be.revertedWithCustomError(
@@ -569,6 +576,263 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       const newKick = t0 + 20n * 24n * 3600n;
       await c.connect(owner).batchUpdateKickoffs([1], [newKick]);
       expect((await c.matches(1)).kickoff).to.equal(newKick);
+    });
+  });
+
+  describe("security hardening — pentest resolution (slice 16)", () => {
+    async function withMatches16() {
+      const d = await deploy();
+      const { c, owner, t0 } = d;
+      await c.connect(owner).addMatches(
+        [t0 + 12n * 24n * 3600n, t0 + 13n * 24n * 3600n],
+        [team("RMA"), team("LIV")],
+        [team("MCI"), team("BAY")],
+        [LEAGUE, LEAGUE],
+      );
+      return d;
+    }
+
+    it("C-1: setFeeRecipient changes the recipient (owner-only, non-zero)", async () => {
+      const { c, owner, signers } = await withMatches16();
+      await expect(c.connect(signers[5]).setFeeRecipient(signers[6].address)).to.be.reverted;
+      await expect(
+        c.connect(owner).setFeeRecipient(ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(c, "ZeroAddress");
+      await expect(c.connect(owner).setFeeRecipient(signers[6].address)).to.emit(c, "FeeRecipientSet");
+      expect(await c.feeRecipient()).to.equal(signers[6].address);
+    });
+
+    it("C-1/N-1: emergencyWithdraw locks 180 days from PAUSE, not deploy", async () => {
+      const { c, owner, signers } = await withMatches16();
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+      // not paused → reverts
+      await expect(c.connect(owner).emergencyWithdraw(owner.address)).to.be.revertedWithCustomError(
+        c,
+        "ExpectedPause",
+      );
+      // N-1: even long after deploy, without a pause the hatch is shut
+      await time.increase(200 * 24 * 3600);
+      await c.connect(owner).pause();
+      // just paused → still locked (clock starts at the incident, not deploy)
+      await expect(c.connect(owner).emergencyWithdraw(owner.address)).to.be.revertedWithCustomError(
+        c,
+        "EmergencyLocked",
+      );
+      await time.increase(180 * 24 * 3600 + 1); // 180 days of a visibly-paused product
+      const before = await ethers.provider.getBalance(signers[9].address);
+      await c.connect(owner).emergencyWithdraw(signers[9].address);
+      expect((await ethers.provider.getBalance(signers[9].address)) - before).to.equal(FULL_SEASON);
+      expect(await ethers.provider.getBalance(await c.getAddress())).to.equal(0n);
+    });
+
+    it("C-1 (disputed): mixed void-league + locked-knockout stays solvent to zero", async () => {
+      // The red team's round-2 scenario: 19 full-season (league voids) + 1
+      // knockout-pass (knockout locks with 20). Every claimant must be paid.
+      const { c, owner, oracle, signers, t0, leagueClose } = await deploy();
+      await c.connect(owner).addMatches([t0 + 45n * 24n * 3600n], [team("ARS")], [team("INT")], [KO]);
+      const fs = signers.slice(5, 24); // 19 full-season
+      for (const p of fs) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      await time.increaseTo(leagueClose); // league closed → ko sales open
+      await c.connect(signers[24]).enterKnockout({ value: KNOCKOUT }); // 20th knockout entrant
+      // predictions so the ko ranking is determined (fs[0] exact, rest outcome, ko-pass 0)
+      for (let i = 0; i < fs.length; i++) await c.connect(fs[i]!).submitPrediction(1, pack(Math.min(i, 15), 0));
+      await time.increaseTo(t0 + 45n * 24n * 3600n + 1n);
+      // league locks BELOW floor → VOID; knockout locks AT floor
+      await c.lockStage(LEAGUE);
+      await time.increaseTo(t0 + 45n * 24n * 3600n + 3600n);
+      await c.connect(oracle).pushResult(1, pack(2, 0));
+      await time.increase(25 * 3600);
+      await c.lockStage(KO);
+      // 19 league refunds (full 550 each) drain only the league-earmarked coins
+      for (const p of fs) await c.connect(p).claimRefund(LEAGUE);
+      // compute the §5.3-ordered knockout top-20 from chain state (as the admin does)
+      const entrants = [...fs.map((p) => p.address), signers[24].address];
+      const scored = await Promise.all(
+        entrants.map(async (a) => ({
+          a,
+          pts: await c.pointsOf(a, KO),
+          ex: await c.exactCountOf(a, KO),
+          at: await c.enteredAt(KO, a),
+        })),
+      );
+      scored.sort((x, y) =>
+        x.pts !== y.pts
+          ? y.pts > x.pts ? 1 : -1
+          : x.ex !== y.ex
+            ? y.ex > x.ex ? 1 : -1
+            : x.at !== y.at
+              ? x.at < y.at ? -1 : 1
+              : x.a.toLowerCase() < y.a.toLowerCase() ? -1 : 1,
+      );
+      const koRanked = scored.map((s) => s.a);
+      await c.freezeStage(KO, koRanked);
+      await time.increase(24 * 3600 + 1);
+      for (const addr of koRanked) await c.connect(await ethers.getSigner(addr)).claim(KO);
+      // both pools drained; contract holds only the un-forwarded nothing → 0
+      expect((await c.stages(KO)).pool).to.equal(0n);
+      expect(await ethers.provider.getBalance(await c.getAddress())).to.equal(0n);
+    });
+
+    it("H-1: forceCorrectResult is refused once the stage is frozen", async () => {
+      const { c, owner, oracle, signers, t0 } = await deploy();
+      await c.connect(owner).addMatches([t0 + 12n * 24n * 3600n], [team("RMA")], [team("MCI")], [LEAGUE]);
+      const players = signers.slice(5, 25);
+      for (const p of players) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      for (let i = 0; i < players.length; i++) {
+        await c.connect(players[i]!).submitPrediction(1, pack(Math.min(i, 15), 0));
+      }
+      await time.increaseTo(t0 + 12n * 24n * 3600n + 2n * 3600n);
+      await c.connect(oracle).pushResult(1, pack(2, 0));
+      await time.increase(25 * 3600);
+      await c.lockStage(LEAGUE);
+      const ranked = [
+        players[2]!.address,
+        ...players.filter((_, i) => i !== 0 && i !== 2).map((p) => p.address),
+        players[0]!.address,
+      ];
+      await c.freezeStage(LEAGUE, ranked);
+      await c.connect(owner).pause();
+      await expect(
+        c.connect(owner).forceCorrectResult(1, pack(3, 0)),
+      ).to.be.revertedWithCustomError(c, "StageIsFrozen");
+    });
+
+    it("H-2(a): a stage with zero completed matches cannot be frozen (no sweep)", async () => {
+      const { c, owner, signers, t0, leagueClose } = await withMatches16();
+      const players = signers.slice(5, 25);
+      for (const p of players) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      // void both league matches — stage has no completed matches
+      await c.connect(owner).voidMatch(1);
+      await c.connect(owner).voidMatch(2);
+      await time.increaseTo(leagueClose + 1n);
+      await c.lockStage(LEAGUE);
+      const ranked = players.map((p) => p.address); // any 20 — but must be rejected
+      await expect(c.freezeStage(LEAGUE, ranked)).to.be.revertedWithCustomError(
+        c,
+        "NoCompletedMatches",
+      );
+    });
+
+    it("M-1: batchUpdateKickoffs cannot reopen an already-locked match", async () => {
+      const { c, oracle, t0 } = await withMatches16();
+      // move time to within lockout of match 1 (kickoff t0+12d, lock at +12d-1h)
+      await time.increaseTo(t0 + 12n * 24n * 3600n - 1800n); // 30 min before kickoff → locked
+      // trying to push kickoff far into the future would reopen it → revert
+      await expect(
+        c.connect(oracle).batchUpdateKickoffs([1], [BigInt(await time.latest()) + 10n * 24n * 3600n]),
+      ).to.be.revertedWithCustomError(c, "WouldReopenMatch");
+    });
+
+    it("M-2/N-2: forceFinalize is paused-only and score-preserving", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches16();
+      await c.connect(signers[5]).enterFullSeason({ value: FULL_SEASON });
+      await time.increaseTo(t0 + 12n * 24n * 3600n + 3600n);
+      await c.connect(oracle).pushResult(1, pack(1, 0));
+      let r = await c.resultOf(1);
+      expect(r.provisional).to.be.true;
+      // N-2: not a frictionless button — requires a loud, deliberate pause
+      await expect(c.connect(owner).forceFinalize(1)).to.be.revertedWithCustomError(c, "ExpectedPause");
+      await c.connect(owner).pause();
+      await expect(c.connect(owner).forceFinalize(1)).to.emit(c, "ResultForceFinalized");
+      r = await c.resultOf(1);
+      expect(r.provisional).to.be.false;
+      expect([r.scoreA, r.scoreB]).to.deep.equal([1n, 0n]); // score value unchanged
+    });
+
+    it("M-1: cannot prematurely lock an open match either (both directions)", async () => {
+      const { c, oracle, t0 } = await withMatches16();
+      // match 1 kickoff t0+12d, currently open (far from lockout)
+      // trying to move kickoff to ~now would slam the lock shut early → revert
+      await expect(
+        c.connect(oracle).batchUpdateKickoffs([1], [BigInt(await time.latest()) + 600n]),
+      ).to.be.revertedWithCustomError(c, "WouldReopenMatch");
+      // a legitimate forward reschedule (stays open) is fine
+      await c.connect(oracle).batchUpdateKickoffs([1], [t0 + 20n * 24n * 3600n]);
+      expect((await c.matches(1)).kickoff).to.equal(t0 + 20n * 24n * 3600n);
+    });
+
+    it("H-2b: refreezeStage cures a challenged ranking (paused-only), restarts the window", async () => {
+      const { c, owner, oracle, signers, t0 } = await deploy();
+      await c.connect(owner).addMatches([t0 + 12n * 24n * 3600n], [team("RMA")], [team("MCI")], [LEAGUE]);
+      const players = signers.slice(5, 25);
+      for (const p of players) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      for (let i = 0; i < players.length; i++) {
+        await c.connect(players[i]!).submitPrediction(1, pack(Math.min(i, 15), 0));
+      }
+      await time.increaseTo(t0 + 12n * 24n * 3600n + 2n * 3600n);
+      await c.connect(oracle).pushResult(1, pack(2, 0));
+      await time.increase(25 * 3600);
+      await c.lockStage(LEAGUE);
+      const correct = [
+        players[2]!.address,
+        ...players.filter((_, i) => i !== 0 && i !== 2).map((p) => p.address),
+        players[0]!.address,
+      ];
+      await c.freezeStage(LEAGUE, correct);
+      const firstFrozenAt = await c.stageFrozenAt(LEAGUE);
+      // refreeze is owner + paused only
+      await expect(c.refreezeStage(LEAGUE, correct)).to.be.revertedWithCustomError(c, "ExpectedPause");
+      await c.connect(owner).pause();
+      await expect(c.connect(signers[5]).refreezeStage(LEAGUE, correct)).to.be.reverted; // not owner
+      // submit a re-ordered (still valid) ranking; old claimable cleared, window restarts
+      await time.increase(100);
+      await expect(c.connect(owner).refreezeStage(LEAGUE, correct)).to.emit(c, "StageFrozen");
+      expect(await c.stageFrozenAt(LEAGUE)).to.be.gt(firstFrozenAt);
+      // a bad (mis-ordered) refreeze is still rejected
+      const bad = [...correct];
+      [bad[0], bad[1]] = [bad[1]!, bad[0]!];
+      await expect(c.connect(owner).refreezeStage(LEAGUE, bad)).to.be.revertedWithCustomError(
+        c,
+        "InvalidRanking",
+      );
+      await c.connect(owner).unpause();
+      await time.increase(24 * 3600 + 1);
+      await c.connect(await ethers.getSigner(correct[0]!)).claim(LEAGUE); // pays out post-cure
+    });
+
+    it("F-1: refreezeStage is refused once the challenge window has closed (no post-claim re-split)", async () => {
+      const { c, owner, oracle, signers, t0 } = await deploy();
+      await c.connect(owner).addMatches([t0 + 12n * 24n * 3600n], [team("RMA")], [team("MCI")], [LEAGUE]);
+      const players = signers.slice(5, 25);
+      for (const p of players) await c.connect(p).enterFullSeason({ value: FULL_SEASON });
+      for (let i = 0; i < players.length; i++) {
+        await c.connect(players[i]!).submitPrediction(1, pack(Math.min(i, 15), 0));
+      }
+      await time.increaseTo(t0 + 12n * 24n * 3600n + 2n * 3600n);
+      await c.connect(oracle).pushResult(1, pack(2, 0));
+      await time.increase(25 * 3600);
+      await c.lockStage(LEAGUE);
+      const ranked = [
+        players[2]!.address,
+        ...players.filter((_, i) => i !== 0 && i !== 2).map((p) => p.address),
+        players[0]!.address,
+      ];
+      await c.freezeStage(LEAGUE, ranked);
+      // let the window close and a claim fire (the exploit precondition)
+      await time.increase(24 * 3600 + 10);
+      await c.connect(await ethers.getSigner(ranked[0]!)).claim(LEAGUE);
+      // now a refreeze must be impossible — no re-split of an already-drained pool
+      await c.connect(owner).pause();
+      await expect(c.connect(owner).refreezeStage(LEAGUE, ranked)).to.be.revertedWithCustomError(
+        c,
+        "ChallengeWindowClosed",
+      );
+    });
+
+    it("R-1: addMatches rejects a kickoff below the lockout (no underflow footgun)", async () => {
+      const { c, owner } = await deploy();
+      await expect(
+        c.connect(owner).addMatches([100], [team("RMA")], [team("MCI")], [LEAGUE]),
+      ).to.be.revertedWithCustomError(c, "InvalidWindow");
+    });
+
+    it("M-3: setStageWindow keeps league.closeAt ≤ knockout.openAt", async () => {
+      const { c, owner, t0 } = await withMatches16();
+      const koOpen = Number((await c.stages(KO)).openAt);
+      // pushing league close past KO open → revert
+      await expect(
+        c.connect(owner).setStageWindow(LEAGUE, t0, BigInt(koOpen) + 24n * 3600n),
+      ).to.be.revertedWithCustomError(c, "InvalidWindow");
     });
   });
 

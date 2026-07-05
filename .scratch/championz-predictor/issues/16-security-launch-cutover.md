@@ -1,6 +1,30 @@
 # 16 — Security program & launch cutover
 
-Status: ready-for-agent
+Status: ready-for-human
+
+## Comments
+
+**2026-07-05 — security program COMPLETE; launch cutover is owner-gated.**
+- **Cross-model adversarial pentest loop (PRD §16.1): converged over 5 rounds.** An
+  Opus red-team agent attacked the frozen contract; the designer (Fable) fixed and the
+  red team re-attacked the diff. Rounds found 1 critical-adjacent + 2 High + 3 Med
+  (round 1), then 2 NEW High the fixes introduced (round 2: emergencyWithdraw deploy-clock
+  rug, forceFinalize under-gating), then the H-2b challenge-window gap (round 3), then
+  F-1 in the cure path (round 4) — **all fixed**, ending in a **round-5 clean fund-safety
+  sign-off**. The disputed C-1 "cross-pool insolvency" was disproven with a test. Full
+  log: [`SECURITY_FINDINGS.md`](../../SECURITY_FINDINGS.md) (doubles as the upgrade
+  regression checklist). Contract v6 live on Spicy (impl
+  `0x45d20C40f71d659cE65863C315c056c767426f86`); 46 contract tests; Slither 0.11.4 clean
+  of all high-severity classes; predecessor Audit.MD 18-finding regression green.
+- **Geo-fence (D7/ADR-0007):** `middleware.ts` returns HTTP 451 for the 14 jurisdictions
+  + T&C clause. Tested.
+- **PRD corrected** where the pentest caught overstatements (§10.2 "trustless" → honest
+  challenge-window posture; §16.3 emergencyWithdraw now real + pause-clocked).
+- **[`LAUNCH_CHECKLIST.md`](../../LAUNCH_CHECKLIST.md)** maps the full PRD §22 gate.
+- **Remaining — OWNER ONLY (irreversible / real-money, Claude will not do these alone):**
+  mainnet deploy from a fresh key ceremony (Spicy deployer 0x4710… is staging, ADR-0005);
+  Vercel production project + env; pr3dict0r.com GoDaddy→Vercel DNS; Telegram channel/group
+  creation; the Socios-wallet Spicy sign-off. Claude prepares exact commands on request.
 PRD: ../../PRD.md §16, §18, §22 · Decisions: D5, D7
 
 ## What to build

@@ -433,7 +433,7 @@ hundreds of settlement writes per matchday). v3 deletes the whole concept:
 |---|---|---|
 | Result recording | `setMatchResult` (admin tx) | `pushResult` (oracle tx, packed, ~100k gas) |
 | Point settlement | `batchSettleUserPoints` per match, O(users) storage writes + `userMatchSettled` guard slot per user-match | **None.** Points are a pure function of (predictions, results) computed at read/claim/freeze time |
-| Leaderboard freeze | Admin submits full ranked array, on-chain order check | `freezeStage` submits top-20 only; contract **recomputes those 20 wallets' points on-chain** (bounded loop) and checks order — trustless without a merkle ceremony |
+| Leaderboard freeze | Admin submits full ranked array, on-chain order check | `freezeStage` submits top-20 only; contract **recomputes those 20 wallets' points on-chain** (bounded loop) and verifies §5.3 ordering + membership. **Not fully trustless re: maximality** (an owner could submit a validly-ordered non-maximal set) — mitigated by public scores + a 24h freeze→claim **challenge window** and a paused-only `refreezeStage` cure path (SECURITY_FINDINGS H-2b). Under the single-owner trust model (ADR-0005) this is an accepted, documented posture, not a merkle-proven guarantee |
 | Claim | `claim()` | `claim(stage)` — verifies against frozen rank, one transfer |
 | Admin/oracle txs, whole season | ~2 + N-batches per match × 189 matches + ops | **~1 per match** (189 oracle txs) + 2 freezes |
 
@@ -613,7 +613,11 @@ isn't for you*"). v3 must be **funnier and still legally valid**:
   rotation calendar (Fanbet's `SECURITY.md` template).
 - Incident runbook: detect → assess funds-at-risk → `pause()` → announce in Telegram
   within 1h → remediate → postmortem in `docs/postmortems/`.
-- `emergencyWithdraw` with 180-day locktime carries over (predecessor H-05 fix).
+- `emergencyWithdraw` with a 180-day locktime carries over (predecessor H-05 fix) —
+  and the lock counts from the **pause** (the incident), not from deploy, so recovery
+  requires a 180-day visible halt and can never be a fast quiet rug (SECURITY_FINDINGS N-1).
+- The contract was hardened through a **cross-model adversarial pentest loop** (§16.1);
+  every finding and resolution is logged in [`SECURITY_FINDINGS.md`](../SECURITY_FINDINGS.md).
 
 ### 16.4 Geo-fencing (decided §21-D7)
 
