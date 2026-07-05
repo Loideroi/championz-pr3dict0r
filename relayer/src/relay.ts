@@ -21,6 +21,8 @@ export interface MapEntry {
   uefaMatchId: string;
   homeTeamId: string;
   awayTeamId: string;
+  /** display label for channel posts, e.g. "RMA–MCI" (slice 10) */
+  label?: string;
 }
 
 export interface ChainState {

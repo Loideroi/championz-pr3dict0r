@@ -21,6 +21,7 @@ import { viemWriter } from '../dist/src/chain.js';
 import { composeAlert, composeHeartbeat, telegramTransport } from '../dist/src/alerts.js';
 import { detectIssues } from '../dist/src/watchdog.js';
 import { supabaseLogger } from '../dist/src/oracleLog.js';
+import { composeReminder, composeResultsDigest, matchesNeedingReminder } from '../dist/src/channel.js';
 
 const args = process.argv.slice(2);
 const argVal = (flag) => {
@@ -40,6 +41,7 @@ const {
   RPC_URL,
   TELEGRAM_BOT_TOKEN,
   TELEGRAM_OPS_CHAT_ID,
+  TELEGRAM_CHANNEL_ID,
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   CHAIN_ID,
@@ -132,6 +134,43 @@ const rows = [
   ...alerts.map((a) => ({ kind: 'alert', chain_id: chainId, detail: { kind: a.kind, summary: a.summary } })),
 ];
 await logger.insert(rows);
+
+// ---- public channel (slice 10, PRD §12): digest + last-call reminders ----
+const channel = telegramTransport(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID);
+const labelOf = (id) => map.find((e) => e.matchId === id)?.label ?? `match ${id}`;
+const infoOf = async (id) => {
+  const s = await writer.read(id);
+  const p = s.packed ?? 0n;
+  return {
+    matchId: id,
+    label: labelOf(id),
+    scoreA: Number(p & 0xffn),
+    scoreB: Number((p >> 8n) & 0xffn),
+    extraTime: (p & (1n << 16n)) !== 0n,
+    penalties: (p & (1n << 17n)) !== 0n,
+    provisional: s.provisional,
+  };
+};
+if (TELEGRAM_CHANNEL_ID && (summary.pushed.length > 0 || summary.corrected.length > 0)) {
+  const digest = composeResultsDigest(
+    await Promise.all(summary.pushed.map(infoOf)),
+    await Promise.all(summary.corrected.map(infoOf)),
+  );
+  if (digest) await channel.send(digest);
+}
+if (TELEGRAM_CHANNEL_ID) {
+  const due = matchesNeedingReminder(map, summary.states, Math.floor(Date.now() / 1000));
+  if (due.length > 0) {
+    const already = await logger.recentReminderIds(new Date(Date.now() - 2 * 3600 * 1000).toISOString());
+    const fresh = due.filter((id) => !already.has(id));
+    if (fresh.length > 0) {
+      await channel.send(composeReminder(fresh.map((id) => ({ matchId: id, label: labelOf(id) })), 15));
+      await logger.insert(
+        fresh.map((id) => ({ kind: 'alert', chain_id: chainId, match_id: id, detail: { type: 't75_reminder' } })),
+      );
+    }
+  }
+}
 
 if (args.includes('--heartbeat')) {
   const beat = composeHeartbeat({
