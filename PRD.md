@@ -5,8 +5,11 @@
 > [`PRD.html`](./PRD.html) (the human-readable rendition). If the two ever disagree, the
 > `.md` wins. Bump the version line below on every substantive edit.
 
-- **Version:** 1.1.0 (2026-07-04)
-- **Status:** Grilled — 11 design decisions locked in the 2026-07-04 grilling session (see §21 decision log); ready for issue slicing
+- **Version:** 1.1.0 (2026-07-04) · **BUILT + shipped 2026-07-05**
+- **Status:** ✅ **Build complete — all 16 slices merged; contract live on Chiliz
+  mainnet** (`0x742c6963a81012bc7949F0058Fba07c8d1A80c4d`). Remaining = owner-gated
+  launch cutover. **Current state + next steps: see [`STATUS.md`](./STATUS.md)** (kept
+  live; this PRD is the frozen spec + grilled decision log).
 - **Predecessor:** [`W0rld CUP Pr3dict0r`](/Users/markverdegaal/Projects/predictor) (FIFA World Cup 2026) — forked per its [`docs/REUSE_GUIDE.md`](/Users/markverdegaal/Projects/predictor/docs/REUSE_GUIDE.md)
 - **Tournament:** UEFA Champions League 2026/27 (league-phase draw 27 Aug 2026 · MD1 8–10 Sep 2026 · Final Sat 5 Jun 2027, Estadio Metropolitano, Madrid)
 - **Chain:** Chiliz mainnet `88888` (Spicy testnet `88882` for staging)

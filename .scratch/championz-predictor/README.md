@@ -1,5 +1,14 @@
 # ₵h@mpi0nz Pr3dict0r — issue tracker
 
+> **STATUS: all 16 slices BUILT + merged (PRs #1–#18); contract live on Chiliz
+> mainnet.** Every issue below is `ready-for-human` (built, awaiting human sign-off)
+> except 01 (`done`). Remaining work is the owner-gated launch cutover — see the
+> repo-root [`STATUS.md`](../../STATUS.md) and [`LAUNCH_CHECKLIST.md`](../../LAUNCH_CHECKLIST.md).
+> `ready-for-human` here means "implemented + tested + merged; needs a human
+> action to fully close" (e.g. a Socios-wallet test, applying a migration, or a
+> launch step), NOT "unstarted".
+
+
 PRD: [`../../PRD.md`](../../PRD.md) (master, v1.1.0, grilled 2026-07-04 — decision log in §21).
 Conventions: local-markdown tracker; triage state is the `Status:` line in each file
 (`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`);
