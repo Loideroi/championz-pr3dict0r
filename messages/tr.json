@@ -1,0 +1,230 @@
+{
+  "layout": {
+    "metadata": {
+      "title": "₵h@mpi0nz Pr3dict0r — Chiliz üzerinde Şampiyonlar Ligi tahminleri",
+      "description": "CHZ stake et, UEFA Şampiyonlar Ligi 2026/27’nin 90 dakikalık skorlarını tahmin et, ilk maç haftasından Madrid’e kadar liderlik tablolarında yüksel."
+    },
+    "footer": "Tasarım ilhamı: BigMac Bobby · Chiliz Chain üzerine inşa edildi · UEFA ile bağlantılı veya UEFA onaylı değildir"
+  },
+  "nav": {
+    "enter": "Katıl",
+    "predict": "Tahmin",
+    "standings": "Puan Durumu",
+    "hallOfFame": "Şöhretler Salonu",
+    "profile": "Profil",
+    "connect": "Bağlan"
+  },
+  "localeSwitcher": {
+    "label": "Dil"
+  },
+  "health": {
+    "delayed": "Sonuçlar gecikiyor — veri kaynağımız ufak bir an yaşıyor. Liderlik tablosu kendiliğinden güncellenecek; hiçbir şey kaybolmaz."
+  },
+  "home": {
+    "tagline": "★ UEFA Champions League 2026/27",
+    "intro": "CHZ stake et, 90 dakikalık skorları söyle ve ilk maç haftasından Madrid’e kadar iki liderlik tablosunda yüksel — UEFA beslemeli bir oracle idari işleri hallederken.",
+    "fullSeasonPill": "Tam sezon · {amount} CHZ",
+    "knockoutPill": "Eleme turu · {amount} CHZ",
+    "ctaEnter": "Havuza katıl →",
+    "ctaPredict": "Tahmin et",
+    "ctaStandings": "Puan durumu"
+  },
+  "stats": {
+    "predictors": "Tahminciler",
+    "prizePools": "Ödül havuzları",
+    "matchesOnChain": "Zincirdeki maçlar"
+  },
+  "enter": {
+    "metadata": {
+      "title": "Katıl — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Dükkân hiç kapanmaz",
+    "heading": "Biletini seç",
+    "intro": "Erken gelenler tüm sezonu 1,100 CHZ karşılığında oynar. Geç kalanlar, sezon satışları kapanır kapanmaz 550 CHZ ile eleme turuna katılır — aynı maçlar, aynı para, sıfırdan liderlik tablosu. Bir aşamada 20’den az katılımcı mı var? Herkes her wei’ini geri alır.",
+    "notConfigured": "Kontrat adresi yapılandırılmamış.",
+    "connectWallet": "Cüzdan bağla",
+    "confirmInWallet": "Girişi cüzdanında onayla…",
+    "waitingOnchain": "Girişin zincire ulaşması bekleniyor…",
+    "confirmed": "Giriş onaylandı — içerdesin. Hadi tahmine!",
+    "notConfirmed": "120s sonra onaylanmadı — cüzdanını kontrol et.",
+    "fullSeason": {
+      "title": "Tam sezon bileti",
+      "split": "500 → Lig Havuzu · 500 → Eleme Havuzu · 100 komisyon",
+      "bothStages": "İki aşama, tek işlem",
+      "salesClose": "Satış kapanışı: {date}",
+      "entrants": "Katılımcı: {count} (taban 20, yoksa tam iade)",
+      "holdsPass": "✓ Sezon bileti sende",
+      "entering": "Giriliyor…",
+      "enterCta": "Sezona katıl",
+      "salesClosed": "Satışlar kapandı"
+    },
+    "knockout": {
+      "title": "Eleme turu bileti",
+      "split": "500 → Eleme Havuzu · 50 komisyon",
+      "stage2Only": "Sadece 2. Aşama — herkes 0’dan başlar",
+      "onSale": "Satışta: {from} → {to}",
+      "entrants": "Katılımcı: {count} (taban 20, yoksa tam iade)",
+      "lockedWarning": "⚠ {count, plural, one {# eleme maçı} other {# eleme maçı}} çoktan kilitlendi — artık şunlardan puan alamazsın:",
+      "ackLabel": "Bu maçlardan 0 puan alacağımı anlıyorum",
+      "inViaSeason": "✓ Eleme turundasın (sezon bileti üzerinden)",
+      "inPool": "✓ Eleme havuzundasın",
+      "opensLater": "Sezon satışları kapanınca açılır",
+      "salesClosed": "Satışlar kapandı",
+      "entering": "Giriliyor…",
+      "ackFirst": "Önce kilitli maçları onayla",
+      "joinCta": "Eleme turuna katıl"
+    }
+  },
+  "play": {
+    "metadata": {
+      "title": "Oyna — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Maç haftası listesi · Spicy testnet",
+    "heading": "Her skoru söyle",
+    "intro": "90 dakikalık skorlarını ayarla, tüm maç haftasını tek işlemle kilitle ve her tahmini başlama vuruşundan 60 dakika öncesine kadar özgürce düzenle — fikir değiştirmek yalnızca kuruşluk gas öder.",
+    "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS ayarlanmamış — kontratı dağıt ve proxy adresini .env.local dosyasına ekle.",
+    "connectWallet": "Cüzdan bağla",
+    "loading": "Liste yükleniyor…",
+    "emptySlate": "Listede henüz maç yok — oracle fikstürü yayımlamadı.",
+    "stageLeague": "Lig aşaması",
+    "stageKnockout": "Eleme turu",
+    "stageFallback": "Aşama {stage}",
+    "pointsThisStage": "★ Bu aşamada {points} puan",
+    "confirmBatch": "Cüzdanında {count, plural, one {# tahmini} other {# tahmini}} onayla — tek işlem…",
+    "waitingBatch": "Paketin zincire ulaşması bekleniyor…",
+    "updatedSingle": "Tahmin güncellendi — {time} saatine kadar (T-60) tekrar değiştirebilirsin.",
+    "updatedMany": "{count} tahmin güncellendi — her birini kendi başlama vuruşundan 60 dakika öncesine kadar değiştirebilirsin (T-60).",
+    "batchNotConfirmed": "Paket 120s sonra onaylanmadı — yeniden denemeden önce cüzdanını ve Chiliscan’i kontrol et."
+  },
+  "predict": {
+    "matchRow": {
+      "vs": "vs",
+      "kickoff": "Başlama {time}",
+      "locksIn": "· {countdown} içinde kilitlenir",
+      "ft": "MS {score}",
+      "yourPick": "sen: {score}",
+      "noPrediction": "tahmin yok",
+      "finalPick": "son tahmin",
+      "lockedNoPrediction": "kilitli — tahmin yok",
+      "connectToPredict": "tahmin için bağlan",
+      "enterFirst": "Önce katıl →",
+      "edit": "Düzenle",
+      "stageZero": "0–0 hazırla",
+      "was": "önceki",
+      "discard": "↺ vazgeç",
+      "homeScoreLabel": "{teamA} vs {teamB}: ev sahibi",
+      "awayScoreLabel": "{teamA} vs {teamB}: deplasman"
+    },
+    "stepper": {
+      "up": "Skoru artır — {label}",
+      "down": "Skoru azalt — {label}"
+    },
+    "submitBar": {
+      "review": "İmzalamadan önce gözden geçir — {count, plural, one {# değişiklik} other {# değişiklik}}",
+      "edits": "({count, plural, one {# düzenleme} other {# düzenleme}})",
+      "new": "yeni →",
+      "submitting": "Gönderiliyor…",
+      "lockIn": "{count, plural, one {# tahmini} other {# tahmini}} kilitle",
+      "discardAll": "Hepsinden vazgeç",
+      "gasCopy": "Tüm maç haftası için tek işlem — 18 maçlık tam paket ≈ 1.1 CHZ (~$0.05) gas tutar. Sonradan düzenlemek sadece bunu yeniden öder."
+    }
+  },
+  "standings": {
+    "metadata": {
+      "title": "Puan Durumu — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "İki tablo öder · tek taç hükmeder",
+    "heading": "Puan Durumu",
+    "notConfigured": "Kontrat adresi yapılandırılmamış.",
+    "viewLeague": "Aşama 1 · Lig",
+    "viewKnockout": "Aşama 2 · Eleme",
+    "viewSeason": "Sezon Görünümü",
+    "provisional": "◌ geçici sonuçlar içerir",
+    "colRank": "#",
+    "colPredictor": "Tahminci",
+    "colLeague": "Lig",
+    "colKnockout": "Eleme",
+    "colPoints": "Puan",
+    "reading": "Zincir okunuyor…",
+    "noEntrants": "Henüz katılımcı yok — ilk sen ol.",
+    "koPass": "Eleme bileti",
+    "footnote": "Puanlar zincir durumundan canlı hesaplanır — uzlaşma işlemi diye bir şey yoktur. Sezon Görünümü, Ultimate ₵h@mpi0n’u taçlandırır (kupa NFT’si slice 11 ile gelir).",
+    "claim": {
+      "confirm": "Talebi cüzdanında onayla…",
+      "claimed": "Talep edildi — CHZ cüzdanında. 🏆",
+      "notConfirmed": "120s sonra onaylanmadı — cüzdanını kontrol et.",
+      "banner": "★ {stage} tablosunda ilk 20’de bitirdin — {amount} CHZ talep edilebilir",
+      "claiming": "Talep ediliyor…",
+      "cta": "Talep et"
+    }
+  },
+  "hallOfFame": {
+    "metadata": {
+      "title": "Şöhretler Salonu — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "★ Sonsuz şan, sıfır para dahil",
+    "heading": "Şöhretler Salonu",
+    "notConfigured": "Kupa kontratı yapılandırılmamış.",
+    "reading": "Zincir okunuyor…",
+    "emptyPlinth": "Kaide boş. Ultimate ₵h@mpi0n, Madrid’deki finalden sonra taçlanır — en iyi Aşama 1 + Aşama 2 toplamı kupa NFT’sini alır.",
+    "season": "Sezon {season}",
+    "trophyMeta": "Kupa #{id} · zincirde, sonsuza dek"
+  },
+  "profile": {
+    "metadata": {
+      "title": "Profil — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "İlk günden bayraklar",
+    "heading": "Adını kap",
+    "intro": "Liderlik tablosu cüzdan adresi değil, bayrak ve kullanıcı adı gösterir. Bir rumuz seç (zincir başına benzersiz), renklerini seç, tek bir mesaj imzala — bitti. E-posta yok, şifre yok: cüzdanın senin girişin.",
+    "form": {
+      "tierSeason": "Sezon bileti",
+      "tierKnockout": "Eleme",
+      "tierNone": "Katılmadı",
+      "connectPrompt": "Kullanıcı adı almak için cüzdanını bağla. Socios.com Wallet birinci sınıf çalışır.",
+      "connectWallet": "Cüzdan bağla",
+      "savedLine": "{username} · {country} — kaydedildi",
+      "usernameLabel": "Kullanıcı adı",
+      "usernamePlaceholder": "3–20 karakter · harf, rakam, _",
+      "usernameHint": "Zincir başına benzersiz — liderlik tablosundaki adın bu.",
+      "waiting": "Bekleniyor…",
+      "update": "Profili güncelle",
+      "signSave": "İmzala ve kaydet",
+      "signNote": "Okunabilir tek bir mesaj imzalayacaksın (işlem yok, gas yok). Socios.com Wallet gibi kontrat cüzdanları ERC-1271 ile doğrulanır.",
+      "checkWallet": "Cüzdanını kontrol et ve mesajı imzala…",
+      "saving": "Profilin kaydediliyor…",
+      "saveFailed": "Kaydetme başarısız ({status}).",
+      "saved": "Profil kaydedildi — bayrağın liderlik tablosunda dalgalanıyor.",
+      "sigFailed": "İmza iptal edildi veya başarısız oldu."
+    },
+    "country": {
+      "label": "Ülke",
+      "change": "değiştir",
+      "searchPlaceholder": "Ülke ara…",
+      "listLabel": "Ülkeler",
+      "noMatches": "Eşleşme yok"
+    },
+    "telegram": {
+      "title": "Telegram (isteğe bağlı)",
+      "intro": "Kilit hatırlatmaları ve topluluk grubu daveti için Telegram’ını bağla. İsteğe bağlı, tek dokunuşla ayrılır, asla zorunlu değil.",
+      "working": "Çalışıyor…",
+      "unlink": "Telegram bağlantısını kes",
+      "openStart": "Telegram’ı aç ve START’a bas →",
+      "waitingSig": "İmza bekleniyor…",
+      "link": "Telegram bağla",
+      "sigDeclined": "İmza reddedildi.",
+      "openLinkNote": "Bağlantıyı aç ve START’a bas — kod 15 dakika yaşar.",
+      "linkFailed": "Bağlama başarısız.",
+      "unlinked": "Bağlantı kesildi — bot seni tamamen unutur.",
+      "unlinkFailed": "Bağlantıyı kesme başarısız."
+    }
+  },
+  "terms": {
+    "metadata": {
+      "title": "Şartlar ve Koşullar — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Öncekinden daha komik · yine de bağlayıcı",
+    "lastUpdated": "Son güncelleme {date}",
+    "languageLabel": "Dil"
+  }
+}

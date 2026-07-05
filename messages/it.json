@@ -1,0 +1,230 @@
+{
+  "layout": {
+    "metadata": {
+      "title": "₵h@mpi0nz Pr3dict0r — Pronostici Champions League su Chiliz",
+      "description": "Metti in staking CHZ, pronostica i risultati dei 90 minuti della UEFA Champions League 2026/27 e scala le classifiche dalla prima giornata fino a Madrid."
+    },
+    "footer": "Design ispirato a BigMac Bobby · Costruito su Chiliz Chain · Non affiliato né approvato dalla UEFA"
+  },
+  "nav": {
+    "enter": "Partecipa",
+    "predict": "Pronostica",
+    "standings": "Classifica",
+    "hallOfFame": "Albo d’oro",
+    "profile": "Profilo",
+    "connect": "Connetti"
+  },
+  "localeSwitcher": {
+    "label": "Lingua"
+  },
+  "health": {
+    "delayed": "I risultati sono in ritardo — il nostro feed dati sta avendo un momento no. La classifica si aggiornerà da sola; non si perde nulla."
+  },
+  "home": {
+    "tagline": "★ UEFA Champions League 2026/27",
+    "intro": "Metti in staking CHZ, indovina i risultati dei 90 minuti e scala due classifiche dalla prima giornata fino a Madrid — mentre un oracolo collegato alla UEFA fa il lavoro amministrativo.",
+    "fullSeasonPill": "Stagione completa · {amount} CHZ",
+    "knockoutPill": "Eliminazione diretta · {amount} CHZ",
+    "ctaEnter": "Entra nel pool →",
+    "ctaPredict": "Pronostica",
+    "ctaStandings": "Classifica"
+  },
+  "stats": {
+    "predictors": "Pronosticatori",
+    "prizePools": "Montepremi",
+    "matchesOnChain": "Partite on-chain"
+  },
+  "enter": {
+    "metadata": {
+      "title": "Partecipa — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Il negozio non chiude mai",
+    "heading": "Scegli il tuo pass",
+    "intro": "I mattinieri giocano l’intera stagione per 1,100 CHZ. I ritardatari entrano nell’eliminazione diretta per 550 CHZ appena chiudono le vendite stagionali — stesse partite, stessi soldi, classifica nuova di zecca. Meno di 20 iscritti in una fase? Tutti riavranno ogni singolo wei.",
+    "notConfigured": "Indirizzo del contratto non configurato.",
+    "connectWallet": "Connetti wallet",
+    "confirmInWallet": "Conferma l’ingresso nel tuo wallet…",
+    "waitingOnchain": "In attesa che l’ingresso arrivi on-chain…",
+    "confirmed": "Ingresso confermato — sei dentro. Vai a pronosticare!",
+    "notConfirmed": "Non confermato dopo 120s — controlla il wallet.",
+    "fullSeason": {
+      "title": "Pass stagione completa",
+      "split": "500 → Montepremi Campionato · 500 → Montepremi Eliminazione · 100 di commissione",
+      "bothStages": "Entrambe le fasi, una sola transazione",
+      "salesClose": "Chiusura vendite: {date}",
+      "entrants": "Iscritti: {count} (minimo 20 o rimborso totale)",
+      "holdsPass": "✓ Hai il pass stagionale",
+      "entering": "Ingresso in corso…",
+      "enterCta": "Entra nella stagione",
+      "salesClosed": "Vendite chiuse"
+    },
+    "knockout": {
+      "title": "Pass eliminazione diretta",
+      "split": "500 → Montepremi Eliminazione · 50 di commissione",
+      "stage2Only": "Solo Fase 2 — tutti ripartono da 0",
+      "onSale": "In vendita: {from} → {to}",
+      "entrants": "Iscritti: {count} (minimo 20 o rimborso totale)",
+      "lockedWarning": "⚠ {count, plural, one {# partita a eliminazione diretta è già bloccata} other {# partite a eliminazione diretta sono già bloccate}} — non puoi più fare punti su:",
+      "ackLabel": "Capisco che queste partite mi valgono 0 punti",
+      "inViaSeason": "✓ Sei nell’eliminazione diretta (via pass stagionale)",
+      "inPool": "✓ Sei nel montepremi dell’eliminazione diretta",
+      "opensLater": "Apre alla chiusura delle vendite stagionali",
+      "salesClosed": "Vendite chiuse",
+      "entering": "Ingresso in corso…",
+      "ackFirst": "Prima riconosci le partite bloccate",
+      "joinCta": "Unisciti all’eliminazione diretta"
+    }
+  },
+  "play": {
+    "metadata": {
+      "title": "Gioca — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "La lavagna della giornata · Testnet Spicy",
+    "heading": "Indovina ogni risultato",
+    "intro": "Imposta i tuoi risultati dei 90 minuti, blocca l’intera giornata in una transazione e modifica ogni pronostico liberamente fino a 60 minuti prima del calcio d’inizio — cambiare idea costa solo centesimi di gas.",
+    "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS non è impostato — distribuisci il contratto e aggiungi l’indirizzo del proxy a .env.local.",
+    "connectWallet": "Connetti wallet",
+    "loading": "Caricamento della lavagna…",
+    "emptySlate": "Nessuna partita in lavagna — l’oracolo non ha ancora pubblicato il calendario.",
+    "stageLeague": "Fase campionato",
+    "stageKnockout": "Eliminazione diretta",
+    "stageFallback": "Fase {stage}",
+    "pointsThisStage": "★ {points} pt in questa fase",
+    "confirmBatch": "Conferma {count, plural, one {# pronostico} other {# pronostici}} nel tuo wallet — una sola transazione…",
+    "waitingBatch": "In attesa che il lotto arrivi on-chain…",
+    "updatedSingle": "Pronostico aggiornato — puoi cambiarlo fino alle {time} (T-60).",
+    "updatedMany": "{count} pronostici aggiornati — puoi cambiarne ognuno fino a 60 minuti prima del suo calcio d’inizio (T-60).",
+    "batchNotConfirmed": "Lotto non confermato dopo 120s — controlla wallet e Chiliscan prima di riprovare."
+  },
+  "predict": {
+    "matchRow": {
+      "vs": "vs",
+      "kickoff": "Calcio d’inizio {time}",
+      "locksIn": "· Si blocca tra {countdown}",
+      "ft": "FIN {score}",
+      "yourPick": "tu: {score}",
+      "noPrediction": "nessun pronostico",
+      "finalPick": "pronostico finale",
+      "lockedNoPrediction": "bloccata — nessun pronostico",
+      "connectToPredict": "connettiti per pronosticare",
+      "enterFirst": "Prima partecipa →",
+      "edit": "Modifica",
+      "stageZero": "prepara uno 0–0",
+      "was": "era",
+      "discard": "↺ annulla",
+      "homeScoreLabel": "{teamA} vs {teamB}: casa",
+      "awayScoreLabel": "{teamA} vs {teamB}: trasferta"
+    },
+    "stepper": {
+      "up": "Aumenta il punteggio — {label}",
+      "down": "Diminuisci il punteggio — {label}"
+    },
+    "submitBar": {
+      "review": "Rileggi prima di firmare — {count, plural, one {# cambio} other {# cambi}}",
+      "edits": "({count, plural, one {# modifica} other {# modifiche}})",
+      "new": "nuovo →",
+      "submitting": "Invio…",
+      "lockIn": "Blocca {count, plural, one {# pronostico} other {# pronostici}}",
+      "discardAll": "Annulla tutto",
+      "gasCopy": "Una transazione per l’intera giornata — un lotto completo di 18 partite costa ≈ 1.1 CHZ (~$0.05) di gas. Modificare più tardi significa solo ripagarlo."
+    }
+  },
+  "standings": {
+    "metadata": {
+      "title": "Classifica — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Due tabelloni pagano · una sola corona comanda",
+    "heading": "Classifica",
+    "notConfigured": "Indirizzo del contratto non configurato.",
+    "viewLeague": "Fase 1 · Campionato",
+    "viewKnockout": "Fase 2 · Eliminazione",
+    "viewSeason": "Vista stagione",
+    "provisional": "◌ contiene risultati provvisori",
+    "colRank": "#",
+    "colPredictor": "Pronosticatore",
+    "colLeague": "Campionato",
+    "colKnockout": "Eliminazione",
+    "colPoints": "Punti",
+    "reading": "Lettura della chain…",
+    "noEntrants": "Ancora nessun iscritto — sii il primo.",
+    "koPass": "Pass KO",
+    "footnote": "I punti si calcolano in tempo reale dallo stato della chain — non esistono transazioni di regolamento. La Vista stagione incorona l’Ultimate ₵h@mpi0n (l’NFT del trofeo arriva con lo slice 11).",
+    "claim": {
+      "confirm": "Conferma la riscossione nel tuo wallet…",
+      "claimed": "Riscosso — i CHZ sono nel tuo wallet. 🏆",
+      "notConfirmed": "Non confermato dopo 120s — controlla il wallet.",
+      "banner": "★ Hai chiuso nella top 20 di {stage} — {amount} CHZ da riscuotere",
+      "claiming": "Riscossione…",
+      "cta": "Riscuoti"
+    }
+  },
+  "hallOfFame": {
+    "metadata": {
+      "title": "Albo d’oro — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "★ Gloria eterna, zero fondi inclusi",
+    "heading": "Albo d’oro",
+    "notConfigured": "Contratto del trofeo non configurato.",
+    "reading": "Lettura della chain…",
+    "emptyPlinth": "Il piedistallo è vuoto. L’Ultimate ₵h@mpi0n viene incoronato dopo la finale di Madrid — la miglior somma di Fase 1 + Fase 2 si prende l’NFT del trofeo.",
+    "season": "Stagione {season}",
+    "trophyMeta": "Trofeo #{id} · on-chain, per sempre"
+  },
+  "profile": {
+    "metadata": {
+      "title": "Profilo — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Bandiere dal giorno uno",
+    "heading": "Rivendica il tuo nome",
+    "intro": "La classifica mostra una bandiera e uno username, non un indirizzo wallet. Scegli un nome (unico per chain), scegli i tuoi colori, firma un messaggio — fatto. Niente email, niente password: il tuo wallet è il tuo login.",
+    "form": {
+      "tierSeason": "Pass stagionale",
+      "tierKnockout": "Eliminazione",
+      "tierNone": "Non iscritto",
+      "connectPrompt": "Connetti il wallet per rivendicare uno username. Socios.com Wallet funziona in prima classe.",
+      "connectWallet": "Connetti wallet",
+      "savedLine": "{username} · {country} — salvato",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "3–20 caratteri · lettere, numeri, _",
+      "usernameHint": "Unico per chain — è il tuo nome in classifica.",
+      "waiting": "Attendi…",
+      "update": "Aggiorna profilo",
+      "signSave": "Firma e salva il profilo",
+      "signNote": "Firmerai un messaggio leggibile (nessuna transazione, niente gas). I wallet contratto come Socios.com Wallet sono verificati via ERC-1271.",
+      "checkWallet": "Controlla il wallet e firma il messaggio…",
+      "saving": "Salvataggio del profilo…",
+      "saveFailed": "Salvataggio non riuscito ({status}).",
+      "saved": "Profilo salvato — la tua bandiera sventola in classifica.",
+      "sigFailed": "Firma annullata o non riuscita."
+    },
+    "country": {
+      "label": "Paese",
+      "change": "cambia",
+      "searchPlaceholder": "Cerca paesi…",
+      "listLabel": "Paesi",
+      "noMatches": "Nessun risultato"
+    },
+    "telegram": {
+      "title": "Telegram (facoltativo)",
+      "intro": "Collega il tuo Telegram per ricevere i promemoria di blocco e l’invito al gruppo della community. Opt-in, scollegamento in un tap, mai obbligatorio.",
+      "working": "In corso…",
+      "unlink": "Scollega Telegram",
+      "openStart": "Apri Telegram e premi START →",
+      "waitingSig": "In attesa della firma…",
+      "link": "Collega Telegram",
+      "sigDeclined": "Firma rifiutata.",
+      "openLinkNote": "Apri il link e premi START — il codice vive 15 minuti.",
+      "linkFailed": "Collegamento non riuscito.",
+      "unlinked": "Scollegato — il bot ti dimentica del tutto.",
+      "unlinkFailed": "Scollegamento non riuscito."
+    }
+  },
+  "terms": {
+    "metadata": {
+      "title": "Termini e Condizioni — ₵h@mpi0nz Pr3dict0r"
+    },
+    "tagline": "Più divertenti di quelli del predecessore · sempre vincolanti",
+    "lastUpdated": "Ultimo aggiornamento {date}",
+    "languageLabel": "Lingua"
+  }
+}
