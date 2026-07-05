@@ -5,7 +5,7 @@ See also: [`PRD.md`](./PRD.md) (spec), [`LAUNCH_CHECKLIST.md`](./LAUNCH_CHECKLIS
 (PRD §22 gate), [`SECURITY_FINDINGS.md`](./SECURITY_FINDINGS.md) (pentest log),
 [`contracts/deployments.md`](./contracts/deployments.md) (live addresses).
 
-## Where we are: BUILD COMPLETE, live on mainnet, awaiting launch cutover
+## Where we are: BUILD COMPLETE + LAUNCHED — live on mainnet at pr3dict0r.com
 
 All 16 build slices are implemented, tested, and merged to `main` (PRs #1–#18).
 The security-hardened v6 contract passed a 5-round cross-model pentest loop (clean
@@ -28,34 +28,36 @@ sign-off) and is **deployed + verified on Chiliz mainnet**.
 - `main` is protected; required checks `app`+`contracts`+`relayer`; merge via
   auto-merge + `gh pr update-branch` (no merge queue → the babysitter loop pattern).
 
-## NEXT STEPS — all owner-gated (irreversible / real-money / your accounts)
+## LAUNCH CUTOVER — status (updated 2026-07-06)
 
-Ordered by the recommendation given to the user. None are code work; the build is done.
+1. ✅ **Mainnet oracle funded** — `0xB57C…7B15` holds **100 CHZ** on mainnet (verified
+   on-chain 2026-07-06). Enough for hundreds of result pushes at 2,510 gwei.
 
-1. **Fund the mainnet oracle `0xB57C…` with CHZ gas** (⚠ silent-failure risk).
-   Without gas it cannot push results. Send ~50–100 CHZ from `0x4710…` to `0xB57C…`.
-   Owner action (or Claude can prep a one-liner). **Not urgent until fixtures exist
-   (post-27-Aug draw), but easy to forget.**
+2. ✅ **Vercel production + pr3dict0r.com LIVE** — **pr3dict0r.com loads** (owner-confirmed
+   2026-07-06). Project `championz-pr3dict0r` on the **Loideroi personal** Vercel scope
+   `markverdegaal-gmailcoms-projects` (⚠ NOT chiliz-group — the `vercel` CLI defaults to the
+   wrong work identity; `vercel login` as mark.verdegaal@gmail.com first). GitHub-connected
+   → auto-deploys on merge to `main`. **11 production env vars**: 8 public (chain 88888,
+   predictor `0x742c…`, ankr RPC, WalletConnect, Supabase URL+anon, bot username) + 3 secrets
+   (`SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — the last is
+   new, not in `.env.local`). Deployment Protection OFF (fully public — informed owner choice
+   despite live sales + no fixtures until the draw). GoDaddy DNS: `A @ → 216.198.79.1`,
+   `CNAME www → cname.vercel-dns.com`, parked record removed.
 
-2. **Vercel production + pr3dict0r.com DNS** — gives the live mainnet contract a UI.
-   - New Vercel project (Loideroi Hobby account) from this repo.
-   - Prod env: `NEXT_PUBLIC_PREDICTOR_ADDRESS=0x742c6963a81012bc7949F0058Fba07c8d1A80c4d`,
-     `NEXT_PUBLIC_CHAIN_ID=88888`, `NEXT_PUBLIC_RPC_URL=https://rpc.ankr.com/chiliz`,
-     plus the WalletConnect/Supabase/Telegram values from `.env.local` (mainnet where
-     applicable). See `.env.example`.
-   - DNS (GoDaddy → Vercel): add domain in Vercel first, copy the exact records it
-     shows — apex `A @ → 216.198.79.1` (or the value Vercel shows), `CNAME www →
-     cname.vercel-dns.com` — and **delete GoDaddy's default parked A record**.
+3. 🟡 **Telegram** — public channel **@championz_pr3dict0r** created, bot
+   `@Chmpi0nz_Pr3dict0r_bot` added as **admin** (for a channel you add the bot as admin
+   directly — there is no join step). Ops alerts route to the owner DM
+   `TELEGRAM_OPS_CHAT_ID=2055709055`. **Still to do:** the community **group** (create → add
+   bot admin → set `TELEGRAM_GROUP_ID` Actions var); an optional separate ops/private channel
+   (not required — ops already DMs the owner).
+   - ⚠️ **`TELEGRAM_CHANNEL_ID` Actions var is deliberately REMOVED** so the 7–8 Jul staging
+     self-settlement demo stays out of the public channel. **RE-ADD
+     `TELEGRAM_CHANNEL_ID=@championz_pr3dict0r` before the real season (post-draw, pre-MD1)
+     or the channel will stay silent.**
 
-3. **Telegram public channel + community group** (5 min, reversible). Create both, add
-   `@Chmpi0nz_Pr3dict0r_bot` as admin (channel: Post Messages; group: Invite via Link),
-   then set repo Actions variables `TELEGRAM_CHANNEL_ID` (@handle) and
-   `TELEGRAM_GROUP_ID` (-100… — send a group message, Claude reads it via getUpdates).
-   Bot privacy mode off (`/setprivacy` → Disable) if the group needs message reads.
-
-4. **Socios.com Wallet end-to-end test on Spicy** — connect → enter → predict → edit,
-   exercising the ERC-1271 path no simulation covers. **Do before the 6 Jul staging
-   league close** (Spicy proxy `0xAE32…83D6`).
+4. 🔲 **Socios.com Wallet end-to-end test** — connect → enter → predict → edit, exercising
+   the ERC-1271 path no simulation covers. Do it on the live mainnet `/enter` before real
+   users arrive (the pre-6-Jul Spicy-staging window has now passed).
 
 ## Post-deploy owner tasks for the REAL tournament (later, not launch-blocking)
 
