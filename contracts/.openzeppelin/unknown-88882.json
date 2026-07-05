@@ -1986,6 +1986,459 @@
           ]
         }
       }
+    },
+    "7ddd769dd3d8f0b8e0d48c6e31dfae2054f3f1671afc0f31ae85fbea38d12609": {
+      "address": "0x45d20C40f71d659cE65863C315c056c767426f86",
+      "txHash": "0x1a7a3f29f0b6142f2dc4999eef03f306b0afffdbdd560bd5bfeded3b2b2de076",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "feeRecipient",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:79"
+          },
+          {
+            "label": "oracle",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:81"
+          },
+          {
+            "label": "stages",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_struct(StageState)1614_storage)2_storage",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:81"
+          },
+          {
+            "label": "matchCount",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_uint16",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:82"
+          },
+          {
+            "label": "matches",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_uint16,t_struct(Game)1626_storage)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:83"
+          },
+          {
+            "label": "results",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint16,t_uint256)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:84"
+          },
+          {
+            "label": "entered",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_uint8,t_mapping(t_address,t_bool))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:85"
+          },
+          {
+            "label": "refunded",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint8,t_mapping(t_address,t_bool))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:86"
+          },
+          {
+            "label": "fullSeason",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:87"
+          },
+          {
+            "label": "predictions",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_address,t_mapping(t_uint16,t_uint256))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:88"
+          },
+          {
+            "label": "provisionalWindow",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_uint40",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:91"
+          },
+          {
+            "label": "tieInfo",
+            "offset": 0,
+            "slot": "16",
+            "type": "t_mapping(t_uint16,t_uint32)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:97"
+          },
+          {
+            "label": "enteredAt",
+            "offset": 0,
+            "slot": "17",
+            "type": "t_mapping(t_uint8,t_mapping(t_address,t_uint40))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:100"
+          },
+          {
+            "label": "stageFrozen",
+            "offset": 0,
+            "slot": "18",
+            "type": "t_mapping(t_uint8,t_bool)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:104"
+          },
+          {
+            "label": "stageWinners",
+            "offset": 0,
+            "slot": "19",
+            "type": "t_mapping(t_uint8,t_array(t_address)dyn_storage)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:105"
+          },
+          {
+            "label": "claimable",
+            "offset": 0,
+            "slot": "20",
+            "type": "t_mapping(t_uint8,t_mapping(t_address,t_uint256))",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:106"
+          },
+          {
+            "label": "resultSourceRef",
+            "offset": 0,
+            "slot": "21",
+            "type": "t_string_storage",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:113"
+          },
+          {
+            "label": "pausedAt",
+            "offset": 0,
+            "slot": "22",
+            "type": "t_uint40",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:118"
+          },
+          {
+            "label": "stageFrozenAt",
+            "offset": 0,
+            "slot": "23",
+            "type": "t_mapping(t_uint8,t_uint40)",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:121"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "24",
+            "type": "t_array(t_uint256)45_storage",
+            "contract": "ChampionzPredictor",
+            "src": "src/ChampionzPredictor.sol:125"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)281_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)115_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(StageState)1614_storage)2_storage": {
+            "label": "struct ChampionzPredictor.StageState[2]",
+            "numberOfBytes": "192"
+          },
+          "t_array(t_uint256)45_storage": {
+            "label": "uint256[45]",
+            "numberOfBytes": "1440"
+          },
+          "t_bytes3": {
+            "label": "bytes3",
+            "numberOfBytes": "3"
+          },
+          "t_enum(MatchStatus)1600": {
+            "label": "enum ChampionzPredictor.MatchStatus",
+            "members": [
+              "SCHEDULED",
+              "COMPLETED",
+              "VOIDED"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(StageStatus)1596": {
+            "label": "enum ChampionzPredictor.StageStatus",
+            "members": [
+              "SELLING",
+              "LOCKED",
+              "VOID"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_uint16,t_uint256))": {
+            "label": "mapping(address => mapping(uint16 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint40)": {
+            "label": "mapping(address => uint40)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_struct(Game)1626_storage)": {
+            "label": "mapping(uint16 => struct ChampionzPredictor.Game)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_uint256)": {
+            "label": "mapping(uint16 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_uint32)": {
+            "label": "mapping(uint16 => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_array(t_address)dyn_storage)": {
+            "label": "mapping(uint8 => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_bool)": {
+            "label": "mapping(uint8 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint8 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint8 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_mapping(t_address,t_uint40))": {
+            "label": "mapping(uint8 => mapping(address => uint40))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint8,t_uint40)": {
+            "label": "mapping(uint8 => uint40)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Game)1626_storage": {
+            "label": "struct ChampionzPredictor.Game",
+            "members": [
+              {
+                "label": "kickoff",
+                "type": "t_uint40",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MatchStatus)1600",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "teamA",
+                "type": "t_bytes3",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "teamB",
+                "type": "t_bytes3",
+                "offset": 9,
+                "slot": "0"
+              },
+              {
+                "label": "stage",
+                "type": "t_uint8",
+                "offset": 12,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(StageState)1614_storage": {
+            "label": "struct ChampionzPredictor.StageState",
+            "members": [
+              {
+                "label": "openAt",
+                "type": "t_uint40",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "closeAt",
+                "type": "t_uint40",
+                "offset": 5,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(StageStatus)1596",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "entryCount",
+                "type": "t_uint32",
+                "offset": 11,
+                "slot": "0"
+              },
+              {
+                "label": "pool",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "feeEscrow",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint40": {
+            "label": "uint40",
+            "numberOfBytes": "5"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
     }
   }
 }

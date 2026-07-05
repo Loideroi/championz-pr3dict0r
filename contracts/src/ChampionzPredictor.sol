@@ -110,7 +110,21 @@ contract ChampionzPredictor is
     ///      "uefa-api:match.uefa.com/v5". Owner-updatable, loudly evented.
     string public resultSourceRef;
 
+    // ---- v6 storage (slice 16 security hardening) — appended AFTER v5 ----
+    /// @dev Set when pause() is called, cleared on unpause(). The emergency
+    ///      lock counts from HERE (the incident), not from deploy (N-1): a rug
+    ///      requires halting the product for 180 visible days first.
+    uint40 public pausedAt;
+    /// @dev When each stage was frozen — claims open only after the challenge
+    ///      window (H-2b): off-chain verifiers get a real window to contest a
+    ///      non-maximal ranking, and the owner can pause() if it's wrong.
+    mapping(uint8 => uint40) public stageFrozenAt;
+    /// @dev Reserved for future appends (N-4). Never remove; shrink on use.
+    uint256[45] private __gap;
+
     uint40 public constant DEFAULT_PROVISIONAL_WINDOW = 24 hours;
+    uint40 public constant EMERGENCY_LOCK = 180 days;
+    uint40 public constant CLAIM_CHALLENGE_WINDOW = 24 hours;
 
     event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass);
     event StageLocked(uint8 indexed stage, uint32 entryCount, uint256 pool, uint256 feesForwarded);
@@ -130,6 +144,9 @@ contract ChampionzPredictor is
     event MatchVoided(uint16 indexed matchId);
     event MatchTeamsSet(uint16 indexed matchId, bytes3 teamA, bytes3 teamB);
     event ResultSourceSet(string previousRef, string newRef);
+    event FeeRecipientSet(address indexed previousRecipient, address indexed newRecipient);
+    event ResultForceFinalized(uint16 indexed matchId);
+    event EmergencyWithdraw(address indexed to, uint256 amount);
 
     error InvalidStakeAmount();
     error AlreadyEntered();
@@ -156,6 +173,12 @@ contract ChampionzPredictor is
     error InvalidWindow();
     error ZeroAddress();
     error TransferFailed();
+    error StageIsFrozen();
+    error EmergencyLocked();
+    error NoCompletedMatches();
+    error WouldReopenMatch();
+    error ChallengeWindowOpen();
+    error ChallengeWindowClosed();
 
     modifier onlyOracle() {
         if (msg.sender != oracle) revert NotOracle();
@@ -274,6 +297,9 @@ contract ChampionzPredictor is
         StageState storage s = _stage(stage);
         if (s.status != StageStatus.SELLING) revert AlreadyDecided();
         if (closeAt <= openAt) revert InvalidWindow();
+        // M-3: keep the cross-stage invariant (league closes no later than KO opens).
+        if (stage == STAGE_LEAGUE && closeAt > stages[STAGE_KNOCKOUT].openAt) revert InvalidWindow();
+        if (stage == STAGE_KNOCKOUT && openAt < stages[STAGE_LEAGUE].closeAt) revert InvalidWindow();
         s.openAt = openAt;
         s.closeAt = closeAt;
         emit StageWindowSet(stage, openAt, closeAt);
@@ -291,6 +317,9 @@ contract ChampionzPredictor is
         if (teamsA.length != n || teamsB.length != n || stageIds.length != n) revert InvalidWindow();
         for (uint256 i = 0; i < n; ++i) {
             if (stageIds[i] > STAGE_KNOCKOUT) revert UnknownMatch();
+            // R-1: floor prevents the `kickoff - PREDICTION_LOCKOUT` underflow that
+            // would otherwise brick predictions on a mis-created match.
+            if (kickoffs[i] < PREDICTION_LOCKOUT) revert InvalidWindow();
             uint16 id = ++matchCount;
             matches[id] = Game(kickoffs[i], MatchStatus.SCHEDULED, teamsA[i], teamsB[i], stageIds[i]);
             emit MatchAdded(id, stageIds[i], kickoffs[i], teamsA[i], teamsB[i]);
@@ -392,6 +421,20 @@ contract ChampionzPredictor is
         for (uint256 i = 0; i < n; ++i) {
             Game storage g = _match(matchIds[i]);
             if (g.status != MatchStatus.SCHEDULED) revert MatchAlreadyCompleted();
+            // M-1: floor prevents kickoff-<3600 underflow in the lock math.
+            if (kickoffs[i] < PREDICTION_LOCKOUT) revert InvalidWindow();
+            bool alreadyLocked = block.timestamp >= g.kickoff - PREDICTION_LOCKOUT;
+            if (alreadyLocked) {
+                // can't reopen a closed prediction window
+                if (kickoffs[i] - uint40(PREDICTION_LOCKOUT) > uint40(block.timestamp)) {
+                    revert WouldReopenMatch();
+                }
+            } else {
+                // an OPEN match must stay open — no premature lock-out griefing
+                if (kickoffs[i] < uint40(block.timestamp) + uint40(PREDICTION_LOCKOUT)) {
+                    revert WouldReopenMatch();
+                }
+            }
             g.kickoff = kickoffs[i];
             emit KickoffUpdated(matchIds[i], kickoffs[i]);
         }
@@ -412,10 +455,12 @@ contract ChampionzPredictor is
     // ------------------------------------------- admin console (slice 12) ----
 
     function pause() external onlyOwner {
+        pausedAt = uint40(block.timestamp);
         _pause();
     }
 
     function unpause() external onlyOwner {
+        pausedAt = 0;
         _unpause();
     }
 
@@ -424,6 +469,7 @@ contract ChampionzPredictor is
     ///         everyone automatically; loudly evented for the community.
     function forceCorrectResult(uint16 matchId, uint256 packed) external onlyOwner whenPaused {
         Game storage g = _match(matchId);
+        if (stageFrozen[g.stage]) revert StageIsFrozen(); // H-1: decided inputs are immutable
         if (g.status != MatchStatus.COMPLETED) revert MatchNotStarted();
         if (packed & FLAG_SUBMITTED == 0 || packed & RESULT_TS_MASK != 0) revert InvalidPrediction();
         (uint8 a, uint8 b) = _scores(packed);
@@ -461,6 +507,43 @@ contract ChampionzPredictor is
         resultSourceRef = ref;
     }
 
+    /// @notice Change the fee recipient (PRD §10.1). Fixes the C-1 "unreceivable
+    ///         recipient bricks lockStage" footgun the pentest surfaced.
+    function setFeeRecipient(address newRecipient) external onlyOwner {
+        if (newRecipient == address(0)) revert ZeroAddress();
+        emit FeeRecipientSet(feeRecipient, newRecipient);
+        feeRecipient = newRecipient;
+    }
+
+    /// @notice Escape hatch (PRD §16.3, predecessor H-05): only after the
+    ///         180-day lock, and only when paused — never a live rug lever.
+    /// @notice Escape hatch (PRD §16.3, predecessor H-05). The 180-day lock
+    ///         counts from the moment the product was PAUSED — so recovering
+    ///         funds requires halting everything for 180 visible days first
+    ///         (N-1): it can never be a fast, quiet rug of live user funds.
+    function emergencyWithdraw(address to) external onlyOwner whenPaused {
+        if (to == address(0)) revert ZeroAddress();
+        if (pausedAt == 0 || block.timestamp < pausedAt + EMERGENCY_LOCK) revert EmergencyLocked();
+        uint256 bal = address(this).balance;
+        (bool ok, ) = to.call{value: bal}("");
+        if (!ok) revert TransferFailed();
+        emit EmergencyWithdraw(to, bal);
+    }
+
+    /// @notice M-2 recovery: end a match's provisional window immediately so a
+    ///         re-arm-forever oracle can't block freezeStage. Owner-gated;
+    ///         does NOT change the recorded score.
+    function forceFinalize(uint16 matchId) external onlyOwner whenPaused {
+        uint256 res = results[matchId];
+        if (res == 0) revert UnknownMatch();
+        if (stageFrozen[matches[matchId].stage]) revert StageIsFrozen(); // N-2
+        // clear the timestamp bits → provisionalUntil == 0 → finalized. Gated
+        // behind pause so skipping the dispute buffer is loud + deliberate,
+        // not a frictionless button (N-2).
+        results[matchId] = res & ~RESULT_TS_MASK;
+        emit ResultForceFinalized(matchId);
+    }
+
     function setOracle(address newOracle) external onlyOwner {
         if (newOracle == address(0)) revert ZeroAddress();
         emit OracleRotated(oracle, newOracle);
@@ -472,8 +555,9 @@ contract ChampionzPredictor is
     /// @notice Freeze a LOCKED stage: the owner submits only the top-20
     ///         addresses; the contract RECOMPUTES those wallets' points,
     ///         exact counts and entry times on-chain (bounded: 20 wallets ×
-    ///         matchCount) and verifies strict §5.3 ordering — trustless
-    ///         without a merkle ceremony (PRD §10.2). Requires every match of
+    ///         matchCount) and verifies strict §5.3 ordering — owner-submitted but on-chain-ordering-verified and publicly
+    ///         auditable (all scores are public); a challenge window precedes
+    ///         claims (H-2b). NOT fully trustless re: membership maximality. Requires every match of
     ///         the stage to be COMPLETED and past its provisional window, so
     ///         the D3 "freeze once MD8 finalizes" timing is enforced by code.
     ///         Split: 25/15/10 · 30%÷7 (ranks 4-10) · 20%÷10 (ranks 11-20),
@@ -482,9 +566,38 @@ contract ChampionzPredictor is
         StageState storage s = _stage(stage);
         if (s.status != StageStatus.LOCKED) revert StageNotLocked();
         if (stageFrozen[stage]) revert AlreadyDecided();
+        _requireStageFinalized(stage);
+        stageFrozen[stage] = true;
+        _applyRanking(stage, s, ranked);
+    }
+
+    /// @notice H-2b cure path: if the challenge window surfaces a wrong ranking,
+    ///         the owner pauses (which halts claims), submits the corrected
+    ///         order, and the challenge window RESTARTS. Paused-only, and no
+    ///         claim can have fired yet (the window gates claims), so nothing is
+    ///         unwound — it makes the window actionable, not just detective.
+    function refreezeStage(uint8 stage, address[] calldata ranked) external onlyOwner whenPaused {
+        StageState storage s = _stage(stage);
+        if (!stageFrozen[stage]) revert StageNotFrozen();
+        // F-1: a cure is only valid BEFORE any claim can have fired. Claims open
+        // at stageFrozenAt + window; refusing refreeze past that point makes
+        // "no claim was paid on the wrong ranking" true by construction — no
+        // stolen-gap-claim, no re-split of an already-drained pool.
+        if (block.timestamp >= stageFrozenAt[stage] + CLAIM_CHALLENGE_WINDOW) revert ChallengeWindowClosed();
+        address[] storage prev = stageWinners[stage];
+        for (uint256 i = 0; i < prev.length; ++i) {
+            claimable[stage][prev[i]] = 0; // clear the challenged assignment
+        }
+        delete stageWinners[stage];
+        _applyRanking(stage, s, ranked);
+    }
+
+    /// @dev Verify §5.3 ordering + membership + no-dups, assign the split (dust
+    ///      to rank 1) and (re)start the challenge window. Shared by freeze and
+    ///      refreeze so the two paths can never diverge.
+    function _applyRanking(uint8 stage, StageState storage s, address[] calldata ranked) private {
         uint256 payCount = s.entryCount < 20 ? s.entryCount : 20; // LOCKED ⇒ ≥ floor(20)
         if (ranked.length != payCount) revert InvalidRanking();
-        _requireStageFinalized(stage);
 
         // recompute + verify strict comparator ordering
         uint256 prevPts = type(uint256).max;
@@ -510,7 +623,7 @@ contract ChampionzPredictor is
             prevAddr = w;
         }
 
-        stageFrozen[stage] = true;
+        stageFrozenAt[stage] = uint40(block.timestamp); // (re)start the H-2b window
         uint256 pool_ = s.pool;
         uint256 distributed;
         for (uint256 i = 0; i < payCount; ++i) {
@@ -525,6 +638,10 @@ contract ChampionzPredictor is
 
     function claim(uint8 stage) external whenNotPaused {
         if (!stageFrozen[stage]) revert StageNotFrozen();
+        // H-2b: a challenge window between freeze and first claim gives
+        // off-chain verifiers time to contest a non-maximal ranking (all
+        // scores are public) and the owner time to pause() if it's wrong.
+        if (block.timestamp < stageFrozenAt[stage] + CLAIM_CHALLENGE_WINDOW) revert ChallengeWindowOpen();
         uint256 amount = claimable[stage][msg.sender];
         if (amount == 0) revert NothingToClaim();
         claimable[stage][msg.sender] = 0;
@@ -548,13 +665,19 @@ contract ChampionzPredictor is
 
     function _requireStageFinalized(uint8 stage) private view {
         uint16 n = matchCount;
+        uint256 completed;
         for (uint16 id = 1; id <= n; ++id) {
             Game storage g = matches[id];
             if (g.stage != stage) continue;
             if (g.status == MatchStatus.VOIDED) continue; // never scores, never blocks
             if (g.status != MatchStatus.COMPLETED) revert StageNotFinal();
             if (block.timestamp < _provisionalUntil(results[id])) revert StageNotFinal();
+            ++completed;
         }
+        // H-2(a): with zero completed matches every wallet scores 0 and the
+        // comparator collapses to (entry time, address) — the owner could then
+        // sweep the pool to any 20 wallets. Refuse to freeze an unplayed stage.
+        if (completed == 0) revert NoCompletedMatches();
     }
 
     /// @dev points + exact count in ONE pass (freeze gas: ~2 SLOADs/match/wallet).
