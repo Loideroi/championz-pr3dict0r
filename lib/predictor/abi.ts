@@ -137,6 +137,30 @@ export const PREDICTOR_ABI = [
     outputs: [{ type: "uint40" }],
   },
   {
+    type: "function",
+    name: "claim",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "stage", type: "uint8" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "claimable",
+    stateMutability: "view",
+    inputs: [
+      { name: "", type: "uint8" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "stageFrozen",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint8" }],
+    outputs: [{ type: "bool" }],
+  },
+  {
     type: "event",
     name: "Entered",
     inputs: [
