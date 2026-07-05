@@ -92,6 +92,12 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     ///      enrolled before this upgrade read 0 (sorts as earliest; staging only).
     mapping(uint8 => mapping(address => uint40)) public enteredAt;
 
+    // ---- v4 storage (slice 11) — appended AFTER v3, never reorder above ----
+    /// @dev Frozen top-20 and claimable rewards per stage.
+    mapping(uint8 => bool) public stageFrozen;
+    mapping(uint8 => address[]) private stageWinners;
+    mapping(uint8 => mapping(address => uint256)) public claimable;
+
     uint40 public constant DEFAULT_PROVISIONAL_WINDOW = 24 hours;
 
     event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass);
@@ -101,6 +107,8 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     event StageWindowSet(uint8 indexed stage, uint40 openAt, uint40 closeAt);
     event MatchAdded(uint16 indexed matchId, uint8 stage, uint40 kickoff, bytes3 teamA, bytes3 teamB);
     event TieSet(uint16 indexed matchId, uint16 tieId, bool decider);
+    event StageFrozen(uint8 indexed stage, address indexed first, uint256 payCount, uint256 pool);
+    event Claimed(address indexed wallet, uint8 indexed stage, uint256 amount);
     event PredictionSubmitted(address indexed wallet, uint16 indexed matchId, uint256 packed);
     event ResultPushed(uint16 indexed matchId, uint8 scoreA, uint8 scoreB);
     event ResultCorrected(uint16 indexed matchId, uint256 oldPacked, uint256 newPacked);
@@ -123,6 +131,11 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     error UnknownMatch();
     error NotOracle();
     error ResultFinalized();
+    error StageNotLocked();
+    error StageNotFrozen();
+    error StageNotFinal();
+    error InvalidRanking();
+    error NothingToClaim();
     error InvalidPrediction();
     error InvalidWindow();
     error ZeroAddress();
@@ -385,51 +398,134 @@ contract ChampionzPredictor is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         oracle = newOracle;
     }
 
-    // ------------------------------------------------------ lazy scoring ----
+    // ------------------------------------------------- freeze & claims ----
 
-    /// @notice Pure function of (predictions, results); bounded by matchCount.
-    ///         Scoreline 5/3/1 on the 90′ score for every match; the three +1
-    ///         bonuses (ET / pens / advancer) apply on DECIDERS only (§5.2).
-    function pointsOf(address wallet, uint8 stage) public view returns (uint256 total) {
+    /// @notice Freeze a LOCKED stage: the owner submits only the top-20
+    ///         addresses; the contract RECOMPUTES those wallets' points,
+    ///         exact counts and entry times on-chain (bounded: 20 wallets ×
+    ///         matchCount) and verifies strict §5.3 ordering — trustless
+    ///         without a merkle ceremony (PRD §10.2). Requires every match of
+    ///         the stage to be COMPLETED and past its provisional window, so
+    ///         the D3 "freeze once MD8 finalizes" timing is enforced by code.
+    ///         Split: 25/15/10 · 30%÷7 (ranks 4-10) · 20%÷10 (ranks 11-20),
+    ///         rounding dust to rank 1.
+    function freezeStage(uint8 stage, address[] calldata ranked) external onlyOwner {
+        StageState storage s = _stage(stage);
+        if (s.status != StageStatus.LOCKED) revert StageNotLocked();
+        if (stageFrozen[stage]) revert AlreadyDecided();
+        uint256 payCount = s.entryCount < 20 ? s.entryCount : 20; // LOCKED ⇒ ≥ floor(20)
+        if (ranked.length != payCount) revert InvalidRanking();
+        _requireStageFinalized(stage);
+
+        // recompute + verify strict comparator ordering
+        uint256 prevPts = type(uint256).max;
+        uint256 prevExact = type(uint256).max;
+        uint256 prevAt = 0;
+        address prevAddr = address(0);
+        for (uint256 i = 0; i < payCount; ++i) {
+            address w = ranked[i];
+            if (!entered[stage][w]) revert InvalidRanking();
+            for (uint256 j = 0; j < i; ++j) {
+                if (ranked[j] == w) revert InvalidRanking(); // duplicates
+            }
+            (uint256 pts, uint256 exact) = _score(stage, w);
+            uint256 at = enteredAt[stage][w];
+            bool ok = pts < prevPts ||
+                (pts == prevPts && exact < prevExact) ||
+                (pts == prevPts && exact == prevExact && at > prevAt) ||
+                (pts == prevPts && exact == prevExact && at == prevAt && (i == 0 || w > prevAddr));
+            if (!ok) revert InvalidRanking();
+            prevPts = pts;
+            prevExact = exact;
+            prevAt = at;
+            prevAddr = w;
+        }
+
+        stageFrozen[stage] = true;
+        uint256 pool_ = s.pool;
+        uint256 distributed;
+        for (uint256 i = 0; i < payCount; ++i) {
+            uint256 share = _shareFor(i, pool_);
+            claimable[stage][ranked[i]] = share;
+            distributed += share;
+            stageWinners[stage].push(ranked[i]);
+        }
+        claimable[stage][ranked[0]] += pool_ - distributed; // dust to rank 1
+        emit StageFrozen(stage, ranked[0], payCount, pool_);
+    }
+
+    function claim(uint8 stage) external {
+        if (!stageFrozen[stage]) revert StageNotFrozen();
+        uint256 amount = claimable[stage][msg.sender];
+        if (amount == 0) revert NothingToClaim();
+        claimable[stage][msg.sender] = 0;
+        stages[stage].pool -= amount;
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+        emit Claimed(msg.sender, stage, amount);
+    }
+
+    function winnersOf(uint8 stage) external view returns (address[] memory) {
+        return stageWinners[stage];
+    }
+
+    function _shareFor(uint256 rankIndex, uint256 pool_) private pure returns (uint256) {
+        if (rankIndex == 0) return (pool_ * 25) / 100;
+        if (rankIndex == 1) return (pool_ * 15) / 100;
+        if (rankIndex == 2) return (pool_ * 10) / 100;
+        if (rankIndex < 10) return (pool_ * 30) / 100 / 7; // ranks 4-10
+        return (pool_ * 20) / 100 / 10; // ranks 11-20
+    }
+
+    function _requireStageFinalized(uint8 stage) private view {
         uint16 n = matchCount;
         for (uint16 id = 1; id <= n; ++id) {
-            total += _pointsForMatch(wallet, id, stage);
+            Game storage g = matches[id];
+            if (g.stage != stage) continue;
+            if (g.status != MatchStatus.COMPLETED) revert StageNotFinal();
+            if (block.timestamp < _provisionalUntil(results[id])) revert StageNotFinal();
         }
     }
 
-    /// @notice Tie-break #2 (§5.3): count of exact scorelines in a stage.
-    function exactCountOf(address wallet, uint8 stage) external view returns (uint256 count) {
+    /// @dev points + exact count in ONE pass (freeze gas: ~2 SLOADs/match/wallet).
+    function _score(uint8 stage, address wallet) private view returns (uint256 pts, uint256 exact) {
         uint16 n = matchCount;
         for (uint16 id = 1; id <= n; ++id) {
             Game storage g = matches[id];
             if (g.stage != stage || g.status != MatchStatus.COMPLETED) continue;
             uint256 packed = predictions[wallet][id];
             if (packed & FLAG_SUBMITTED == 0) continue;
+            uint256 res = results[id];
             (uint8 pa, uint8 pb) = _scores(packed);
-            (uint8 ra, uint8 rb) = _scores(results[id]);
-            if (pa == ra && pb == rb) ++count;
+            (uint8 ra, uint8 rb) = _scores(res);
+            if (pa == ra && pb == rb) {
+                pts += POINTS_EXACT;
+                ++exact;
+            } else if (int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))) {
+                pts += POINTS_GOAL_DIFF;
+            } else if (_sign(pa, pb) == _sign(ra, rb)) {
+                pts += POINTS_OUTCOME;
+            }
+            if (tieInfo[id] & 1 == 1) {
+                if ((packed >> 16) & 1 == (res >> 16) & 1) pts += POINTS_BONUS;
+                if ((packed >> 17) & 1 == (res >> 17) & 1) pts += POINTS_BONUS;
+                if ((packed >> 18) & 3 == (res >> 18) & 3) pts += POINTS_BONUS;
+            }
         }
     }
 
-    function _pointsForMatch(address wallet, uint16 id, uint8 stage) private view returns (uint256 pts) {
-        Game storage g = matches[id];
-        if (g.stage != stage || g.status != MatchStatus.COMPLETED) return 0;
-        uint256 packed = predictions[wallet][id];
-        if (packed & FLAG_SUBMITTED == 0) return 0;
-        uint256 res = results[id];
-        (uint8 pa, uint8 pb) = _scores(packed);
-        (uint8 ra, uint8 rb) = _scores(res);
-        if (pa == ra && pb == rb) pts = POINTS_EXACT;
-        else if (int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))) {
-            pts = POINTS_GOAL_DIFF;
-        } else if (_sign(pa, pb) == _sign(ra, rb)) pts = POINTS_OUTCOME;
+    // ------------------------------------------------------ lazy scoring ----
 
-        if (tieInfo[id] & 1 == 1) {
-            // decider bonuses: +1 per correctly-called flag (§5)
-            if ((packed >> 16) & 1 == (res >> 16) & 1) pts += POINTS_BONUS;
-            if ((packed >> 17) & 1 == (res >> 17) & 1) pts += POINTS_BONUS;
-            if ((packed >> 18) & 3 == (res >> 18) & 3) pts += POINTS_BONUS;
-        }
+    /// @notice Pure function of (predictions, results); bounded by matchCount.
+    ///         Scoreline 5/3/1 on the 90′ score for every match; the three +1
+    ///         bonuses (ET / pens / advancer) apply on DECIDERS only (§5.2).
+    function pointsOf(address wallet, uint8 stage) public view returns (uint256 total) {
+        (total, ) = _score(stage, wallet);
+    }
+
+    /// @notice Tie-break #2 (§5.3): count of exact scorelines in a stage.
+    function exactCountOf(address wallet, uint8 stage) external view returns (uint256 count) {
+        (, count) = _score(stage, wallet);
     }
 
     function resultOf(uint16 matchId)
