@@ -16,6 +16,8 @@ export interface LogRow {
 
 export interface OracleLogger {
   insert(rows: LogRow[]): Promise<boolean>;
+  /** match_ids that already got a T-75 reminder recently (dedupe for the 5-min cron). */
+  recentReminderIds(sinceIso: string): Promise<Set<number>>;
 }
 
 export function supabaseLogger(opts: {
@@ -46,6 +48,26 @@ export function supabaseLogger(opts: {
       } catch (err) {
         console.error(`oracle log insert failed: ${err}`);
         return false;
+      }
+    },
+
+    async recentReminderIds(sinceIso: string): Promise<Set<number>> {
+      if (!opts.url || !opts.serviceKey) return new Set();
+      try {
+        const params = new URLSearchParams({
+          select: 'match_id',
+          kind: 'eq.alert',
+          'detail->>type': 'eq.t75_reminder',
+          created_at: `gte.${sinceIso}`,
+        });
+        const res = await doFetch(`${opts.url}/rest/v1/clp_oracle_log?${params}`, {
+          headers: { apikey: opts.serviceKey, authorization: `Bearer ${opts.serviceKey}` },
+        });
+        if (!res.ok) return new Set();
+        const rows = (await res.json()) as Array<{ match_id: number | null }>;
+        return new Set(rows.map((r) => r.match_id).filter((x): x is number => x !== null));
+      } catch {
+        return new Set(); // dedupe is best-effort; worst case = a duplicate reminder
       }
     },
   };
