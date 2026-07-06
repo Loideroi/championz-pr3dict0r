@@ -4,7 +4,10 @@
       "title": "₵h@mpi0nz Pr3dict0r — Pronostics Champions League sur Chiliz",
       "description": "Stakez du CHZ, pronostiquez les scores des 90 minutes de l’UEFA Champions League 2026/27 et grimpez aux classements de la journée 1 jusqu’à Madrid."
     },
-    "footer": "Design inspiré par BigMac Bobby · Construit sur Chiliz Chain · Ni affilié ni approuvé par l’UEFA"
+    "footer": "Construit sur Chiliz Chain · Non affilié à l'UEFA ni approuvé par elle",
+    "terms": "Conditions générales",
+    "contract": "Contrat",
+    "oracle": "Oracle"
   },
   "nav": {
     "enter": "Participer",
@@ -32,7 +35,7 @@
   "stats": {
     "predictors": "Pronostiqueurs",
     "prizePools": "Cagnottes",
-    "matchesOnChain": "Matchs on-chain"
+    "matchesOnChain": "Matchs de Champions League"
   },
   "enter": {
     "metadata": {
@@ -56,7 +59,8 @@
       "holdsPass": "✓ Vous détenez le pass saison",
       "entering": "Entrée en cours…",
       "enterCta": "Entrer dans la saison",
-      "salesClosed": "Ventes closes"
+      "salesClosed": "Ventes closes",
+      "entrantsNoFloor": "Participants : {count}"
     },
     "knockout": {
       "title": "Pass élimination directe",
@@ -72,7 +76,8 @@
       "salesClosed": "Ventes closes",
       "entering": "Entrée en cours…",
       "ackFirst": "Reconnaissez d’abord les matchs verrouillés",
-      "joinCta": "Rejoindre l’élimination directe"
+      "joinCta": "Rejoindre l’élimination directe",
+      "entrantsNoFloor": "Participants : {count}"
     }
   },
   "play": {
@@ -85,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS n’est pas défini — déployez le contrat et ajoutez l’adresse du proxy à .env.local.",
     "connectWallet": "Connecter le wallet",
     "loading": "Chargement du programme…",
-    "emptySlate": "Aucun match au programme pour l’instant — l’oracle n’a pas publié le calendrier.",
+    "emptySlate": "Le tirage a lieu le 27 août — les matchs de la phase de ligue arrivent juste après.",
     "stageLeague": "Phase de ligue",
     "stageKnockout": "Élimination directe",
     "stageFallback": "Phase {stage}",
@@ -201,7 +206,9 @@
       "saving": "Enregistrement du profil…",
       "saveFailed": "Échec de l’enregistrement ({status}).",
       "saved": "Profil enregistré — votre drapeau flotte sur le classement.",
-      "sigFailed": "Signature annulée ou échouée."
+      "sigFailed": "Signature annulée ou échouée.",
+      "sigDropped": "Votre wallet a peut-être signé, mais la réponse ne nous est jamais parvenue — si vous avez approuvé dans le Socios.com Wallet, appuyez simplement à nouveau sur le bouton.",
+      "saveNetwork": "Souci réseau pendant l'enregistrement — votre signature est valide, appuyez à nouveau."
     },
     "country": {
       "label": "Pays",
@@ -232,5 +239,39 @@
     "tagline": "Plus drôles que celles du prédécesseur · toujours contraignantes",
     "lastUpdated": "Dernière mise à jour {date}",
     "languageLabel": "Langue"
+  },
+  "pwa": {
+    "bannerTitle": "Installer Pr3dict0r",
+    "bannerSubtitle": "Ajoutez-le à votre écran d'accueil",
+    "install": "Installer",
+    "howToInstall": "Comment installer",
+    "dismiss": "Fermer"
+  },
+  "iosInstall": {
+    "tagline": "App sur écran d'accueil",
+    "heading": "Installer sur iPhone",
+    "alreadyInstalled": "Vous utilisez déjà l'app installée — rien à faire !",
+    "openInSafariFirst": "Ouvrez d'abord dans Safari",
+    "webviewMessage": "Vous consultez cette page dans le navigateur d'une app. Pour installer Pr3dict0r, ouvrez ce lien dans Safari :",
+    "copyButton": "Copier",
+    "copied": "Copié",
+    "copyUrlInstruction": "Copiez ou tapez cette URL dans Safari, puis suivez les étapes d'installation.",
+    "notIOS": "Ces étapes concernent iPhone et iPad. Sur Android, utilisez le bouton Installer de la bannière ; sur ordinateur, cherchez l'icône d'installation dans la barre d'adresse.",
+    "step1Title26": "Touchez le bouton menu",
+    "step1Desc26": "Repérez les trois points (…) en bas à droite de Safari et touchez-les pour ouvrir le menu du navigateur.",
+    "step2Title26": "Touchez le bouton Partager",
+    "step2Desc26": "Dans le menu qui apparaît, touchez l'icône Partager (un carré avec une flèche vers le haut).",
+    "step3Title26": "Sur l'écran d'accueil",
+    "step3Desc26": "Dans le menu de partage, touchez « Sur l'écran d'accueil ». L'option « Ouvrir comme app web » est activée par défaut.",
+    "step4Title26": "Confirmez",
+    "step4Desc26": "Touchez « Ajouter » en haut à droite. Pr3dict0r apparaît sur votre écran d'accueil comme une app autonome.",
+    "step1TitleLegacy": "Ouvrez dans Safari",
+    "step1DescLegacy": "Vérifiez que cette page est ouverte dans Safari — l'installation ne fonctionne que là sur iOS.",
+    "step2TitleLegacy": "Touchez le bouton Partager",
+    "step2DescLegacy": "Touchez l'icône carrée avec la flèche vers le haut en bas de Safari.",
+    "step3TitleLegacy": "Trouvez « Sur l'écran d'accueil »",
+    "step3DescLegacy": "Faites défiler le menu de partage jusqu'à « Sur l'écran d'accueil » avec une icône plus, puis touchez-le.",
+    "step4TitleLegacy": "Ajoutez l'app",
+    "step4DescLegacy": "Renommez-la si vous voulez, puis touchez « Ajouter » en haut à droite pour terminer."
   }
 }

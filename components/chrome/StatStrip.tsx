@@ -6,6 +6,14 @@ import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 
+/**
+ * UCL 2026/27 total: 144 league-phase matches (36 teams × 8) + 45 knockout
+ * (play-offs 16, R16 16, QF 8, SF 4, final 1). Shown until the on-chain slate
+ * catches up after the 27 Aug draw — the season size is the promise, the
+ * chain is the progress.
+ */
+const TOTAL_SEASON_MATCHES = 189;
+
 function Stat({
   value,
   label,
@@ -51,7 +59,11 @@ export function StatStrip() {
     <div className="grid w-full max-w-2xl gap-3 sm:grid-cols-3">
       <Stat value={predictors} label={t("predictors")} accent="glow" />
       <Stat value={`${pool} CHZ`} label={t("prizePools")} accent="chz" />
-      <Stat value={matchCount.data?.toString() ?? "…"} label={t("matchesOnChain")} accent="star" />
+      <Stat
+        value={Math.max(Number(matchCount.data ?? 0), TOTAL_SEASON_MATCHES).toLocaleString("en-US")}
+        label={t("matchesOnChain")}
+        accent="star"
+      />
     </div>
   );
 }

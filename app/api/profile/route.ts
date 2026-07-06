@@ -61,12 +61,27 @@ async function readEntryTier(address: Hex): Promise<EntryTier> {
   return knockout ? "knockout" : null;
 }
 
-function verifySignature(params: {
+async function verifySignature(params: {
   address: Hex;
   message: string;
   signature: Hex;
 }) {
   const client = rpcClient();
+
+  // Primary: viem's universal check — one call that covers EOA, deployed
+  // ERC-1271 wallets AND ERC-6492-wrapped signatures (the Socios.com Wallet
+  // SDK can return wrapped signatures a raw isValidSignature call rejects).
+  try {
+    const valid = await client.verifyMessage({
+      address: params.address,
+      message: params.message,
+      signature: params.signature,
+    });
+    if (valid) return { valid: true, path: "erc1271" as const };
+  } catch {
+    /* fall through to the manual dual-path below */
+  }
+
   return verifyWalletSignature(params, {
     getCode: async (address) => client.getCode({ address }),
     callIsValidSignature: async (address, hash, signature) =>

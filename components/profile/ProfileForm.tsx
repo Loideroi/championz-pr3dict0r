@@ -110,15 +110,39 @@ export function ProfileForm() {
     }
     setBusy(true);
     setNotice(null);
+
+    // Phase 1 — signing. With the Socios.com Wallet (SCW over WalletConnect)
+    // the user can approve in the wallet app yet the relayed response never
+    // reaches this promise (mobile app-switch drops the socket). Distinguish
+    // that from a real rejection and tell the user a plain retry will work —
+    // no funds or state are at risk, the signature is free to redo.
+    // Human-readable message; timestamp built here (event handler — SSR-safe).
+    const message = buildProfileMessage(
+      username,
+      country,
+      new Date().toISOString(),
+    );
+    let signature: `0x${string}`;
     try {
-      // Human-readable message; timestamp built here (event handler — SSR-safe).
-      const message = buildProfileMessage(
-        username,
-        country,
-        new Date().toISOString(),
-      );
       setNotice({ kind: "ok", text: t("checkWallet") });
-      const signature = await signMessageAsync({ message });
+      signature = await signMessageAsync({ message });
+    } catch (err) {
+      const raw =
+        (err as { shortMessage?: string; message?: string })?.shortMessage ??
+        (err as { message?: string })?.message ??
+        "";
+      const rejected = /reject|denied|cancel/i.test(raw);
+      setNotice({
+        kind: "err",
+        text: rejected ? t("sigFailed") : t("sigDropped"),
+      });
+      setBusy(false);
+      return;
+    }
+
+    // Phase 2 — saving. Server errors come back as JSON and are shown as-is;
+    // only a network-level failure lands in the catch.
+    try {
       setNotice({ kind: "ok", text: t("saving") });
       const res = await fetch("/api/profile", {
         method: "POST",
@@ -149,7 +173,7 @@ export function ProfileForm() {
         text: t("saved"),
       });
     } catch {
-      setNotice({ kind: "err", text: t("sigFailed") });
+      setNotice({ kind: "err", text: t("saveNetwork") });
     } finally {
       setBusy(false);
     }

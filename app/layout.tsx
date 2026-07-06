@@ -4,8 +4,10 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Providers } from "./providers";
 import { HealthBanner } from "@/components/chrome/HealthBanner";
+import { SiteFooter } from "@/components/chrome/SiteFooter";
 import { SiteNav } from "@/components/chrome/SiteNav";
 import { Starfield } from "@/components/chrome/Starfield";
+import { InstallBanner } from "@/components/pwa/InstallBanner";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -30,6 +32,17 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("description"),
+    manifest: "/manifest.webmanifest",
+    icons: {
+      icon: "/icon.svg",
+      shortcut: "/icon.svg",
+      apple: "/apple-touch-icon.png",
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "Pr3dict0r",
+    },
   };
 }
 
@@ -41,7 +54,6 @@ export default async function RootLayout({
   // Active locale comes from the NEXT_LOCALE cookie (i18n/request.ts) — same
   // value server and client, so <html lang> and the messages never mismatch.
   const locale = await getLocale();
-  const t = await getTranslations("layout");
 
   return (
     <html
@@ -55,10 +67,9 @@ export default async function RootLayout({
             <SiteNav />
             <HealthBanner />
             <div className="flex-1 flex flex-col">{children}</div>
+            <InstallBanner />
+            <SiteFooter />
           </Providers>
-          <footer className="border-t border-line-soft py-6 text-center font-mono text-xs text-muted-2">
-            {t("footer")}
-          </footer>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -4,7 +4,10 @@
       "title": "₵h@mpi0nz Pr3dict0r — Champions League predictions on Chiliz",
       "description": "Stake CHZ, predict the 90-minute scorelines of the UEFA Champions League 2026/27, climb the leaderboards from matchday one to Madrid."
     },
-    "footer": "Design inspired by BigMac Bobby · Built on Chiliz Chain · Not affiliated with or endorsed by UEFA"
+    "footer": "Built on Chiliz Chain · Not affiliated with or endorsed by UEFA",
+    "terms": "Terms & Conditions",
+    "contract": "Contract",
+    "oracle": "Oracle"
   },
   "nav": {
     "enter": "Enter",
@@ -32,7 +35,7 @@
   "stats": {
     "predictors": "Predictors",
     "prizePools": "Prize pools",
-    "matchesOnChain": "Matches on-chain"
+    "matchesOnChain": "Champions League matches"
   },
   "enter": {
     "metadata": {
@@ -56,7 +59,8 @@
       "holdsPass": "✓ You hold the season pass",
       "entering": "Entering…",
       "enterCta": "Enter the season",
-      "salesClosed": "Sales closed"
+      "salesClosed": "Sales closed",
+      "entrantsNoFloor": "Entrants: {count}"
     },
     "knockout": {
       "title": "Knockout pass",
@@ -72,7 +76,8 @@
       "salesClosed": "Sales closed",
       "entering": "Entering…",
       "ackFirst": "Acknowledge locked matches first",
-      "joinCta": "Join the knockout"
+      "joinCta": "Join the knockout",
+      "entrantsNoFloor": "Entrants: {count}"
     }
   },
   "play": {
@@ -85,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS is not set — deploy the contract and add the proxy address to .env.local.",
     "connectWallet": "Connect Wallet",
     "loading": "Loading the slate…",
-    "emptySlate": "No matches on the slate yet — the oracle hasn’t published fixtures.",
+    "emptySlate": "The draw is on 27 August — league-phase fixtures land on the slate right after.",
     "stageLeague": "League phase",
     "stageKnockout": "Knockout",
     "stageFallback": "Stage {stage}",
@@ -201,7 +206,9 @@
       "saving": "Saving your profile…",
       "saveFailed": "Save failed ({status}).",
       "saved": "Profile saved — your flag flies on the leaderboard.",
-      "sigFailed": "Signature was cancelled or failed."
+      "sigFailed": "Signature was cancelled or failed.",
+      "sigDropped": "Your wallet may have signed, but the answer never reached us — if you approved it in the Socios.com Wallet, just tap the button again.",
+      "saveNetwork": "Network hiccup while saving — your signature is fine, tap the button again."
     },
     "country": {
       "label": "Country",
@@ -232,5 +239,39 @@
     "tagline": "Funnier than the predecessor · still binding",
     "lastUpdated": "Last updated {date}",
     "languageLabel": "Language"
+  },
+  "pwa": {
+    "bannerTitle": "Install Pr3dict0r",
+    "bannerSubtitle": "Add it to your home screen",
+    "install": "Install",
+    "howToInstall": "How to install",
+    "dismiss": "Dismiss"
+  },
+  "iosInstall": {
+    "tagline": "Home-screen app",
+    "heading": "Install on iPhone",
+    "alreadyInstalled": "You're already running the installed app — nothing to do!",
+    "openInSafariFirst": "Open in Safari first",
+    "webviewMessage": "You're viewing this page inside an app's browser. To install Pr3dict0r, open this link in Safari:",
+    "copyButton": "Copy",
+    "copied": "Copied",
+    "copyUrlInstruction": "Copy or type this URL in Safari, then follow the installation steps.",
+    "notIOS": "These steps are for iPhone & iPad. On Android, use the Install button in the banner; on desktop, look for the install icon in the address bar.",
+    "step1Title26": "Tap the menu button",
+    "step1Desc26": "Look for the three dots (…) at the bottom right corner of Safari and tap them to open the browser menu.",
+    "step2Title26": "Tap the Share button",
+    "step2Desc26": "In the menu that appears, find and tap the Share icon (a square with an arrow pointing up).",
+    "step3Title26": "Add to Home Screen",
+    "step3Desc26": "In the share menu, tap “Add to Home Screen”. The “Open as Web App” toggle is on by default.",
+    "step4Title26": "Confirm",
+    "step4Desc26": "Tap “Add” in the top right corner. Pr3dict0r now lives on your home screen as a standalone app.",
+    "step1TitleLegacy": "Open in Safari",
+    "step1DescLegacy": "Make sure you're viewing this page in Safari — installing only works there on iOS.",
+    "step2TitleLegacy": "Tap the Share button",
+    "step2DescLegacy": "Tap the square icon with the arrow pointing up at the bottom of Safari.",
+    "step3TitleLegacy": "Find “Add to Home Screen”",
+    "step3DescLegacy": "Scroll down the share menu until you see “Add to Home Screen” with a plus icon, and tap it.",
+    "step4TitleLegacy": "Add the app",
+    "step4DescLegacy": "Rename it if you like, then tap “Add” in the top right corner to finish."
   }
 }
