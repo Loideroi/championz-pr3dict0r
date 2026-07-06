@@ -4,7 +4,10 @@
       "title": "₵h@mpi0nz Pr3dict0r — Palpites da Champions League na Chiliz",
       "description": "Faça staking de CHZ, preveja os placares dos 90 minutos da UEFA Champions League 2026/27 e suba nos rankings da rodada um até Madri."
     },
-    "footer": "Design inspirado em BigMac Bobby · Construído na Chiliz Chain · Sem afiliação ou endosso da UEFA"
+    "footer": "Construído na Chiliz Chain · Não afiliado nem endossado pela UEFA",
+    "terms": "Termos e condições",
+    "contract": "Contrato",
+    "oracle": "Oráculo"
   },
   "nav": {
     "enter": "Entrar",
@@ -32,7 +35,7 @@
   "stats": {
     "predictors": "Palpiteiros",
     "prizePools": "Premiações",
-    "matchesOnChain": "Partidas on-chain"
+    "matchesOnChain": "Jogos da Champions League"
   },
   "enter": {
     "metadata": {
@@ -56,7 +59,8 @@
       "holdsPass": "✓ Você tem o passe da temporada",
       "entering": "Entrando…",
       "enterCta": "Entrar na temporada",
-      "salesClosed": "Vendas encerradas"
+      "salesClosed": "Vendas encerradas",
+      "entrantsNoFloor": "Participantes: {count}"
     },
     "knockout": {
       "title": "Passe do mata-mata",
@@ -72,7 +76,8 @@
       "salesClosed": "Vendas encerradas",
       "entering": "Entrando…",
       "ackFirst": "Reconheça primeiro os jogos travados",
-      "joinCta": "Entrar no mata-mata"
+      "joinCta": "Entrar no mata-mata",
+      "entrantsNoFloor": "Participantes: {count}"
     }
   },
   "play": {
@@ -85,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS não está definido — faça o deploy do contrato e adicione o endereço do proxy ao .env.local.",
     "connectWallet": "Conectar carteira",
     "loading": "Carregando a rodada…",
-    "emptySlate": "Ainda não há jogos na lousa — o oráculo não publicou a tabela.",
+    "emptySlate": "O sorteio é em 27 de agosto — os jogos da fase de liga chegam logo depois.",
     "stageLeague": "Fase de liga",
     "stageKnockout": "Mata-mata",
     "stageFallback": "Fase {stage}",
@@ -201,7 +206,9 @@
       "saving": "Salvando seu perfil…",
       "saveFailed": "Falha ao salvar ({status}).",
       "saved": "Perfil salvo — sua bandeira já tremula na classificação.",
-      "sigFailed": "Assinatura cancelada ou falhou."
+      "sigFailed": "Assinatura cancelada ou falhou.",
+      "sigDropped": "Sua carteira pode ter assinado, mas a resposta nunca chegou até nós — se você aprovou no Socios.com Wallet, é só tocar no botão de novo.",
+      "saveNetwork": "Falha de rede ao salvar — sua assinatura está ok, toque no botão de novo."
     },
     "country": {
       "label": "País",
@@ -232,5 +239,39 @@
     "tagline": "Mais engraçados que os do antecessor · igualmente vinculantes",
     "lastUpdated": "Última atualização {date}",
     "languageLabel": "Idioma"
+  },
+  "pwa": {
+    "bannerTitle": "Instale o Pr3dict0r",
+    "bannerSubtitle": "Adicione à sua tela inicial",
+    "install": "Instalar",
+    "howToInstall": "Como instalar",
+    "dismiss": "Fechar"
+  },
+  "iosInstall": {
+    "tagline": "App na tela inicial",
+    "heading": "Instalar no iPhone",
+    "alreadyInstalled": "Você já está usando o app instalado — nada a fazer!",
+    "openInSafariFirst": "Abra primeiro no Safari",
+    "webviewMessage": "Você está vendo esta página no navegador de um app. Para instalar o Pr3dict0r, abra este link no Safari:",
+    "copyButton": "Copiar",
+    "copied": "Copiado",
+    "copyUrlInstruction": "Copie ou digite esta URL no Safari e siga os passos de instalação.",
+    "notIOS": "Estes passos são para iPhone e iPad. No Android, use o botão Instalar no banner; no desktop, procure o ícone de instalação na barra de endereço.",
+    "step1Title26": "Toque no botão de menu",
+    "step1Desc26": "Procure os três pontos (…) no canto inferior direito do Safari e toque neles para abrir o menu do navegador.",
+    "step2Title26": "Toque no botão Compartilhar",
+    "step2Desc26": "No menu que aparece, toque no ícone Compartilhar (um quadrado com uma seta para cima).",
+    "step3Title26": "Adicionar à Tela de Início",
+    "step3Desc26": "No menu de compartilhamento, toque em “Adicionar à Tela de Início”. A opção “Abrir como web app” já vem ativada.",
+    "step4Title26": "Confirme",
+    "step4Desc26": "Toque em “Adicionar” no canto superior direito. O Pr3dict0r agora mora na sua tela inicial como um app independente.",
+    "step1TitleLegacy": "Abra no Safari",
+    "step1DescLegacy": "Confira se esta página está aberta no Safari — no iOS a instalação só funciona lá.",
+    "step2TitleLegacy": "Toque no botão Compartilhar",
+    "step2DescLegacy": "Toque no ícone quadrado com a seta para cima na parte de baixo do Safari.",
+    "step3TitleLegacy": "Encontre “Adicionar à Tela de Início”",
+    "step3DescLegacy": "Role o menu de compartilhamento até “Adicionar à Tela de Início” com o ícone de mais, e toque.",
+    "step4TitleLegacy": "Adicione o app",
+    "step4DescLegacy": "Renomeie se quiser e toque em “Adicionar” no canto superior direito para concluir."
   }
 }

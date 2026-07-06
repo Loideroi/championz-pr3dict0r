@@ -4,7 +4,10 @@
       "title": "₵h@mpi0nz Pr3dict0r — Chiliz üzerinde Şampiyonlar Ligi tahminleri",
       "description": "CHZ stake et, UEFA Şampiyonlar Ligi 2026/27’nin 90 dakikalık skorlarını tahmin et, ilk maç haftasından Madrid’e kadar liderlik tablolarında yüksel."
     },
-    "footer": "Tasarım ilhamı: BigMac Bobby · Chiliz Chain üzerine inşa edildi · UEFA ile bağlantılı veya UEFA onaylı değildir"
+    "footer": "Chiliz Chain üzerine inşa edildi · UEFA ile bağlantılı değildir ve UEFA tarafından onaylanmamıştır",
+    "terms": "Şartlar ve Koşullar",
+    "contract": "Kontrat",
+    "oracle": "Oracle"
   },
   "nav": {
     "enter": "Katıl",
@@ -32,7 +35,7 @@
   "stats": {
     "predictors": "Tahminciler",
     "prizePools": "Ödül havuzları",
-    "matchesOnChain": "Zincirdeki maçlar"
+    "matchesOnChain": "Şampiyonlar Ligi maçı"
   },
   "enter": {
     "metadata": {
@@ -56,7 +59,8 @@
       "holdsPass": "✓ Sezon bileti sende",
       "entering": "Giriliyor…",
       "enterCta": "Sezona katıl",
-      "salesClosed": "Satışlar kapandı"
+      "salesClosed": "Satışlar kapandı",
+      "entrantsNoFloor": "Katılımcı: {count}"
     },
     "knockout": {
       "title": "Eleme turu bileti",
@@ -72,7 +76,8 @@
       "salesClosed": "Satışlar kapandı",
       "entering": "Giriliyor…",
       "ackFirst": "Önce kilitli maçları onayla",
-      "joinCta": "Eleme turuna katıl"
+      "joinCta": "Eleme turuna katıl",
+      "entrantsNoFloor": "Katılımcı: {count}"
     }
   },
   "play": {
@@ -85,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS ayarlanmamış — kontratı dağıt ve proxy adresini .env.local dosyasına ekle.",
     "connectWallet": "Cüzdan bağla",
     "loading": "Liste yükleniyor…",
-    "emptySlate": "Listede henüz maç yok — oracle fikstürü yayımlamadı.",
+    "emptySlate": "Kura 27 Ağustos'ta — lig aşaması maçları hemen ardından listeye düşecek.",
     "stageLeague": "Lig aşaması",
     "stageKnockout": "Eleme turu",
     "stageFallback": "Aşama {stage}",
@@ -201,7 +206,9 @@
       "saving": "Profilin kaydediliyor…",
       "saveFailed": "Kaydetme başarısız ({status}).",
       "saved": "Profil kaydedildi — bayrağın liderlik tablosunda dalgalanıyor.",
-      "sigFailed": "İmza iptal edildi veya başarısız oldu."
+      "sigFailed": "İmza iptal edildi veya başarısız oldu.",
+      "sigDropped": "Cüzdanınız imzalamış olabilir ama yanıt bize hiç ulaşmadı — Socios.com Wallet'ta onayladıysanız düğmeye tekrar dokunmanız yeterli.",
+      "saveNetwork": "Kaydederken ağ sorunu oluştu — imzanız geçerli, düğmeye tekrar dokunun."
     },
     "country": {
       "label": "Ülke",
@@ -232,5 +239,39 @@
     "tagline": "Öncekinden daha komik · yine de bağlayıcı",
     "lastUpdated": "Son güncelleme {date}",
     "languageLabel": "Dil"
+  },
+  "pwa": {
+    "bannerTitle": "Pr3dict0r'ı yükleyin",
+    "bannerSubtitle": "Ana ekranınıza ekleyin",
+    "install": "Yükle",
+    "howToInstall": "Nasıl yüklenir",
+    "dismiss": "Kapat"
+  },
+  "iosInstall": {
+    "tagline": "Ana ekran uygulaması",
+    "heading": "iPhone'a yükleyin",
+    "alreadyInstalled": "Zaten yüklü uygulamayı kullanıyorsunuz — yapacak bir şey yok!",
+    "openInSafariFirst": "Önce Safari'de açın",
+    "webviewMessage": "Bu sayfayı bir uygulamanın tarayıcısında görüntülüyorsunuz. Pr3dict0r'ı yüklemek için bu bağlantıyı Safari'de açın:",
+    "copyButton": "Kopyala",
+    "copied": "Kopyalandı",
+    "copyUrlInstruction": "Bu URL'yi Safari'ye kopyalayın veya yazın, sonra yükleme adımlarını izleyin.",
+    "notIOS": "Bu adımlar iPhone ve iPad içindir. Android'de banner'daki Yükle düğmesini kullanın; masaüstünde adres çubuğundaki yükleme simgesini arayın.",
+    "step1Title26": "Menü düğmesine dokunun",
+    "step1Desc26": "Safari'nin sağ alt köşesindeki üç noktayı (…) bulun ve tarayıcı menüsünü açmak için dokunun.",
+    "step2Title26": "Paylaş düğmesine dokunun",
+    "step2Desc26": "Açılan menüde Paylaş simgesine (yukarı ok içeren kare) dokunun.",
+    "step3Title26": "Ana Ekrana Ekle",
+    "step3Desc26": "Paylaşım menüsünde “Ana Ekrana Ekle”ye dokunun. “Web uygulaması olarak aç” seçeneği varsayılan olarak açıktır.",
+    "step4Title26": "Onaylayın",
+    "step4Desc26": "Sağ üstteki “Ekle”ye dokunun. Pr3dict0r artık ana ekranınızda bağımsız bir uygulama olarak duruyor.",
+    "step1TitleLegacy": "Safari'de açın",
+    "step1DescLegacy": "Bu sayfayı Safari'de görüntülediğinizden emin olun — iOS'ta yükleme yalnızca orada çalışır.",
+    "step2TitleLegacy": "Paylaş düğmesine dokunun",
+    "step2DescLegacy": "Safari'nin altındaki yukarı ok içeren kare simgeye dokunun.",
+    "step3TitleLegacy": "“Ana Ekrana Ekle”yi bulun",
+    "step3DescLegacy": "Paylaşım menüsünü “Ana Ekrana Ekle” artı simgesini görene kadar kaydırın ve dokunun.",
+    "step4TitleLegacy": "Uygulamayı ekleyin",
+    "step4DescLegacy": "İsterseniz adını değiştirin, bitirmek için sağ üstteki “Ekle”ye dokunun."
   }
 }

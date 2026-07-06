@@ -13,7 +13,7 @@ import {
   STAGE_KNOCKOUT,
   STAGE_LEAGUE,
 } from "@/lib/predictor/abi";
-import { ENTRY, PREDICTION_LOCKOUT_SECONDS, formatChz } from "@/lib/economics";
+import { ENTRY, PREDICTION_LOCKOUT_SECONDS, STAGE_FLOOR, formatChz } from "@/lib/economics";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 
@@ -57,6 +57,13 @@ export function EnterPanel() {
     args: address ? [STAGE_KNOCKOUT, address] : undefined,
     query: { enabled: !!address },
   });
+
+  /**
+   * Every full-season entrant is in both pools, so once the league stage has
+   * STAGE_FLOOR entrants the knockout floor is mathematically guaranteed too —
+   * the "floor 20 or full refund" caveat becomes noise on BOTH cards.
+   */
+  const floorSecured = Number(league.data?.[3] ?? 0) >= STAGE_FLOOR;
 
   /**
    * D4 disclosure: before a knockout purchase inside the play-off first-leg
@@ -157,7 +164,11 @@ export function EnterPanel() {
           <li>{t("fullSeason.split")}</li>
           <li>{t("fullSeason.bothStages")}</li>
           <li>{t("fullSeason.salesClose", { date: fmtDate(league.data?.[1]) })}</li>
-          <li>{t("fullSeason.entrants", { count: league.data?.[3]?.toString() ?? "…" })}</li>
+          <li>
+            {t(floorSecured ? "fullSeason.entrantsNoFloor" : "fullSeason.entrants", {
+              count: league.data?.[3]?.toString() ?? "…",
+            })}
+          </li>
         </ul>
         {enteredLeague.data ? (
           <p className="font-mono text-sm text-ok">{t("fullSeason.holdsPass")}</p>
@@ -187,7 +198,11 @@ export function EnterPanel() {
           <li>{t("knockout.split")}</li>
           <li>{t("knockout.stage2Only")}</li>
           <li>{t("knockout.onSale", { from: fmtDate(knockout.data?.[0]), to: fmtDate(knockout.data?.[1]) })}</li>
-          <li>{t("knockout.entrants", { count: knockout.data?.[3]?.toString() ?? "…" })}</li>
+          <li>
+            {t(floorSecured ? "knockout.entrantsNoFloor" : "knockout.entrants", {
+              count: knockout.data?.[3]?.toString() ?? "…",
+            })}
+          </li>
         </ul>
 
         {needsDisclosure && !enteredKnockout.data && (

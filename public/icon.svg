@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- ₵h@mpi0nz Pr3dict0r mark: the nav's blue box + white star (glow-2 → glow gradient). -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5fa2ff"/>
+      <stop offset="1" stop-color="#2e6bff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <path fill="#ffffff" d="M256 96l38.8 108.7 115.2 3.3-91.4 70.3 32.6 110.7L256 323.6 160.8 389l32.6-110.7-91.4-70.3 115.2-3.3z"/>
+</svg>

@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PlayPage() {
   const t = await getTranslations("play");
   return (
-    <main className="flex flex-1 flex-col items-center gap-8 px-6 py-16">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
       <p className="font-mono text-xs uppercase tracking-[0.32em] text-glow-2">
         {t("tagline")}
       </p>
