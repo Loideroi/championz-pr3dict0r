@@ -15,10 +15,13 @@
  * second alert wire — Telegram is the first).
  */
 import { readFileSync } from 'node:fs';
+import { createPublicClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { UefaApiSource } from '../dist/src/source.js';
 import { relayOnce } from '../dist/src/relay.js';
 import { viemWriter } from '../dist/src/chain.js';
 import { composeAlert, composeHeartbeat, telegramTransport } from '../dist/src/alerts.js';
+import { composeBalanceLine, DEFAULT_MIN_BALANCE_CHZ, readBalance } from '../dist/src/balance.js';
 import { detectIssues } from '../dist/src/watchdog.js';
 import { supabaseLogger } from '../dist/src/oracleLog.js';
 import { composeReminder, composeResultsDigest, matchesNeedingReminder } from '../dist/src/channel.js';
@@ -173,6 +176,18 @@ if (TELEGRAM_CHANNEL_ID) {
 }
 
 if (args.includes('--heartbeat')) {
+  // Best-effort oracle gas line — the heartbeat must send even if the RPC
+  // balance read hiccups (check-balance.mjs is the alerting wire).
+  let balanceLine;
+  try {
+    const pc = createPublicClient({ transport: http(RPC_URL ?? 'https://spicy-rpc.chiliz.com') });
+    const wei = await pc.getBalance({ address: privateKeyToAccount(key).address });
+    balanceLine = composeBalanceLine(
+      readBalance(wei, Number(process.env.ORACLE_MIN_CHZ ?? DEFAULT_MIN_BALANCE_CHZ)),
+    );
+  } catch {
+    /* omit the line rather than block the heartbeat */
+  }
   const beat = composeHeartbeat({
     pushed: summary.pushed,
     corrected: summary.corrected,
@@ -180,6 +195,7 @@ if (args.includes('--heartbeat')) {
     errorCount: summary.errors.length,
     trackedMatches: map.length,
     sourceId: source.id,
+    balanceLine,
   });
   await telegram.send(beat);
   await logger.insert([{ kind: 'heartbeat', chain_id: chainId, detail: { trackedMatches: map.length } }]);

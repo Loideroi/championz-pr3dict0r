@@ -18,6 +18,8 @@ export interface OracleLogger {
   insert(rows: LogRow[]): Promise<boolean>;
   /** match_ids that already got a T-75 reminder recently (dedupe for the 5-min cron). */
   recentReminderIds(sinceIso: string): Promise<Set<number>>;
+  /** True when an alert of detail.type already fired for chain_id since sinceIso (dedupe). */
+  hasRecentAlert(type: string, chainId: number, sinceIso: string): Promise<boolean>;
 }
 
 export function supabaseLogger(opts: {
@@ -48,6 +50,28 @@ export function supabaseLogger(opts: {
       } catch (err) {
         console.error(`oracle log insert failed: ${err}`);
         return false;
+      }
+    },
+
+    async hasRecentAlert(type: string, chainId: number, sinceIso: string): Promise<boolean> {
+      if (!opts.url || !opts.serviceKey) return false;
+      try {
+        const params = new URLSearchParams({
+          select: 'id',
+          kind: 'eq.alert',
+          'detail->>type': `eq.${type}`,
+          chain_id: `eq.${chainId}`,
+          created_at: `gte.${sinceIso}`,
+          limit: '1',
+        });
+        const res = await doFetch(`${opts.url}/rest/v1/clp_oracle_log?${params}`, {
+          headers: { apikey: opts.serviceKey, authorization: `Bearer ${opts.serviceKey}` },
+        });
+        if (!res.ok) return false;
+        const rows = (await res.json()) as unknown[];
+        return rows.length > 0;
+      } catch {
+        return false; // dedupe is best-effort; worst case = a duplicate warning
       }
     },
 

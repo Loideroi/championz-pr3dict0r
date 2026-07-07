@@ -19,6 +19,8 @@ export interface RunStats {
   errorCount: number;
   trackedMatches: number;
   sourceId: string;
+  /** Optional oracle gas line (see balance.ts composeBalanceLine). */
+  balanceLine?: string | undefined;
 }
 
 export interface TelegramTransport {
@@ -46,7 +48,10 @@ export function composeHeartbeat(stats: RunStats): string {
     '✅ <b>oracle healthy</b>',
     `${stats.trackedMatches} matches tracked · source ${stats.sourceId}`,
     `last run: pushed ${stats.pushed.length} · corrected ${stats.corrected.length} · skipped ${stats.skippedCount} · errors ${stats.errorCount}`,
-  ].join('\n');
+    stats.balanceLine ?? null,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function escapeHtml(s: string): string {
