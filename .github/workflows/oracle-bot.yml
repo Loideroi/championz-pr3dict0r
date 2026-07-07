@@ -55,3 +55,36 @@ jobs:
             EXTRA="$EXTRA --manual /tmp/manual-results.json"
           fi
           node scripts/relay.mjs --map config/staging-map.json $EXTRA
+
+      # Oracle gas-balance watch (both chains, every run; Supabase dedupes to
+      # ≤1 Telegram warning per chain per 24h). An empty oracle key fails
+      # silently — this is the tripwire. Floor: 20 CHZ (ORACLE_MIN_CHZ).
+      - name: Oracle balance watch — Chiliz mainnet
+        if: always()
+        working-directory: relayer
+        env:
+          RPC_URL: "https://rpc.ankr.com/chiliz"
+          CHAIN_ID: "88888"
+          ORACLE_ADDRESS: "0xB57Cb421E3B707d0970Ec758D40a4366DB317B15"
+          OWNER_ADDRESS: "0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8"
+          ORACLE_MIN_CHZ: "20"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/check-balance.mjs
+
+      - name: Oracle balance watch — Spicy staging
+        if: always()
+        working-directory: relayer
+        env:
+          RPC_URL: "https://spicy-rpc.chiliz.com"
+          CHAIN_ID: "88882"
+          ORACLE_ADDRESS: "0xB57Cb421E3B707d0970Ec758D40a4366DB317B15"
+          OWNER_ADDRESS: "0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8"
+          ORACLE_MIN_CHZ: "20"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/check-balance.mjs
