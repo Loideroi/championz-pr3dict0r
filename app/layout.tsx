@@ -34,8 +34,14 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t("description"),
     manifest: "/manifest.webmanifest",
     icons: {
-      icon: "/icon.svg",
-      shortcut: "/icon.svg",
+      // Safari ignores SVG favicons — list the raster .ico first (it also
+      // lives at /favicon.ico via the file convention) and let SVG-capable
+      // browsers upgrade to the crisp vector.
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icon.svg", type: "image/svg+xml" },
+      ],
+      shortcut: "/favicon.ico",
       apple: "/apple-touch-icon.png",
     },
     appleWebApp: {
