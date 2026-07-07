@@ -10,9 +10,18 @@
  *      0x1626ba7e
  *   3. no bytecode → EOA: recover the signer from the signature and compare
  *
+ * ⚠️ Socios.com Wallet quirk (Biconomy MEE/Nexus, verified on mainnet
+ * 2026-07-07): viem's `signMessage` sends `personal_sign` with the message
+ * HEX-ENCODED per the JSON-RPC spec. A standard wallet decodes that hex back
+ * to bytes and signs `eip191(bytes)`. The Socios wallet instead signs
+ * `eip191` of the *literal hex string* ("0x4368…") — it never decodes. So we
+ * verify against BOTH encodings (decoded string + `stringToHex(message)`) and
+ * accept either. This also future-proofs: if the wallet is fixed to decode,
+ * the plain-string encoding starts matching.
+ *
  * Dependencies are injected so tests never touch a network.
  */
-import { hashMessage, recoverMessageAddress } from "viem";
+import { hashMessage, recoverMessageAddress, stringToHex } from "viem";
 
 export const ERC1271_MAGIC_VALUE = "0x1626ba7e";
 
@@ -52,6 +61,15 @@ export function selectSignaturePath(bytecode: Hex | undefined): SignaturePath {
   return bytecode && bytecode !== "0x" ? "erc1271" : "eoa";
 }
 
+/**
+ * The two ways a wallet may interpret the personal_sign payload for `message`:
+ * the decoded UTF-8 string (standard) and the literal hex string viem sends
+ * (Socios.com Wallet). Order matters only cosmetically — both are tried.
+ */
+export function messageEncodings(message: string): string[] {
+  return [message, stringToHex(message)];
+}
+
 export type VerifyResult = { valid: boolean; path: SignaturePath };
 
 /**
@@ -65,29 +83,40 @@ export async function verifyWalletSignature(
   const { address, message, signature } = params;
   const bytecode = await deps.getCode(address);
   const path = selectSignaturePath(bytecode);
+  const encodings = messageEncodings(message);
 
   if (path === "erc1271") {
-    try {
-      const result = await deps.callIsValidSignature(
-        address,
-        hashMessage(message),
-        signature,
-      );
-      return {
-        valid: result?.toLowerCase().startsWith(ERC1271_MAGIC_VALUE) ?? false,
-        path,
-      };
-    } catch {
-      return { valid: false, path };
+    // Try each encoding — the account's isValidSignature does its own
+    // (possibly ERC-7739) rehashing, we just need to feed it the hash the
+    // wallet actually signed.
+    for (const enc of encodings) {
+      try {
+        const result = await deps.callIsValidSignature(
+          address,
+          hashMessage(enc),
+          signature,
+        );
+        if (result?.toLowerCase().startsWith(ERC1271_MAGIC_VALUE)) {
+          return { valid: true, path };
+        }
+      } catch {
+        /* try the next encoding */
+      }
     }
-  }
-
-  try {
-    const signer = await deps.recoverSigner(message, signature);
-    return { valid: signer.toLowerCase() === address.toLowerCase(), path };
-  } catch {
     return { valid: false, path };
   }
+
+  for (const enc of encodings) {
+    try {
+      const signer = await deps.recoverSigner(enc, signature);
+      if (signer.toLowerCase() === address.toLowerCase()) {
+        return { valid: true, path };
+      }
+    } catch {
+      /* try the next encoding */
+    }
+  }
+  return { valid: false, path };
 }
 
 /** Default EOA recovery via viem (offline — no network). */
