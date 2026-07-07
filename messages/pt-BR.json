@@ -208,7 +208,9 @@
       "saved": "Perfil salvo — sua bandeira já tremula na classificação.",
       "sigFailed": "Assinatura cancelada ou falhou.",
       "sigDropped": "Sua carteira pode ter assinado, mas a resposta nunca chegou até nós — se você aprovou no Socios.com Wallet, é só tocar no botão de novo.",
-      "saveNetwork": "Falha de rede ao salvar — sua assinatura está ok, toque no botão de novo."
+      "saveNetwork": "Falha de rede ao salvar — sua assinatura está ok, toque no botão de novo.",
+      "stakeFirst": "Nomes de usuário são para participantes — primeiro aposte CHZ, depois reivindique seu nome.",
+      "stakeFirstCta": "Entre no bolão"
     },
     "country": {
       "label": "País",

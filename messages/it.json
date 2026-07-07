@@ -208,7 +208,9 @@
       "saved": "Profilo salvato — la tua bandiera sventola in classifica.",
       "sigFailed": "Firma annullata o non riuscita.",
       "sigDropped": "Il wallet potrebbe aver firmato, ma la risposta non ci è mai arrivata — se hai approvato nel Socios.com Wallet, tocca di nuovo il pulsante.",
-      "saveNetwork": "Problema di rete durante il salvataggio — la firma è valida, tocca di nuovo il pulsante."
+      "saveNetwork": "Problema di rete durante il salvataggio — la firma è valida, tocca di nuovo il pulsante.",
+      "stakeFirst": "I nomi utente sono per i partecipanti — prima metti in gioco i CHZ, poi rivendica il tuo nome.",
+      "stakeFirstCta": "Entra nel pool"
     },
     "country": {
       "label": "Paese",

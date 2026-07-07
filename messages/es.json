@@ -208,7 +208,9 @@
       "saved": "Perfil guardado — tu bandera ya ondea en la clasificación.",
       "sigFailed": "La firma se canceló o falló.",
       "sigDropped": "Puede que tu wallet haya firmado, pero la respuesta nunca nos llegó — si lo aprobaste en el Socios.com Wallet, vuelve a pulsar el botón.",
-      "saveNetwork": "Fallo de red al guardar — tu firma es válida, vuelve a pulsar el botón."
+      "saveNetwork": "Fallo de red al guardar — tu firma es válida, vuelve a pulsar el botón.",
+      "stakeFirst": "Los nombres de usuario son para participantes — primero apuesta CHZ y luego reclama tu nombre.",
+      "stakeFirstCta": "Únete al pool"
     },
     "country": {
       "label": "País",
