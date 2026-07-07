@@ -273,5 +273,12 @@
     "step3DescLegacy": "Scroll down the share menu until you see “Add to Home Screen” with a plus icon, and tap it.",
     "step4TitleLegacy": "Add the app",
     "step4DescLegacy": "Rename it if you like, then tap “Add” in the top right corner to finish."
+  },
+  "trust": {
+    "title": "On-chain & verifiable",
+    "contract": "Smart contract",
+    "contractNote": "Verified on Chiliz Chain",
+    "oracle": "Results oracle",
+    "oracleNote": "Read live from the contract"
   }
 }

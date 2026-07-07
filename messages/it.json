@@ -273,5 +273,12 @@
     "step3DescLegacy": "Scorri il menu di condivisione fino a “Aggiungi alla schermata Home” con l'icona più, e toccalo.",
     "step4TitleLegacy": "Aggiungi l'app",
     "step4DescLegacy": "Rinominala se vuoi, poi tocca “Aggiungi” in alto a destra per finire."
+  },
+  "trust": {
+    "title": "On-chain e verificabile",
+    "contract": "Smart contract",
+    "contractNote": "Verificato su Chiliz Chain",
+    "oracle": "Oracolo dei risultati",
+    "oracleNote": "Letto in diretta dal contratto"
   }
 }

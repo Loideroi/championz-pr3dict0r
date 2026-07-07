@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ENTRY, formatChz } from "@/lib/economics";
 import { StatStrip } from "@/components/chrome/StatStrip";
+import { TrustBox } from "@/components/chrome/TrustBox";
 
 export default async function Home() {
   const t = await getTranslations("home");
@@ -26,6 +27,7 @@ export default async function Home() {
         </span>
       </div>
       <StatStrip />
+      <TrustBox />
       <div className="flex gap-3">
         <a
           href="/enter"

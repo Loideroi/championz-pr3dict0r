@@ -273,5 +273,12 @@
     "step3DescLegacy": "Role o menu de compartilhamento até “Adicionar à Tela de Início” com o ícone de mais, e toque.",
     "step4TitleLegacy": "Adicione o app",
     "step4DescLegacy": "Renomeie se quiser e toque em “Adicionar” no canto superior direito para concluir."
+  },
+  "trust": {
+    "title": "On-chain e verificável",
+    "contract": "Smart contract",
+    "contractNote": "Verificado na Chiliz Chain",
+    "oracle": "Oráculo de resultados",
+    "oracleNote": "Lido ao vivo do contrato"
   }
 }
