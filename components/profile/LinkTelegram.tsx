@@ -20,7 +20,9 @@ export function LinkTelegram({ linkedHandle }: { linkedHandle?: string | null })
 
   async function signed(): Promise<{ message: string; signature: string } | null> {
     if (!address) return null;
-    const msg = `₵h@mpi0nz Pr3dict0r telegram-link: ${address.toLowerCase()} · ${chainId} · ${new Date().toISOString()}`;
+    // ASCII-only: the Socios.com Wallet re-encodes the displayed string, so
+    // multibyte chars ("₵", "·") break isValidSignature (see validate.ts).
+    const msg = `Ch@mpi0nz Pr3dict0r telegram-link: ${address.toLowerCase()} | ${chainId} | ${new Date().toISOString()}`;
     try {
       const signature = await signMessageAsync({ message: msg }); // personal_sign — SCW-safe
       return { message: msg, signature };

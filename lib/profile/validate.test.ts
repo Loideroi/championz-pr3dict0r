@@ -85,7 +85,7 @@ describe("profile message round-trip", () => {
 
   it("builds the human-readable personal_sign message", () => {
     expect(buildProfileMessage("rikkert", "NL", ts)).toBe(
-      `₵h@mpi0nz Pr3dict0r profile: rikkert · NL · ${ts}`,
+      `Ch@mpi0nz Pr3dict0r profile: rikkert | NL | ${ts}`,
     );
   });
 
@@ -100,7 +100,7 @@ describe("profile message round-trip", () => {
 
   it("rejects tampered or malformed messages", () => {
     expect(parseProfileMessage("gimme the pool")).toBeNull();
-    expect(parseProfileMessage(`Other dapp profile: rikkert · NL · ${ts}`)).toBeNull();
+    expect(parseProfileMessage(`Other dapp profile: rikkert | NL | ${ts}`)).toBeNull();
     expect(parseProfileMessage(undefined)).toBeNull();
   });
 

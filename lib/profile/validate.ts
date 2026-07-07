@@ -86,7 +86,14 @@ export function validateCountry(code: unknown): string | null {
 /* Signed message                                                      */
 /* ------------------------------------------------------------------ */
 
-export const PROFILE_MESSAGE_PREFIX = "₵h@mpi0nz Pr3dict0r profile:";
+/**
+ * ASCII-ONLY, and it must stay that way: the Socios.com Wallet re-encodes the
+ * displayed personal_sign string before signing, so any multibyte character
+ * (the old "₵" prefix, the "·" separators) can shift the signed bytes and
+ * make the wallet's own isValidSignature reject the result. The predecessor's
+ * production-proven message was plain ASCII — mirror that.
+ */
+export const PROFILE_MESSAGE_PREFIX = "Ch@mpi0nz Pr3dict0r profile:";
 
 /** Max age of a signed profile message before it is considered a replay. */
 export const MESSAGE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -100,7 +107,7 @@ export function buildProfileMessage(
   country: string,
   timestampIso: string,
 ): string {
-  return `${PROFILE_MESSAGE_PREFIX} ${username} · ${country} · ${timestampIso}`;
+  return `${PROFILE_MESSAGE_PREFIX} ${username} | ${country} | ${timestampIso}`;
 }
 
 export type ParsedProfileMessage = {
@@ -115,7 +122,7 @@ export function parseProfileMessage(
 ): ParsedProfileMessage | null {
   if (typeof message !== "string") return null;
   const re = new RegExp(
-    `^${PROFILE_MESSAGE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} ([A-Za-z0-9_]{3,20}) · ([A-Z]{2}) · (\\S+)$`,
+    `^${PROFILE_MESSAGE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} ([A-Za-z0-9_]{3,20}) \\| ([A-Z]{2}) \\| (\\S+)$`,
     "u",
   );
   const m = re.exec(message);

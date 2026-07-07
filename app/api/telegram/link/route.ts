@@ -3,8 +3,9 @@
  * POST   { address, chainId, message, signature } → { deepLink, expiresAt }
  * DELETE { address, chainId, message, signature } → unlink (clears both fields)
  *
- * Message format (10-min freshness):
- *   "₵h@mpi0nz Pr3dict0r telegram-link: <address> · <chainId> · <ISO timestamp>"
+ * Message format (10-min freshness; ASCII-only — multibyte chars break the
+ * Socios wallet's signed bytes, see lib/profile/validate.ts):
+ *   "Ch@mpi0nz Pr3dict0r telegram-link: <address> | <chainId> | <ISO timestamp>"
  * Same dual EOA / ERC-1271 verification as /api/profile. Strictly opt-in.
  */
 import { NextResponse, type NextRequest } from "next/server";
@@ -96,7 +97,9 @@ async function verifiedWallet(request: NextRequest): Promise<
     return { status: 400, error: "address and chainId (88882|88888) are required." };
   }
   if (!message || !signature) return { status: 400, error: "message and signature are required." };
-  const expectedPrefix = `₵h@mpi0nz Pr3dict0r telegram-link: ${address.toLowerCase()} · ${chainId} · `;
+  // ASCII-only prefix — multibyte chars break Socios wallet signature bytes
+  // (see lib/profile/validate.ts PROFILE_MESSAGE_PREFIX).
+  const expectedPrefix = `Ch@mpi0nz Pr3dict0r telegram-link: ${address.toLowerCase()} | ${chainId} | `;
   if (!message.toLowerCase().startsWith(expectedPrefix.toLowerCase())) {
     return { status: 400, error: "Message does not match the expected format." };
   }
