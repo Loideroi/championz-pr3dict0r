@@ -6,7 +6,7 @@ import { TrustBox } from "@/components/chrome/TrustBox";
 export default async function Home() {
   const t = await getTranslations("home");
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12 text-center sm:py-16">
       <p className="font-mono text-xs uppercase tracking-[0.32em] text-glow-2">
         {t("tagline")}
       </p>
@@ -28,22 +28,24 @@ export default async function Home() {
       </div>
       <StatStrip />
       <TrustBox />
-      <div className="flex gap-3">
+      {/* Mobile: stacked full-width CTAs so "Enter the pool →" never wraps;
+          from sm: the original inline row. */}
+      <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
         <a
           href="/enter"
-          className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-6 py-3 font-semibold text-white"
+          className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-6 py-3 text-center font-semibold text-white"
         >
           {t("ctaEnter")}
         </a>
         <a
           href="/play"
-          className="rounded-xl border border-line px-6 py-3 font-semibold text-ink"
+          className="rounded-xl border border-line px-6 py-3 text-center font-semibold text-ink"
         >
           {t("ctaPredict")}
         </a>
         <a
           href="/standings"
-          className="rounded-xl border border-line px-6 py-3 font-semibold text-ink"
+          className="rounded-xl border border-line px-6 py-3 text-center font-semibold text-ink"
         >
           {t("ctaStandings")}
         </a>
