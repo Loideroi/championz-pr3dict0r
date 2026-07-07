@@ -273,5 +273,12 @@
     "step3DescLegacy": "Paylaşım menüsünü “Ana Ekrana Ekle” artı simgesini görene kadar kaydırın ve dokunun.",
     "step4TitleLegacy": "Uygulamayı ekleyin",
     "step4DescLegacy": "İsterseniz adını değiştirin, bitirmek için sağ üstteki “Ekle”ye dokunun."
+  },
+  "trust": {
+    "title": "Zincir üstü ve doğrulanabilir",
+    "contract": "Akıllı kontrat",
+    "contractNote": "Chiliz Chain üzerinde doğrulandı",
+    "oracle": "Sonuç oracle'ı",
+    "oracleNote": "Kontrattan canlı okunur"
   }
 }

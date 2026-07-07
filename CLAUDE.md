@@ -41,6 +41,12 @@ npm run lint       # eslint
   branches contract-vs-EOA via `isValidSignature()`; **no `eth_signTypedData`**
   anywhere; SCW write confirmation = poll chain state, never await a relayed receipt.
 - Never overwrite `window.ethereum` — pick from `window.ethereum.providers`.
+- **ASCII-only in anything signed or sent to chain/external APIs**: signed
+  personal_sign strings, on-chain string args, and API payload identifiers must
+  use plain ASCII. The Socios.com Wallet re-encodes the displayed message before
+  signing, so multibyte chars (`₵`, `·`, smart quotes, emoji) shift the signed
+  bytes and `isValidSignature` rejects them (learned the hard way — PR #23).
+  Keep the fancy branding in UI copy only; never in a payload.
 - **The 90-minute rule:** all scoreline logic uses `score.regular`, never the AET total.
 - Entry amounts are exact: 1,100 / 550 CHZ (`lib/economics.ts` ↔ contract constants in lockstep).
 - Tailwind v4: `postcss.config.mjs` **and** `app/globals.css` are both load-bearing — never delete either.
