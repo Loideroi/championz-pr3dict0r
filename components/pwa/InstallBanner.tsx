@@ -35,7 +35,8 @@ export function InstallBanner() {
   };
 
   return (
-    <div className="mx-auto mb-4 flex w-full max-w-5xl items-center gap-3 rounded-2xl border border-line bg-night-2/80 px-4 py-3 lg:hidden">
+    // Only shows < lg, where max-w-5xl never binds — side margins do the work.
+    <div className="mx-4 mb-4 mt-8 flex items-center gap-3 rounded-2xl border border-line bg-night-2/80 px-4 py-3 lg:hidden">
       <span
         aria-hidden="true"
         className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-glow-2 to-glow text-white"
