@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { hashMessage } from "viem";
+import { hashMessage, stringToHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   ERC1271_MAGIC_VALUE,
@@ -46,6 +46,24 @@ describe("verifyWalletSignature — ERC-1271 (contract wallet / Socios)", () => 
       hashMessage(MESSAGE),
       SIG,
     );
+  });
+
+  it("accepts the Socios.com Wallet's hex-string encoding (personal_sign over the literal hex viem sends)", async () => {
+    // The wallet signs `hashMessage(stringToHex(message))`, not the decoded
+    // message. isValidSignature only returns magic for that hash.
+    const hexHash = hashMessage(stringToHex(MESSAGE));
+    const callIsValidSignature = vi.fn(async (_addr: Hex, hash: Hex) =>
+      (hash === hexHash ? ERC1271_MAGIC_VALUE : "0xffffffff") as Hex,
+    );
+    const d = deps({ getCode: async () => "0x6080" as Hex, callIsValidSignature });
+    const r = await verifyWalletSignature(
+      { address: CONTRACT_WALLET, message: MESSAGE, signature: SIG },
+      d,
+    );
+    expect(r).toEqual({ valid: true, path: "erc1271" });
+    // Plain encoding tried first, hex encoding second.
+    expect(callIsValidSignature).toHaveBeenCalledWith(CONTRACT_WALLET, hashMessage(MESSAGE), SIG);
+    expect(callIsValidSignature).toHaveBeenCalledWith(CONTRACT_WALLET, hexHash, SIG);
   });
 
   it("rejects on a non-magic return value", async () => {
@@ -118,6 +136,16 @@ describe("verifyWalletSignature — EOA (ecrecover)", () => {
       deps({ recoverSigner: recoverSignerViem }),
     );
     expect(r).toEqual({ valid: false, path: "eoa" });
+  });
+
+  it("accepts an EOA signature made over the hex-string encoding", async () => {
+    // Simulates a signer that (like the Socios wallet) signed the hex string.
+    const signature = await account.signMessage({ message: stringToHex(MESSAGE) });
+    const r = await verifyWalletSignature(
+      { address: account.address, message: MESSAGE, signature },
+      deps({ recoverSigner: recoverSignerViem }),
+    );
+    expect(r).toEqual({ valid: true, path: "eoa" });
   });
 
   it("compares addresses case-insensitively", async () => {

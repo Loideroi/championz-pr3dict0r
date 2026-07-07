@@ -9,7 +9,7 @@
  * lib/profile/service.ts and is unit-tested with injected mocks.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, stringToHex } from "viem";
 import {
   PREDICTOR_ABI,
   PREDICTOR_ADDRESS,
@@ -68,18 +68,21 @@ async function verifySignature(params: {
 }) {
   const client = rpcClient();
 
-  // Primary: viem's universal check — one call that covers EOA, deployed
-  // ERC-1271 wallets AND ERC-6492-wrapped signatures (the Socios.com Wallet
-  // SDK can return wrapped signatures a raw isValidSignature call rejects).
-  try {
-    const valid = await client.verifyMessage({
-      address: params.address,
-      message: params.message,
-      signature: params.signature,
-    });
-    if (valid) return { valid: true, path: "erc1271" as const };
-  } catch {
-    /* fall through to the manual dual-path below */
+  // Primary: viem's universal check — covers EOA + deployed ERC-1271. Try
+  // both message encodings: the decoded string (standard wallets) and the
+  // literal hex string viem's personal_sign sends (the Socios.com Wallet
+  // signs that verbatim — see lib/profile/verify.ts).
+  for (const message of [params.message, stringToHex(params.message)]) {
+    try {
+      const valid = await client.verifyMessage({
+        address: params.address,
+        message,
+        signature: params.signature,
+      });
+      if (valid) return { valid: true, path: "erc1271" as const };
+    } catch {
+      /* try next encoding / fall through to the manual dual-path below */
+    }
   }
 
   return verifyWalletSignature(params, {
