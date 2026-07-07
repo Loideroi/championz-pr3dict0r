@@ -11,7 +11,7 @@ import {
 } from "./verify";
 
 const CONTRACT_WALLET = "0x1111111111111111111111111111111111111111" as Hex;
-const MESSAGE = "₵h@mpi0nz Pr3dict0r profile: rikkert · NL · 2026-07-04T12:00:00.000Z";
+const MESSAGE = "Ch@mpi0nz Pr3dict0r profile: rikkert | NL | 2026-07-04T12:00:00.000Z";
 const SIG = ("0x" + "ab".repeat(65)) as Hex;
 
 function deps(overrides: Partial<VerifyDeps>): VerifyDeps {
