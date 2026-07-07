@@ -132,6 +132,43 @@ describe("saveProfile — happy path", () => {
   });
 });
 
+describe("saveProfile — stake gate (usernames are for entrants only)", () => {
+  it("403s a wallet that has not entered any stage", async () => {
+    const { db, upsert } = mockDb({ existing: null });
+    const deps = makeDeps(db, {
+      readEntryTier: vi.fn(async () => null),
+    });
+    const r = await saveProfile(validInput(), deps);
+    expect(r.status).toBe(403);
+    expect(String(r.body.error)).toMatch(/stake/i);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("503s (retryable) when the chain read fails and there is no stored tier", async () => {
+    const { db, upsert } = mockDb({ existing: null });
+    const deps = makeDeps(db, {
+      readEntryTier: vi.fn(async () => {
+        throw new Error("rpc down");
+      }),
+    });
+    const r = await saveProfile(validInput(), deps);
+    expect(r.status).toBe(503);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("still lets an existing entrant rename during an RPC blip", async () => {
+    const { db, upsert } = mockDb({ existing: row({ entry_tier: "full_season" }) });
+    const deps = makeDeps(db, {
+      readEntryTier: vi.fn(async () => {
+        throw new Error("rpc down");
+      }),
+    });
+    const r = await saveProfile(validInput(), deps);
+    expect(r.status).toBe(200);
+    expect(upsert).toHaveBeenCalledOnce();
+  });
+});
+
 describe("saveProfile — validation gate", () => {
   it("rejects bad addresses, chains, usernames and countries", async () => {
     const { db } = mockDb({});

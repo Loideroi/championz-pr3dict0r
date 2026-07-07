@@ -70,6 +70,15 @@ export function ProfileForm() {
           ? "…"
           : t("tierNone");
 
+  // Stake gate (mirrors the server: usernames are for entrants only). Only
+  // trips once both reads have settled to a confident "no entry".
+  const notEntered =
+    !!PREDICTOR_ADDRESS &&
+    enteredLeague.isFetched &&
+    enteredKnockout.isFetched &&
+    !enteredLeague.data &&
+    !enteredKnockout.data;
+
   const loadProfile = useCallback(async () => {
     if (!address) return;
     try {
@@ -230,7 +239,7 @@ export function ProfileForm() {
           id="clp-username"
           type="text"
           value={username}
-          disabled={busy}
+          disabled={busy || notEntered}
           onChange={(e) => setUsername(e.target.value)}
           placeholder={t("usernamePlaceholder")}
           maxLength={20}
@@ -240,11 +249,20 @@ export function ProfileForm() {
         <p className="font-mono text-xs text-muted-2">{t("usernameHint")}</p>
       </div>
 
-      <CountrySelect value={country} onChange={setCountry} disabled={busy} />
+      <CountrySelect value={country} onChange={setCountry} disabled={busy || notEntered} />
+
+      {notEntered && (
+        <p className="rounded-xl border border-star/40 bg-star/10 px-4 py-3 font-mono text-xs text-star">
+          {t("stakeFirst")}{" "}
+          <a href="/enter" className="underline underline-offset-4">
+            {t("stakeFirstCta")}
+          </a>
+        </p>
+      )}
 
       <button
         type="submit"
-        disabled={busy || !username || !country}
+        disabled={busy || !username || !country || notEntered}
         className="rounded-xl bg-gradient-to-b from-glow-2 to-glow px-5 py-3 font-semibold text-white disabled:opacity-40"
       >
         {busy ? t("waiting") : saved ? t("update") : t("signSave")}

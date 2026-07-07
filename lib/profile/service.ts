@@ -219,7 +219,33 @@ export async function saveProfile(
     };
   }
 
-  // 5. Username unique per chain (case-insensitive precheck + constraint) -
+  // 5. Stake gate: usernames are for entrants only (chain is truth) --------
+  // A wallet must have entered a stage (staked CHZ) before it can claim a
+  // name on the leaderboard. If the chain read fails we fall back to the
+  // stored tier so an RPC blip never locks out an existing entrant — but a
+  // wallet with no proven entry is refused rather than silently allowed.
+  let entryTier: EntryTier = null;
+  let chainReadFailed = false;
+  try {
+    entryTier = await deps.readEntryTier(address);
+  } catch {
+    chainReadFailed = true;
+    entryTier = existing.data?.entry_tier ?? null;
+  }
+  if (entryTier === null) {
+    if (chainReadFailed) {
+      return {
+        status: 503,
+        body: { error: "Could not verify your entry on-chain — please try again." },
+      };
+    }
+    return {
+      status: 403,
+      body: { error: "Enter the pool first — stake CHZ, then claim your name." },
+    };
+  }
+
+  // 6. Username unique per chain (case-insensitive precheck + constraint) -
   const dup = await deps.db
     .from(PROFILES_TABLE)
     .select("wallet_address")
@@ -235,14 +261,6 @@ export async function saveProfile(
       status: 409,
       body: { error: `Username "${username}" is already taken on this chain.` },
     };
-  }
-
-  // 6. Entry tier from chain (best-effort; chain is truth) -----------------
-  let entryTier: EntryTier = null;
-  try {
-    entryTier = await deps.readEntryTier(address);
-  } catch {
-    entryTier = existing.data?.entry_tier ?? null;
   }
 
   // 7. Upsert ---------------------------------------------------------------

@@ -208,7 +208,9 @@
       "saved": "Profile saved — your flag flies on the leaderboard.",
       "sigFailed": "Signature was cancelled or failed.",
       "sigDropped": "Your wallet may have signed, but the answer never reached us — if you approved it in the Socios.com Wallet, just tap the button again.",
-      "saveNetwork": "Network hiccup while saving — your signature is fine, tap the button again."
+      "saveNetwork": "Network hiccup while saving — your signature is fine, tap the button again.",
+      "stakeFirst": "Usernames are for entrants — stake CHZ first, then claim your name.",
+      "stakeFirstCta": "Enter the pool"
     },
     "country": {
       "label": "Country",

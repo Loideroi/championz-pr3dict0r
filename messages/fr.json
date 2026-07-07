@@ -208,7 +208,9 @@
       "saved": "Profil enregistré — votre drapeau flotte sur le classement.",
       "sigFailed": "Signature annulée ou échouée.",
       "sigDropped": "Votre wallet a peut-être signé, mais la réponse ne nous est jamais parvenue — si vous avez approuvé dans le Socios.com Wallet, appuyez simplement à nouveau sur le bouton.",
-      "saveNetwork": "Souci réseau pendant l'enregistrement — votre signature est valide, appuyez à nouveau."
+      "saveNetwork": "Souci réseau pendant l'enregistrement — votre signature est valide, appuyez à nouveau.",
+      "stakeFirst": "Les pseudos sont réservés aux participants — misez d'abord des CHZ, puis réclamez votre nom.",
+      "stakeFirstCta": "Rejoindre le pool"
     },
     "country": {
       "label": "Pays",

@@ -208,7 +208,9 @@
       "saved": "Profil kaydedildi — bayrağın liderlik tablosunda dalgalanıyor.",
       "sigFailed": "İmza iptal edildi veya başarısız oldu.",
       "sigDropped": "Cüzdanınız imzalamış olabilir ama yanıt bize hiç ulaşmadı — Socios.com Wallet'ta onayladıysanız düğmeye tekrar dokunmanız yeterli.",
-      "saveNetwork": "Kaydederken ağ sorunu oluştu — imzanız geçerli, düğmeye tekrar dokunun."
+      "saveNetwork": "Kaydederken ağ sorunu oluştu — imzanız geçerli, düğmeye tekrar dokunun.",
+      "stakeFirst": "Kullanıcı adları katılımcılar içindir — önce CHZ yatırın, sonra adınızı alın.",
+      "stakeFirstCta": "Havuza katıl"
     },
     "country": {
       "label": "Ülke",
