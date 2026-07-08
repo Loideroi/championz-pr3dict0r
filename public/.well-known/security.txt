@@ -1,0 +1,6 @@
+Contact: https://github.com/Loideroi/championz-pr3dict0r/issues
+Contact: https://t.me/championz_pr3dict0r
+Expires: 2027-08-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://pr3dict0r.com/.well-known/security.txt
+Policy: https://github.com/Loideroi/championz-pr3dict0r/blob/main/SECURITY_FINDINGS.md

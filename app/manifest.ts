@@ -8,11 +8,16 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "₵h@mpi0nz Pr3dict0r",
     short_name: "Pr3dict0r",
     description:
       "UEFA Champions League 2026/27 prediction pool on Chiliz Chain",
     start_url: "/",
+    scope: "/",
+    lang: "en",
+    dir: "ltr",
+    categories: ["sports", "games"],
     display: "standalone",
     orientation: "portrait",
     background_color: "#060a1a",
