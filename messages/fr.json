@@ -167,7 +167,8 @@
       "banner": "★ Vous avez fini dans le top 20 de {stage} — {amount} CHZ à réclamer",
       "claiming": "Réclamation…",
       "cta": "Réclamer"
-    }
+    },
+    "anonymous": "An0nyme"
   },
   "hallOfFame": {
     "metadata": {

@@ -167,7 +167,8 @@
       "banner": "★ You finished in the {stage} top 20 — {amount} CHZ claimable",
       "claiming": "Claiming…",
       "cta": "Claim"
-    }
+    },
+    "anonymous": "Anonym0us"
   },
   "hallOfFame": {
     "metadata": {

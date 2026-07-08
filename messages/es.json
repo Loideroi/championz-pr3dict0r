@@ -167,7 +167,8 @@
       "banner": "★ Terminaste en el top 20 de {stage} — {amount} CHZ por cobrar",
       "claiming": "Cobrando…",
       "cta": "Cobrar"
-    }
+    },
+    "anonymous": "An0nimo"
   },
   "hallOfFame": {
     "metadata": {

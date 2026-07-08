@@ -167,7 +167,8 @@
       "banner": "★ {stage} tablosunda ilk 20’de bitirdin — {amount} CHZ talep edilebilir",
       "claiming": "Talep ediliyor…",
       "cta": "Talep et"
-    }
+    },
+    "anonymous": "An0nim"
   },
   "hallOfFame": {
     "metadata": {

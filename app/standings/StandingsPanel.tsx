@@ -153,15 +153,19 @@ export function StandingsPanel() {
           client.readContract({ ...contract, functionName: "enteredAt", args: [STAGE_LEAGUE, addr] }),
           client.readContract({ ...contract, functionName: "enteredAt", args: [STAGE_KNOCKOUT, addr] }),
         ]);
-        // optional profile (flags) — graceful when Supabase isn't configured
+        // optional profile (username + flag) — graceful when Supabase isn't
+        // configured. Chain-aware: profiles are keyed per chain.
         let username: string | undefined;
         let countryCode: string | undefined;
         try {
-          const res = await fetch(`/api/profile?address=${addr}&chainId=88882`);
+          const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "88882");
+          const res = await fetch(`/api/profile?address=${addr}&chainId=${chainId}`);
           if (res.ok) {
-            const p = await res.json();
-            username = p?.username ?? undefined;
-            countryCode = p?.country_code ?? undefined;
+            const p = (await res.json()) as {
+              profile?: { username?: string; countryCode?: string } | null;
+            };
+            username = p.profile?.username ?? undefined;
+            countryCode = p.profile?.countryCode ?? undefined;
           }
         } catch {
           /* no profile service — addresses only */
@@ -264,8 +268,15 @@ export function StandingsPanel() {
                     {view === "season" && i === 0 ? "👑" : i + 1}
                   </td>
                   <td className="px-4 py-3">
-                    {flagEmoji(r.countryCode)}{" "}
-                    {r.username ?? `${r.address.slice(0, 6)}…${r.address.slice(-4)}`}
+                    <span aria-hidden>{flagEmoji(r.countryCode) || "🌐"}</span>{" "}
+                    {r.username ? (
+                      <span className="font-semibold">{r.username}</span>
+                    ) : (
+                      <span className="text-muted">{t("anonymous")}</span>
+                    )}{" "}
+                    <span className="font-mono text-xs text-muted-2">
+                      {r.address.slice(0, 6)}…{r.address.slice(-4)}
+                    </span>
                     {!r.fullSeason && (
                       <span className="ml-2 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted">
                         {t("koPass")}
