@@ -88,6 +88,17 @@ sign-off) and is **deployed + verified on Chiliz mainnet**.
 
 ## Automation running on its own
 
-- **Daily 07:07 UTC oracle heartbeat** DM to the admin (Telegram).
+- **Daily 07:07 UTC oracle heartbeat** DM to the admin (Telegram), now with an
+  oracle-gas battery line (🔋/🪫).
+- **Oracle balance watch** (every cron tick, both chains): Telegram warning when
+  the oracle key drops below 20 CHZ (`ORACLE_MIN_CHZ`), ≤1 warning/chain/24h.
+- **Ops sentinels** (every cron tick, both chains, same dedupe):
+  - governance drift — owner()/oracle()/EIP-1967 impl slot vs expected + paused()
+    (⚠ update `EXPECTED_IMPL` in oracle-bot.yml on every legitimate upgrade);
+  - solvency invariant — balance ≥ unfrozen pools + fee escrow (exploit tripwire);
+  - site uptime (mainnet step) — pr3dict0r.com + profile API;
+  - seasonal deadlines — entrant floor <20 in the last 14 days before league
+    close; fixtures missing after the 27 Aug draw (doubles as the reminder to
+    re-add `TELEGRAM_CHANNEL_ID`); fully-played-but-unfrozen stage (daily --deep).
 - **7–8 Jul: staging self-settlement** — the oracle-bot cron settles the 4 Spicy
   matches (archived AET/pens classics) hands-off — the "zero maintenance" demo.
