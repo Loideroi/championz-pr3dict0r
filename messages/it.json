@@ -167,7 +167,8 @@
       "banner": "★ Hai chiuso nella top 20 di {stage} — {amount} CHZ da riscuotere",
       "claiming": "Riscossione…",
       "cta": "Riscuoti"
-    }
+    },
+    "anonymous": "An0nimo"
   },
   "hallOfFame": {
     "metadata": {

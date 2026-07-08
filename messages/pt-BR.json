@@ -167,7 +167,8 @@
       "banner": "★ Você terminou no top 20 de {stage} — {amount} CHZ para resgatar",
       "claiming": "Resgatando…",
       "cta": "Resgatar"
-    }
+    },
+    "anonymous": "An0nimo"
   },
   "hallOfFame": {
     "metadata": {
