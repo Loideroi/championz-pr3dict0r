@@ -30,8 +30,28 @@ const spaceMono = Space_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("layout.metadata");
   return {
+    metadataBase: new URL("https://pr3dict0r.com"),
     title: t("title"),
     description: t("description"),
+    // Reputation/crawl signals: explicit indexing consent + rich previews so
+    // Google, link unfurlers and wallet-security scanners see a legitimate,
+    // well-described site rather than an anonymous crypto domain.
+    robots: { index: true, follow: true },
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      url: "https://pr3dict0r.com",
+      siteName: "₵h@mpi0nz Pr3dict0r",
+      title: t("title"),
+      description: t("description"),
+      images: [{ url: "/icon-512.png", width: 512, height: 512 }],
+    },
+    twitter: {
+      card: "summary",
+      title: t("title"),
+      description: t("description"),
+      images: ["/icon-512.png"],
+    },
     manifest: "/manifest.webmanifest",
     icons: {
       // Safari ignores SVG favicons — list the raster .ico first (it also
