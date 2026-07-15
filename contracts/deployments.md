@@ -25,3 +25,15 @@
 - Proxy: `0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6` (v6; impl `0x45d2…6f86`)
 - Trophy: `0xFe6112BFBA2Ec16ddA0E4b079865d7A7d0892F02`
 - Owner/oracle: same addresses as mainnet (staging deployer 0x4710).
+
+## v7 upgrade — 2026-07-08 (winner-gated decider bonuses)
+
+Scoring change (PRD §5.2 amendment): ET + penalties bonuses now require the
+correct 90' outcome; advancer bonus unchanged. Storage layout untouched.
+
+| network | proxy | new impl |
+|---|---|---|
+| chiliz (88888) | `0x742c6963a81012bc7949F0058Fba07c8d1A80c4d` | `0x09FeC2eA6f5a1EeA5171cb0ffBC65Dcf76ed72f6` |
+| spicy (88882) | `0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6` | `0x888e98fC6ecEe5C8A086003956Cf7DAb7493bBd7` |
+
+EXPECTED_IMPL updated in oracle-bot.yml for both chains (sentinel).

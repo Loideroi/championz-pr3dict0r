@@ -16,7 +16,7 @@ sign-off) and is **deployed + verified on Chiliz mainnet**.
 | | Mainnet (88888) | Spicy staging (88882) |
 |---|---|---|
 | **Predictor proxy** | **`0x742c6963a81012bc7949F0058Fba07c8d1A80c4d`** | `0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6` |
-| Impl (v6, verified) | `0xD8d86bbfF76ce138eFC91C768dC6c350AF2728Af` | `0x45d2…6f86` |
+| Impl (v7, verified) | `0x09FeC2eA6f5a1EeA5171cb0ffBC65Dcf76ed72f6` | `0x888e…bBd7` |
 | Trophy NFT | **`0x5f990aD689d2c1B33604AdABB38d40Ab496845AB`** | `0xFe6112BFBA2Ec16ddA0E4b079865d7A7d0892F02` |
 | Owner / feeRecipient | `0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8` | same |
 | Oracle (RESULT_ORACLE_ROLE) | `0xB57Cb421E3B707d0970Ec758D40a4366DB317B15` | same |
