@@ -78,7 +78,7 @@ const fr: TermsDocument = {
       heading: "8. Barème : 5/3/1 plus les bonus de match décisif",
       body: [
         "Chaque match n'attribue qu'un seul prix de score : 5 points pour le score exact, 3 points pour la bonne issue avec la bonne différence de buts, 1 point pour la bonne issue seule. Voilà tout le 5/3/1.",
-        "Les matchs décisifs — le retour de chaque confrontation et la finale — portent en plus trois bonus de +1 : prolongation disputée, tirs au but disputés, et équipe qualifiée (ou soulevant le trophée) correctement désignée. Les matchs aller ne rapportent que le barème de base : un match aller ne peut pas aller en prolongation, quelle qu'ait été l'ambiance.",
+        "Les matchs décisifs — le retour de chaque confrontation et la finale — portent en plus trois bonus de +1 : prolongation disputée, tirs au but disputés, et équipe qualifiée (ou soulevant le trophée) correctement désignée. Les matchs aller ne rapportent que le barème de base : un match aller ne peut pas aller en prolongation, quelle qu'ait été l'ambiance. Les bonus prolongation et tirs au but ne sont attribués que si vous avez aussi prédit la bonne issue des 90 minutes — savoir qu'un match reste à quatre-vingt-dix minutes n'est de la sagesse que si vous saviez qui le gagnait. Le bonus de qualification, lui, reste indépendant.",
       ],
       joke: "Le 5/3/1 n'est pas un schéma tactique. Comme schéma tactique, ce serait un motif de licenciement.",
     },

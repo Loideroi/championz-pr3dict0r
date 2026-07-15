@@ -78,7 +78,7 @@ const it: TermsDocument = {
       heading: "8. Punteggio: 5/3/1 più i bonus delle partite decisive",
       body: [
         "Ogni partita assegna al massimo un premio sul risultato: 5 punti per il risultato esatto, 3 punti per l'esito corretto con la giusta differenza reti, 1 punto per il solo esito corretto. Tutto qui il 5/3/1.",
-        "Le partite decisive — il ritorno di ogni doppio confronto e la finale — portano in più tre bonus da +1: supplementari giocati, rigori calciati e squadra che passa il turno (o alza il trofeo) indovinata. Le andate valgono solo il punteggio base: un'andata non può andare ai supplementari, per quanto sembrasse di sì.",
+        "Le partite decisive — il ritorno di ogni doppio confronto e la finale — portano in più tre bonus da +1: supplementari giocati, rigori calciati e squadra che passa il turno (o alza il trofeo) indovinata. Le andate valgono solo il punteggio base: un'andata non può andare ai supplementari, per quanto sembrasse di sì. I bonus supplementari e rigori vengono assegnati solo se hai indovinato anche l'esito corretto dei 90 minuti — sapere che una partita resta di novanta minuti è saggezza solo se sapevi chi la stava vincendo. Il bonus qualificazione resta indipendente.",
       ],
       joke: "Il 5/3/1 non è un modulo. Come modulo sarebbe un esonero a novembre.",
     },

@@ -78,7 +78,7 @@ const es: TermsDocument = {
       heading: "8. Puntuación: 5/3/1 más los bonus de partido decisivo",
       body: [
         "Cada partido otorga como máximo un premio de marcador: 5 puntos por el resultado exacto, 3 puntos por acertar el desenlace con la diferencia de goles correcta, 1 punto por acertar solo el desenlace. Ese es todo el 5/3/1.",
-        "Los partidos decisivos de eliminatoria — la vuelta de cada cruce y la final — llevan además tres bonus de +1: que haya prórroga, que haya penaltis y acertar el equipo que pasa (o que levanta el trofeo). Las idas puntúan solo la base: una ida no puede irse a la prórroga, por mucho que lo pareciera.",
+        "Los partidos decisivos de eliminatoria — la vuelta de cada cruce y la final — llevan además tres bonus de +1: que haya prórroga, que haya penaltis y acertar el equipo que pasa (o que levanta el trofeo). Las idas puntúan solo la base: una ida no puede irse a la prórroga, por mucho que lo pareciera. Los bonus de prórroga y penaltis solo se pagan si además acertaste el desenlace correcto de los 90 minutos — saber que un partido se queda en noventa minutos solo es sabiduría si sabías quién lo ganaba. El bonus del clasificado sigue siendo independiente.",
       ],
       joke: "El 5/3/1 no es un esquema táctico. Como esquema táctico sería un expediente disciplinario contra los laterales.",
     },

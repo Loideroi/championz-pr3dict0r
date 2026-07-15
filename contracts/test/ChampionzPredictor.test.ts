@@ -306,6 +306,44 @@ describe("ChampionzPredictor v1 (two-stage economics)", () => {
       expect(await c.pointsOf(w.address, KO)).to.equal(6n);
     });
 
+    it("v7: wrong 90' winner earns NO ET/pens bonuses even when the flags match", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(owner).setTies([3], [7], [true]);
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      // the CPO scenario: wrong winner, but correctly called "stays 90 minutes"
+      await c.connect(w).submitPrediction(3, pack(0, 2) | (1n << 18n)); // away win, advancer away
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      await c.connect(oracle).pushResult(3, pack(1, 0)); // home wins in regulation, advancer home (0)
+      // scoreline 0 + ET/pens right-by-omission but GATED (0) + advancer wrong (0) = 0 (was 2 pre-v7)
+      expect(await c.pointsOf(w.address, KO)).to.equal(0n);
+    });
+
+    it("v7: correct outcome (not exact) still unlocks the ET/pens bonuses", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(owner).setTies([3], [7], [true]);
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      await c.connect(w).submitPrediction(3, pack(3, 1)); // home win, wrong GD, no flags, advancer home
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      await c.connect(oracle).pushResult(3, pack(1, 0)); // home wins in regulation, advancer home
+      // outcome 1 + noET 1 + noPens 1 + advancer 1 = 4
+      expect(await c.pointsOf(w.address, KO)).to.equal(4n);
+    });
+
+    it("v7: the advancer bonus stays independent of the 90' outcome", async () => {
+      const { c, owner, oracle, signers, t0 } = await withMatches();
+      const w = signers[5];
+      await c.connect(owner).setTies([3], [7], [true]);
+      await c.connect(w).enterFullSeason({ value: FULL_SEASON });
+      // "they lose tonight but advance on aggregate" — wrong winner, right advancer
+      await c.connect(w).submitPrediction(3, pack(2, 0) | (1n << 18n)); // home win + AWAY advances
+      await time.increaseTo(t0 + 46n * 24n * 3600n);
+      await c.connect(oracle).pushResult(3, pack(0, 1) | (1n << 18n)); // away wins, away advances
+      // scoreline 0 + ET/pens gated 0 + advancer correct 1 = 1
+      expect(await c.pointsOf(w.address, KO)).to.equal(1n);
+    });
+
     it("records entry timestamps per stage (tie-break #3)", async () => {
       const { c, signers } = await withMatches();
       const before = BigInt(await time.latest());

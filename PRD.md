@@ -191,6 +191,13 @@ UCL play-offs, R16, QF and SF are two-legged; only the final is a one-off:
 - **Leg 2 (the decider)** is scored 5/3/1 on its own 90′ score **plus** the three
   knockout bonuses (ET / pens / advancing team, judged on the tie).
 - **The final** is a single match with all bonuses.
+- **v7 amendment (2026-07-08, CPO):** the ET and penalties bonuses are awarded
+  **only when the 90′ outcome (win/draw/win) was also predicted correctly** —
+  otherwise a wrong-winner slip could out-earn nothing at all on flag freebies
+  (wrong winner + "stays 90 minutes" used to bank 2 while a correct winner with
+  the wrong goal difference banked 4 with flags). The advancer bonus remains
+  independent: "loses the night, advances on aggregate" is a distinct, honest
+  call. Applied on-chain in contract v7 before any fixtures existed.
 
 This needs a `tieId` / decider concept in both the data model and `knockout.ts` — the
 predecessor only knew single-elimination matches. Flagged as a build slice of its own.

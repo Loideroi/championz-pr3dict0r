@@ -78,7 +78,7 @@ const ptBR: TermsDocument = {
       heading: "8. Pontuação: 5/3/1 mais os bônus de jogo decisivo",
       body: [
         "Cada jogo concede no máximo um prêmio de placar: 5 pontos pelo placar exato, 3 pontos pelo resultado certo com o saldo de gols certo, 1 ponto só pelo resultado certo. Esse é todo o 5/3/1.",
-        "Os jogos decisivos — a volta de cada confronto e a final — carregam ainda três bônus de +1: prorrogação disputada, pênaltis cobrados e time classificado (ou campeão) acertado. Jogos de ida valem só a pontuação base: ida não tem prorrogação, por mais que tenha parecido que teve.",
+        "Os jogos decisivos — a volta de cada confronto e a final — carregam ainda três bônus de +1: prorrogação disputada, pênaltis cobrados e time classificado (ou campeão) acertado. Jogos de ida valem só a pontuação base: ida não tem prorrogação, por mais que tenha parecido que teve. Os bônus de prorrogação e pênaltis só pagam se você também acertou o resultado dos 90 minutos — saber que um jogo fica nos noventa minutos só é sabedoria se você sabia quem estava vencendo. O bônus do classificado continua independente.",
       ],
       joke: "5/3/1 não é esquema tático. Como esquema tático, seria demissão na terça-feira.",
     },

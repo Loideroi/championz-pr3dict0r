@@ -78,7 +78,7 @@ const tr: TermsDocument = {
       heading: "8. Puanlama: 5/3/1 artı karar maçı bonusları",
       body: [
         "Her maç en fazla bir skor ödülü verir: kesin skor için 5 puan, doğru sonuç ve doğru averaj için 3 puan, yalnızca doğru sonuç için 1 puan. 5/3/1'in tamamı bu.",
-        "Karar maçları — her eşleşmenin rövanşı ve final — ayrıca üç adet +1 bonusu taşır: uzatma oynanması, penaltılara gidilmesi ve turu geçen (veya kupayı kaldıran) takımın doğru bilinmesi. İlk maçlar yalnızca taban puanı verir: bir ilk maç uzatmaya gidemez, ne kadar gitmiş gibi hissettirirse hissettirsin.",
+        "Karar maçları — her eşleşmenin rövanşı ve final — ayrıca üç adet +1 bonusu taşır: uzatma oynanması, penaltılara gidilmesi ve turu geçen (veya kupayı kaldıran) takımın doğru bilinmesi. İlk maçlar yalnızca taban puanı verir: bir ilk maç uzatmaya gidemez, ne kadar gitmiş gibi hissettirirse hissettirsin. Uzatma ve penaltı bonusları yalnızca 90 dakikanın doğru sonucunu da bildiyseniz ödenir — bir maçın doksan dakikada biteceğini bilmek, ancak kimin kazandığını da biliyorsanız bilgeliktir. Tur atlama bonusu bağımsız kalır.",
       ],
       joke: "5/3/1 bir diziliş değildir. Diziliş olsaydı, teknik direktörün basın toplantısına gerek kalmadan gönderilirdi.",
     },

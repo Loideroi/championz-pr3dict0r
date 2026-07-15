@@ -78,7 +78,7 @@ const en: TermsDocument = {
       heading: "8. Scoring: 5/3/1 plus the decider bonuses",
       body: [
         "Each match awards at most one scoreline prize: 5 points for the exact score, 3 points for the correct outcome with the correct goal difference, 1 point for the correct outcome alone. That is the whole 5/3/1 of it.",
-        "Knockout deciders — the second leg of a tie, and the final — additionally carry three +1 bonuses: extra time played, penalties taken, and correctly naming the team that advances (or lifts the trophy). First legs score base points only; a first leg cannot go to extra time, no matter how strongly it felt like it did.",
+        "Knockout deciders — the second leg of a tie, and the final — additionally carry three +1 bonuses: extra time played, penalties taken, and correctly naming the team that advances (or lifts the trophy). First legs score base points only; a first leg cannot go to extra time, no matter how strongly it felt like it did. The extra-time and penalties bonuses only pay if you also called the correct 90-minute outcome — knowing a game stays ninety minutes is only wisdom when you knew who was winning it. The advancer bonus stands on its own.",
       ],
       joke: "5/3/1 is not a formation. As a formation it would be a war crime against full-backs.",
     },

@@ -691,17 +691,25 @@ contract ChampionzPredictor is
             uint256 res = results[id];
             (uint8 pa, uint8 pb) = _scores(packed);
             (uint8 ra, uint8 rb) = _scores(res);
+            bool outcomeRight = _sign(pa, pb) == _sign(ra, rb);
             if (pa == ra && pb == rb) {
                 pts += POINTS_EXACT;
                 ++exact;
             } else if (int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))) {
                 pts += POINTS_GOAL_DIFF;
-            } else if (_sign(pa, pb) == _sign(ra, rb)) {
+            } else if (outcomeRight) {
                 pts += POINTS_OUTCOME;
             }
             if (tieInfo[id] & 1 == 1) {
-                if ((packed >> 16) & 1 == (res >> 16) & 1) pts += POINTS_BONUS;
-                if ((packed >> 17) & 1 == (res >> 17) & 1) pts += POINTS_BONUS;
+                // v7: the ET + penalties bonuses require the correct 90'
+                // outcome — "it won't go to overtime" is only insight when
+                // you also called who wins; otherwise a wrong-winner slip
+                // out-earns nothing. The advancer bonus stays independent:
+                // "loses tonight, advances on aggregate" is real skill.
+                if (outcomeRight) {
+                    if ((packed >> 16) & 1 == (res >> 16) & 1) pts += POINTS_BONUS;
+                    if ((packed >> 17) & 1 == (res >> 17) & 1) pts += POINTS_BONUS;
+                }
                 if ((packed >> 18) & 3 == (res >> 18) & 3) pts += POINTS_BONUS;
             }
         }
@@ -712,6 +720,8 @@ contract ChampionzPredictor is
     /// @notice Pure function of (predictions, results); bounded by matchCount.
     ///         Scoreline 5/3/1 on the 90′ score for every match; the three +1
     ///         bonuses (ET / pens / advancer) apply on DECIDERS only (§5.2).
+    ///         v7: ET + pens bonuses additionally require the correct 90′
+    ///         outcome; the advancer bonus remains independent.
     function pointsOf(address wallet, uint8 stage) public view returns (uint256 total) {
         (total, ) = _score(stage, wallet);
     }
