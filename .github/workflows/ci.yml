@@ -24,6 +24,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      # Runner Node 22 bundles npm 10.x, which refuses this lockfile now that
+      # local npm 11 (re)wrote it — npm 11 dedupes the nested @swc/helpers
+      # pin that npm 10 requires as its own entry (the same next/next-intl
+      # trap Fanbet documents in its ci.yml). Pin CI to npm 11 to match local
+      # dev. First live CI run of this branch caught it (2026-08-27).
+      - name: Pin npm to v11 (match local dev)
+        run: npm install -g npm@11
       - name: Lockfile integrity (lockfile-lint)
         # Runs BEFORE npm ci on purpose: a poisoned lockfile must be rejected
         # before anything installs or executes. npx fetches lockfile-lint
