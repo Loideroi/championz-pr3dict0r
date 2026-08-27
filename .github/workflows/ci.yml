@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
 
+# Least privilege: nothing in this workflow writes to the repo or uses
+# secrets (added 2026-08-27 with the gate wiring; reviewer finding).
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -19,13 +24,34 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Lockfile integrity (lockfile-lint)
+        # Runs BEFORE npm ci on purpose: a poisoned lockfile must be rejected
+        # before anything installs or executes. npx fetches lockfile-lint
+        # independently of the lockfile under test. No package-name aliases
+        # exist in this lockfile (verified 2026-08-27) — if one ever appears,
+        # verify it is legitimate before allowlisting it here.
+        run: |
+          npx --yes lockfile-lint@5.0.0 --path package-lock.json --type npm \
+            --allowed-hosts npm --validate-https \
+            --validate-integrity --validate-package-names
       - run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+        # Added 2026-08-27 — CI previously never ran ESLint. Base-config
+        # findings are errors; the complexity/max-lines budgets are WARN-only
+        # ratchets (baselines in docs/REVIEW_TIERS.md) and do not fail this
+        # step — reviewers reject NEW budget warnings instead.
       - name: i18n parity (key + non-translatable-token check)
         run: npm run check:i18n
       - name: Type-check
         run: npm run typecheck
       - name: Test
         run: npm test
+      - name: Code duplication (jscpd)
+        run: npm run dup
+        # Ratchet gate: fails above 2% duplicated lines (baseline 1.20% /
+        # 8 exact clones, 2026-08-27, tests excluded — docs/REVIEW_TIERS.md).
+        # Tighten the threshold as clones are consolidated; never raise it.
       - name: Build
         run: npm run build
 
@@ -41,6 +67,10 @@ jobs:
         working-directory: relayer
         run: |
           if [ -f package.json ]; then
+            # Lockfile integrity before install — same rule as the app job.
+            npx --yes lockfile-lint@5.0.0 --path package-lock.json --type npm \
+              --allowed-hosts npm --validate-https \
+              --validate-integrity --validate-package-names
             npm ci --no-audit --no-fund
             npm run typecheck
             npm test
@@ -61,9 +91,51 @@ jobs:
         working-directory: contracts
         run: |
           if [ -f package.json ] && [ -f hardhat.config.ts ]; then
+            # Lockfile integrity before install — same rule as the app job.
+            npx --yes lockfile-lint@5.0.0 --path package-lock.json --type npm \
+              --allowed-hosts npm --validate-https \
+              --validate-integrity --validate-package-names
             npm ci --no-audit --no-fund
             npx hardhat compile
             npx hardhat test
           else
             echo "contracts workspace not initialized yet — skipping"
           fi
+
+  migrations:
+    name: Migrations — squawk (changed files only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # PR-gate only, changed files only: the historical migration is already
+    # applied in production and carries 25 warning-level findings
+    # (docs/REVIEW_TIERS.md baseline) — retro-gating it would be noise.
+    # Direct pushes to main bypass this job; the PR gate is the enforcement
+    # point.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lint changed migration files (squawk)
+        # squawk exits non-zero on ANY finding, warnings included (verified
+        # 2026-08-27) — so a new migration must be squawk-clean to merge.
+        # A finding that is deliberate gets a commented, justified exclusion
+        # in .squawk.toml in the same PR (that file is Tier 3 per
+        # docs/REVIEW_TIERS.md) — the known-debt expiring-exception pattern.
+        #
+        # Selector notes: --no-renames makes a renamed migration show as an
+        # Add (a renamed file IS a new migration to the Supabase CLI);
+        # NUL-delimited xargs survives unusual filenames; BASE_SHA comes in
+        # via env, not script interpolation (actions hardening guidance);
+        # sha...HEAD gives merge-base semantics (fetch-depth 0 above).
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          echo "Changed migration files (if any):"
+          git diff --name-only --no-renames --diff-filter=AM "$BASE_SHA...HEAD" -- 'supabase/migrations/*.sql'
+          git diff --name-only -z --no-renames --diff-filter=AM "$BASE_SHA...HEAD" -- 'supabase/migrations/*.sql' \
+            | xargs -0 -r npx --yes squawk-cli@2.63.0

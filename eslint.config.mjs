@@ -16,6 +16,21 @@ const eslintConfig = defineConfig([
     "contracts/**",
     "relayer/**",
   ]),
+  {
+    // Complexity budgets (architecture fitness functions, wired 2026-08-27).
+    // Warn-only ratchet: baseline counts live in docs/REVIEW_TIERS.md and
+    // may shrink, never grow. Tests are exempt from max-lines.
+    rules: {
+      complexity: ["warn", 15],
+      "max-lines": ["warn", { max: 400, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: ["**/*.test.*", "**/__tests__/**"],
+    rules: {
+      "max-lines": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

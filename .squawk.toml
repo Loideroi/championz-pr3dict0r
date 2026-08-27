@@ -1,0 +1,7 @@
+# squawk configuration (Supabase/Postgres migration linter — CI "migrations" job).
+# squawk exits non-zero on ANY finding, so a new migration must be clean to
+# merge. Rules listed in excluded_rules are DELIBERATE, justified exceptions —
+# the known-debt expiring-exception pattern: each entry must carry a comment
+# saying why it is excluded and when to revisit. This file is Tier 3
+# (docs/REVIEW_TIERS.md): editing it can silence the migrations gate.
+excluded_rules = []
