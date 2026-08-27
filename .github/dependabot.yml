@@ -1,0 +1,65 @@
+# Dependabot version-update config (wired 2026-08-27 with the review gates).
+# This file schedules routine non-security version-bump PRs; enable
+# vulnerability alerts + automated security fixes in Settings → Security &
+# analysis (owner click) for the security half.
+#
+# Cooldown parity with .npmrc min-release-age=2 (supply-chain guardrails):
+# no version-bump PR for a release younger than 2 days; majors soak a week.
+# Dependabot cooldown applies to version updates only, never security updates
+# (docs.github.com Dependabot options reference, verified 2026-08-27).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 2
+      semver-major-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /contracts
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 2
+      semver-major-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - contracts
+
+  - package-ecosystem: npm
+    directory: /relayer
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 2
+      semver-major-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - relayer
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 2
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci

@@ -1,0 +1,40 @@
+# Security scan half of the contract's merge gate (tests, lint, duplication,
+# lockfile, SECURITY SCAN) — added 2026-08-27 with the review wiring after a
+# reviewer finding that no security scan existed anywhere in CI. CodeQL is
+# free on public repos and needs no external account (frugality rule).
+#
+# Scope: JS/TS (app + relayer). Solidity is NOT covered — contracts security
+# scanning (slither, mirroring Fanbet) is a named follow-up in
+# docs/REVIEW_TIERS.md. Dependabot alerts + automated security fixes remain
+# the owner's Settings click.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly sweep so new query-pack findings on unchanged code still surface.
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:javascript-typescript"
