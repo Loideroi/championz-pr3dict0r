@@ -8,6 +8,8 @@
     "start": "next start",
     "check:i18n": "node scripts/check-i18n-parity.mjs",
     "lint": "eslint",
+    "dup": "jscpd app components hooks lib middleware.ts relayer/src --min-tokens 50 --ignore \"**/*.test.*,**/__tests__/**,**/test/**\" --threshold 2 --silent",
+    "migrations:lint": "squawk supabase/migrations/*.sql",
     "test": "vitest run",
     "test:relayer": "npm --prefix relayer test",
     "test:watch": "vitest",
@@ -32,6 +34,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "jscpd": "^5.0.16",
+    "squawk-cli": "^2.63.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3"
