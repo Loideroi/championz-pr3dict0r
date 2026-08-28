@@ -90,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS non è impostato — distribuisci il contratto e aggiungi l’indirizzo del proxy a .env.local.",
     "connectWallet": "Connetti wallet",
     "loading": "Caricamento della lavagna…",
-    "emptySlate": "Il sorteggio è fatto — le 144 partite della fase campionato arrivano in lavagna appena la UEFA pubblica il calendario.",
+    "emptySlate": "Il sorteggio è fatto — le 144 partite della fase campionato arrivano qui domenica 30 agosto. Visibili e pronosticabili da allora, modificabili fino a 60 minuti prima di ogni calcio d’inizio.",
     "stageLeague": "Fase campionato",
     "stageKnockout": "Eliminazione diretta",
     "stageFallback": "Fase {stage}",
@@ -101,6 +101,9 @@
     "updatedSingle": "Pronostico aggiornato — puoi cambiarlo fino alle {time} (T-60).",
     "updatedMany": "{count} pronostici aggiornati — puoi cambiarne ognuno fino a 60 minuti prima del suo calcio d’inizio (T-60).",
     "batchNotConfirmed": "Lotto non confermato dopo 120s — controlla wallet e Chiliscan prima di riprovare."
+  },
+  "fixtures": {
+    "notice": "📅 Le partite arrivano domenica 30 agosto — le 144 gare della fase campionato saranno visibili e pronosticabili da allora, modificabili fino a 60 minuti prima di ogni calcio d’inizio."
   },
   "predict": {
     "matchRow": {

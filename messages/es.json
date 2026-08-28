@@ -90,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS no está configurada — despliega el contrato y añade la dirección del proxy a .env.local.",
     "connectWallet": "Conectar wallet",
     "loading": "Cargando la pizarra…",
-    "emptySlate": "El sorteo ya está hecho — los 144 partidos de la fase liga llegan a la pizarra en cuanto la UEFA publique el calendario.",
+    "emptySlate": "El sorteo ya está hecho — los 144 partidos de la fase liga se publican aquí el domingo 30 de agosto. Visibles y pronosticables desde entonces, editables hasta 60 minutos antes de cada inicio.",
     "stageLeague": "Fase liga",
     "stageKnockout": "Eliminatorias",
     "stageFallback": "Fase {stage}",
@@ -101,6 +101,9 @@
     "updatedSingle": "Pronóstico actualizado — puedes cambiarlo hasta las {time} (T-60).",
     "updatedMany": "{count} pronósticos actualizados — puedes cambiar cada uno hasta 60 minutos antes de su inicio (T-60).",
     "batchNotConfirmed": "Lote sin confirmar tras 120s — revisa tu wallet y Chiliscan antes de reintentar."
+  },
+  "fixtures": {
+    "notice": "📅 Los partidos se publican el domingo 30 de agosto — los 144 encuentros de la fase liga estarán visibles y se podrán pronosticar desde entonces, editables hasta 60 minutos antes de cada inicio."
   },
   "predict": {
     "matchRow": {

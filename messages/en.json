@@ -90,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS is not set — deploy the contract and add the proxy address to .env.local.",
     "connectWallet": "Connect Wallet",
     "loading": "Loading the slate…",
-    "emptySlate": "The draw is done — the 144 league-phase fixtures land on the slate the moment UEFA publishes the schedule.",
+    "emptySlate": "The draw is done — the 144 league-phase fixtures go live here on Sunday 30 August. Visible and predictable from then, editable until 60 minutes before each kickoff.",
     "stageLeague": "League phase",
     "stageKnockout": "Knockout",
     "stageFallback": "Stage {stage}",
@@ -101,6 +101,9 @@
     "updatedSingle": "Prediction updated — you can change it again until {time} (T-60).",
     "updatedMany": "{count} predictions updated — you can change each again until 60 minutes before its kickoff (T-60).",
     "batchNotConfirmed": "Batch not confirmed after 120s — check your wallet and Chiliscan before retrying."
+  },
+  "fixtures": {
+    "notice": "📅 Fixtures go live on Sunday 30 August — all 144 league-phase matches become visible and predictable on the slate from then, editable until 60 minutes before each kickoff."
   },
   "predict": {
     "matchRow": {

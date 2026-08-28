@@ -90,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS n’est pas défini — déployez le contrat et ajoutez l’adresse du proxy à .env.local.",
     "connectWallet": "Connecter le wallet",
     "loading": "Chargement du programme…",
-    "emptySlate": "Le tirage est fait — les 144 matchs de la phase de ligue arrivent au programme dès que l’UEFA publie le calendrier.",
+    "emptySlate": "Le tirage est fait — les 144 matchs de la phase de ligue arrivent ici le dimanche 30 août. Visibles et pronosticables dès lors, modifiables jusqu’à 60 minutes avant chaque coup d’envoi.",
     "stageLeague": "Phase de ligue",
     "stageKnockout": "Élimination directe",
     "stageFallback": "Phase {stage}",
@@ -101,6 +101,9 @@
     "updatedSingle": "Pronostic mis à jour — modifiable jusqu’à {time} (T-60).",
     "updatedMany": "{count} pronostics mis à jour — chacun reste modifiable jusqu’à 60 minutes avant son coup d’envoi (T-60).",
     "batchNotConfirmed": "Lot non confirmé après 120s — vérifiez votre wallet et Chiliscan avant de réessayer."
+  },
+  "fixtures": {
+    "notice": "📅 Les matchs arrivent le dimanche 30 août — les 144 rencontres de la phase de ligue seront visibles et pronosticables dès lors, modifiables jusqu’à 60 minutes avant chaque coup d’envoi."
   },
   "predict": {
     "matchRow": {
