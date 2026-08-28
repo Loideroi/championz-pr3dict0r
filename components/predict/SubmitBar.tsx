@@ -38,7 +38,7 @@ export function SubmitBar({
       <ul className="flex flex-col gap-1 font-mono text-sm">
         {changes.map((c) => (
           <li key={c.matchId} className="flex items-baseline gap-2">
-            <span className="w-24 shrink-0 text-muted">
+            <span className="min-w-0 flex-1 truncate text-muted" title={`${c.teamA}–${c.teamB}`}>
               {c.teamA}–{c.teamB}
             </span>
             {c.old !== null ? (

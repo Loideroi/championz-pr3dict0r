@@ -12,11 +12,16 @@
  * Input is either recorded fixture files (raw match.uefa.com/v5 arrays) or the
  * live feed:
  *   node scripts/generate-matches.mjs --from test/fixtures/a.json [b.json ...] --out out.json
- *   node scripts/generate-matches.mjs --season 2026 --out out.json
+ *   node scripts/generate-matches.mjs --season 2027 --out out.json [--code 63405=LAS ...]
+ *
+ * Team codes go on-chain as bytes3, so every code MUST be exactly 3 ASCII
+ * chars. UEFA's teamCode is 3 letters for almost every club; the exceptions
+ * (LASK) are pinned in CODE_OVERRIDES / `--code <uefaTeamId>=<CODE>`, and any
+ * other long code is truncated with a warning (collision-checked).
  *
  * NOTE: the tieId / kickoff / leg mapping here MUST stay in sync with
- * `src/source.ts` (toFixture / tieIdOf) — test/generate.test.ts cross-checks
- * the two against the same recorded payload.
+ * `src/source.ts` (toFixture / tieIdOf) — test/scripts.test.ts cross-checks the
+ * two against the same recorded payload.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -24,6 +29,17 @@ import { dirname, resolve } from 'node:path';
 const API = 'https://match.uefa.com/v5/matches';
 const COMPETITION_ID = '1';
 const PAGE = 50;
+
+/** bytes3 on-chain: exactly 3 ASCII uppercase letters/digits. */
+const TEAM_CODE = /^[A-Z0-9]{3}$/;
+
+/**
+ * Pinned codes by UEFA team id — for clubs whose UEFA teamCode is not 3 chars.
+ * LASK (Linz, 63405) is "LASK" in the feed and overflows bytes3.
+ */
+const CODE_OVERRIDES = {
+  63405: 'LAS', // LASK
+};
 
 /** Round name -> our phase number (0 = league phase; knockout ascends to the final). */
 const PHASES = [
@@ -86,10 +102,11 @@ const arg = (name) => {
   return i === -1 ? null : argv[i + 1];
 };
 const argMulti = (name) => {
-  const i = argv.indexOf(name);
-  if (i === -1) return [];
   const values = [];
-  for (let k = i + 1; k < argv.length && !argv[k].startsWith('--'); k++) values.push(argv[k]);
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] !== name) continue;
+    for (let k = i + 1; k < argv.length && !argv[k].startsWith('--'); k++) values.push(argv[k]);
+  }
   return values;
 };
 
@@ -97,7 +114,13 @@ const fromFiles = argMulti('--from');
 const season = arg('--season');
 const outPath = arg('--out');
 if (!outPath || (fromFiles.length === 0 && !season)) {
-  fail('usage: generate-matches.mjs (--from <fixture.json>... | --season <year>) --out <matches.json>');
+  fail('usage: generate-matches.mjs (--from <fixture.json>... | --season <year>) --out <matches.json> [--code <uefaTeamId>=<CODE>]...');
+}
+for (const spec of argMulti('--code')) {
+  const [id, code] = spec.split('=');
+  if (!id || !code) fail(`--code expects <uefaTeamId>=<CODE>, got "${spec}"`);
+  if (!TEAM_CODE.test(code)) fail(`--code ${spec}: "${code}" must be 3 ASCII uppercase chars/digits (bytes3 on-chain)`);
+  CODE_OVERRIDES[id] = code;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,24 +155,42 @@ const tournament = [...byId.values()].sort((a, b) => {
 if (tournament.length === 0) fail('no TOURNAMENT-phase matches in input');
 
 // ---------------------------------------------------------------------------
-// Teams map (3-letter codes)
+// Teams map (3-letter codes — bytes3 on-chain)
 // ---------------------------------------------------------------------------
-const teams = {}; // code -> { name, code, uefaId, country }
+const teams = {}; // code -> { name, code, uefaId, country, uefaCode? }
 const codeByUefaId = new Map();
+
+const codeFor = (t) => {
+  const override = CODE_OVERRIDES[t.id];
+  if (override) return override;
+  const source = t.teamCode || t.internationalName;
+  const ascii = source.toUpperCase().normalize('NFKD').replace(/[^A-Z0-9]/g, '');
+  const code = ascii.slice(0, 3);
+  if (!TEAM_CODE.test(code)) {
+    fail(`cannot derive a 3-char ASCII code for ${t.internationalName} (${t.id}) from "${source}" — pass --code ${t.id}=XYZ`);
+  }
+  if (t.teamCode && t.teamCode.length !== 3) {
+    console.warn(
+      `  warn: ${t.internationalName} (${t.id}) teamCode "${t.teamCode}" is not 3 chars — using "${code}" (pin it with --code ${t.id}=${code})`,
+    );
+  }
+  return code;
+};
 
 const registerTeam = (t) => {
   if (t.isPlaceHolder) return null;
   const existing = codeByUefaId.get(t.id);
   if (existing) return existing;
-  let code = (t.teamCode || t.internationalName.slice(0, 3)).toUpperCase();
+  const code = codeFor(t);
   if (teams[code] && teams[code].uefaId !== t.id) {
-    fail(`team code collision: ${code} used by ${teams[code].name} (${teams[code].uefaId}) and ${t.internationalName} (${t.id})`);
+    fail(`team code collision: ${code} used by ${teams[code].name} (${teams[code].uefaId}) and ${t.internationalName} (${t.id}) — pin one with --code`);
   }
   teams[code] = {
     name: t.internationalName,
     code,
     uefaId: t.id,
     ...(t.countryCode ? { country: t.countryCode } : {}),
+    ...(t.teamCode && t.teamCode !== code ? { uefaCode: t.teamCode } : {}),
   };
   codeByUefaId.set(t.id, code);
   return code;
@@ -193,6 +234,7 @@ if (loneLegs > 0) console.warn(`  ${loneLegs} incomplete tie(s) — expected onl
 
 const out = {
   generatedFrom: fromFiles.length > 0 ? fromFiles.map((f) => f.replace(/^.*\/(test\/fixtures\/)/, '$1')) : `live:seasonYear=${season}`,
+  generatedAt: new Date().toISOString(),
   source: 'uefa-api@1.0.2 (match.uefa.com/v5/matches, competitionId=1)',
   teams,
   matches,

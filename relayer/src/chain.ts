@@ -16,6 +16,24 @@ export const spicy: Chain = {
   rpcUrls: { default: { http: ['https://spicy-rpc.chiliz.com'] } },
 };
 
+export const chiliz: Chain = {
+  id: 88888,
+  name: 'Chiliz Chain',
+  nativeCurrency: { name: 'Chiliz', symbol: 'CHZ', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.ankr.com/chiliz'] } },
+};
+
+/**
+ * The wallet client signs with the chain's id — a Spicy-configured writer
+ * pointed at a mainnet RPC produces transactions the node rejects. Resolve
+ * the chain from CHAIN_ID explicitly; unknown ids are a loud failure.
+ */
+export function chainFor(chainId: number): Chain {
+  if (chainId === chiliz.id) return chiliz;
+  if (chainId === spicy.id) return spicy;
+  throw new Error(`unsupported CHAIN_ID ${chainId} — expected 88888 (Chiliz) or 88882 (Spicy)`);
+}
+
 const GAS_PRICE = 2_510_000_000_000n; // 2,510 gwei > 2,501 floor
 
 const ABI = [
@@ -73,11 +91,13 @@ const FLAG_SUBMITTED = 1n << 20n;
 
 export function viemWriter(opts: {
   rpcUrl: string;
+  /** explicit chain object; else resolved from `chainId`; else Spicy */
   chain?: Chain;
+  chainId?: number;
   contract: Address;
   oracleKey: `0x${string}`;
 }): ChainWriter {
-  const chain = opts.chain ?? spicy;
+  const chain = opts.chain ?? (opts.chainId !== undefined ? chainFor(opts.chainId) : spicy);
   const transport = http(opts.rpcUrl);
   const publicClient = createPublicClient({ chain, transport });
   const account = privateKeyToAccount(opts.oracleKey);

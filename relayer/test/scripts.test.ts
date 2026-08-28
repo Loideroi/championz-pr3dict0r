@@ -32,7 +32,7 @@ interface GeneratedMatch {
   legNumber: number | null;
 }
 interface GeneratedDoc {
-  teams: Record<string, { name: string; code: string; uefaId: string }>;
+  teams: Record<string, { name: string; code: string; uefaId: string; uefaCode?: string }>;
   matches: GeneratedMatch[];
 }
 
@@ -192,5 +192,54 @@ describe('verify-fixtures.mjs', () => {
     }, 'scrambled-missing.json');
     expect(res.status).toBe(1);
     expect(res.stdout).toContain('not in');
+  });
+});
+
+describe('generate-matches.mjs — bytes3 team codes', () => {
+  /** Replace one real team's code across the recorded feed (both legs, both sides). */
+  const withTeamCode = (uefaTeamId: string, teamCode: string) => {
+    const raw = loadFixture<Array<{ homeTeam: { id: string; teamCode?: string }; awayTeam: { id: string; teamCode?: string } }>>(AET_BATCH);
+    for (const m of raw) {
+      if (m.homeTeam.id === uefaTeamId) m.homeTeam.teamCode = teamCode;
+      if (m.awayTeam.id === uefaTeamId) m.awayTeam.teamCode = teamCode;
+    }
+    const p = join(tmp, `feed-code-${uefaTeamId}-${teamCode}.json`);
+    writeFileSync(p, JSON.stringify(raw));
+    return p;
+  };
+  const GALATASARAY = '50067';
+
+  it('truncates a 4-letter UEFA code (the LASK case) to 3 chars with a warning', () => {
+    const out = join(tmp, 'matches-lask.json');
+    const res = run(GENERATE, ['--from', withTeamCode(GALATASARAY, 'GALA'), '--out', out]);
+    expect(res.status, res.stdout).toBe(0);
+    const d = JSON.parse(readFileSync(out, 'utf8')) as GeneratedDoc;
+    expect(d.teams.GAL).toBeDefined();
+    expect(d.teams.GAL!.uefaId).toBe(GALATASARAY);
+    expect(d.teams.GAL!.uefaCode).toBe('GALA'); // UEFA's own code kept for transparency
+    expect(Object.keys(d.teams).every((c) => /^[A-Z0-9]{3}$/.test(c))).toBe(true);
+  });
+
+  it('honours an explicit --code override by UEFA team id', () => {
+    const out = join(tmp, 'matches-override.json');
+    const res = run(GENERATE, ['--from', withTeamCode(GALATASARAY, 'GALA'), '--out', out, '--code', `${GALATASARAY}=GSK`]);
+    expect(res.status, res.stdout).toBe(0);
+    const d = JSON.parse(readFileSync(out, 'utf8')) as GeneratedDoc;
+    expect(d.teams.GSK!.uefaId).toBe(GALATASARAY);
+    expect(d.teams.GAL).toBeUndefined();
+    expect(d.matches.some((m) => m.teamA === 'GSK' || m.teamB === 'GSK')).toBe(true);
+  });
+
+  it('fails loudly when a truncated code collides with another team', () => {
+    // Galatasaray as "PSGX" truncates to PSG — Paris already owns it
+    const res = run(GENERATE, ['--from', withTeamCode(GALATASARAY, 'PSGX'), '--out', join(tmp, 'x.json')]);
+    expect(res.status).toBe(1);
+    expect(res.stdout).toContain('team code collision');
+  });
+
+  it('rejects an override that is not 3 ASCII chars (bytes3 on-chain)', () => {
+    const res = run(GENERATE, ['--from', ...FEED_ARGS, '--out', join(tmp, 'x.json'), '--code', `${GALATASARAY}=GALA`]);
+    expect(res.status).toBe(1);
+    expect(res.stdout).toContain('3 ASCII');
   });
 });

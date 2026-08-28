@@ -15,8 +15,10 @@
 
 **Post-deploy owner tasks (real tournament):**
 1. Fund the oracle `0xB57C…` with mainnet CHZ gas.
-2. After the 27 Aug draw: `generate-matches.mjs` → verify → `addMatches` on-chain
-   (via /admin), then `setTies` for the knockout deciders.
+2. After the 27 Aug draw: `generate-matches.mjs` → `verify-fixtures.mjs` →
+   `scripts/add-fixtures.ts` (owner key, pause-bracketed, chunked, read-back verified;
+   DRY RUN unless `CONFIRM=1`) → `verify-onchain.mjs` → `generate-map.mjs`. Knockout
+   rounds + `setTies` follow each February draw. Full runbook: `STATUS.md`.
 3. If launch timing shifts, adjust windows with `setStageWindow` (owner, while SELLING).
 4. Point the mainnet frontend at the proxy (`NEXT_PUBLIC_PREDICTOR_ADDRESS` in Vercel prod).
 

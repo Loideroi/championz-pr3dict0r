@@ -18,8 +18,10 @@ import {
   STAGE_LEAGUE,
 } from "@/lib/predictor/abi";
 import { unpackPrediction } from "@/lib/predictor/packed";
+import { enrichSlate } from "@/lib/fixtures";
 import {
   diffSlate,
+  displayTeam,
   formatUtcTime,
   groupSlate,
   lockAt,
@@ -125,15 +127,16 @@ export function PlayPanel() {
         `0x${string}`,
         number,
       ];
+      // chain is truth; the bundle only decorates (names, matchday, insights key)
       return [
-        {
+        enrichSlate({
           id: ids[i],
           kickoff: Number(kickoff),
           completed: Number(status) === 1, // MatchStatus.COMPLETED
           teamA: hexToString(teamA, { size: 3 }),
           teamB: hexToString(teamB, { size: 3 }),
           stage: Number(stage),
-        },
+        }),
       ];
     });
   }, [matchReads.data, ids]);
@@ -200,7 +203,7 @@ export function PlayPanel() {
     return diffSlate(drafts, onchainPicks).flatMap((c) => {
       const m = byId.get(c.matchId);
       if (!m || matchPhase(m, now) !== "open" || !enteredByStage[m.stage]) return [];
-      return [{ ...c, teamA: m.teamA, teamB: m.teamB }];
+      return [{ ...c, teamA: displayTeam(m, "A"), teamB: displayTeam(m, "B") }];
     });
   }, [now, slate, drafts, onchainPicks, enteredByStage]);
 
@@ -291,10 +294,11 @@ export function PlayPanel() {
                 ? t("stageKnockout")
                 : t("stageFallback", { stage: group.stage });
           return (
-          <section key={`${group.stage}|${group.dayKey}`} className="flex flex-col gap-3">
+          <section key={`${group.stage}|${group.matchday ?? ""}|${group.dayKey}`} className="flex flex-col gap-3">
             <header className="flex items-baseline justify-between gap-3">
               <h2 className="font-mono text-xs uppercase tracking-[0.24em] text-glow-2">
-                {stageLabel} · {group.dayLabel}
+                {stageLabel}
+                {group.matchday !== null && <> · {t("matchday", { n: group.matchday })}</>} · {group.dayLabel}
               </h2>
               {pointsByStage[group.stage] !== null && pointsByStage[group.stage]! > 0n && (
                 <p className="font-mono text-xs text-star">

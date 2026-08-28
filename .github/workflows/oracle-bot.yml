@@ -34,15 +34,22 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm run build
-      - name: Relay results (Spicy staging)
+
+      # The season: UEFA feed → mainnet proxy. config/mainnet-map.json is
+      # generated from the pushed matches.json (generate-map.mjs) — an empty
+      # map is a no-op run. TELEGRAM_CHANNEL_ID (Actions var) routes the
+      # public digests + T-75 reminders; unset = ops DM only.
+      - name: Relay results (Chiliz mainnet)
         working-directory: relayer
         env:
           ORACLE_PRIVATE_KEY: ${{ secrets.ORACLE_PRIVATE_KEY }}
-          PREDICTOR_ADDRESS: "0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6"
-          RPC_URL: "https://spicy-rpc.chiliz.com"
-          CHAIN_ID: "88882"
+          PREDICTOR_ADDRESS: "0x742c6963a81012bc7949F0058Fba07c8d1A80c4d"
+          RPC_URL: "https://rpc.ankr.com/chiliz"
+          CHAIN_ID: "88888"
+          ORACLE_MIN_CHZ: "20"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_CHANNEL_ID: ${{ vars.TELEGRAM_CHANNEL_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
@@ -54,7 +61,7 @@ jobs:
             printf '%s' '${{ github.event.inputs.manual_results }}' > /tmp/manual-results.json
             EXTRA="$EXTRA --manual /tmp/manual-results.json"
           fi
-          node scripts/relay.mjs --map config/staging-map.json $EXTRA
+          node scripts/relay.mjs --map config/mainnet-map.json $EXTRA
 
       # Oracle gas-balance watch (both chains, every run; Supabase dedupes to
       # ≤1 Telegram warning per chain per 24h). An empty oracle key fails
