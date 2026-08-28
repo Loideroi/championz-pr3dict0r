@@ -44,16 +44,20 @@ sign-off) and is **deployed + verified on Chiliz mainnet**.
    despite live sales + no fixtures until the draw). GoDaddy DNS: `A @ → 216.198.79.1`,
    `CNAME www → cname.vercel-dns.com`, parked record removed.
 
-3. 🟡 **Telegram** — public channel **@championz_pr3dict0r** created, bot
-   `@Chmpi0nz_Pr3dict0r_bot` added as **admin** (for a channel you add the bot as admin
-   directly — there is no join step). Ops alerts route to the owner DM
-   `TELEGRAM_OPS_CHAT_ID=2055709055`. **Still to do:** the community **group** (create → add
-   bot admin → set `TELEGRAM_GROUP_ID` Actions var); an optional separate ops/private channel
-   (not required — ops already DMs the owner).
-   - ⚠️ **`TELEGRAM_CHANNEL_ID` Actions var is deliberately REMOVED** so the 7–8 Jul staging
-     self-settlement demo stays out of the public channel. **RE-ADD
-     `TELEGRAM_CHANNEL_ID=@championz_pr3dict0r` before the real season (post-draw, pre-MD1)
-     or the channel will stay silent.**
+3. ✅ **Telegram — fully wired 2026-08-28.** Public channel **@championz_pr3dict0r**
+   (id `-1003940503748`, bot admin, post-message test OK) → Actions var
+   `TELEGRAM_CHANNEL_ID=-1003940503748` re-added (oracle-bot posts results digests +
+   T-75 reminders there). Community **supergroup** "₵h@mpi0nz Pr3dict0r — Community"
+   (id `-1004494559812`, bot admin with invite rights; the earlier plain group
+   `-5380283657` was auto-migrated to it) → `TELEGRAM_GROUP_ID=-1004494559812` set as an
+   Actions var **and** in Vercel production (the webhook route hands out one-person
+   invites on wallet link). The production **webhook was never registered** before —
+   `getWebhookInfo` showed no URL, so "Link Telegram" could not work; it is now
+   registered at `https://pr3dict0r.com/api/telegram/webhook` (secret_token =
+   `TELEGRAM_WEBHOOK_SECRET`, rotated in Vercel at registration time; `allowed_updates:
+   message`). Ops alerts + heartbeat still DM the owner (`TELEGRAM_OPS_CHAT_ID=2055709055`).
+   Owner to-do: pin the welcome post in the channel; link the group as the channel's
+   Discussion; round-trip "Link Telegram" from /profile once.
 
 4. 🔲 **Socios.com Wallet end-to-end test** — connect → enter → predict → edit, exercising
    the ERC-1271 path no simulation covers. Do it on the live mainnet `/enter` before real
