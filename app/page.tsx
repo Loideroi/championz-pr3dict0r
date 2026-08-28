@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { ENTRY, formatChz } from "@/lib/economics";
+import { FixturesNotice } from "@/components/chrome/FixturesNotice";
 import { StatStrip } from "@/components/chrome/StatStrip";
 import { TrustBox } from "@/components/chrome/TrustBox";
 
@@ -26,6 +27,7 @@ export default async function Home() {
           {t("knockoutPill", { amount: formatChz(ENTRY.knockout.gross) })}
         </span>
       </div>
+      <FixturesNotice />
       <StatStrip />
       <TrustBox />
       {/* Mobile: stacked full-width CTAs so "Enter the pool →" never wraps;

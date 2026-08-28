@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { FixturesNotice } from "@/components/chrome/FixturesNotice";
 import { EnterPanel } from "./EnterPanel";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +19,7 @@ export default async function EnterPage() {
         {t("heading")}
       </h1>
       <p className="max-w-lg text-center text-sm text-muted">{t("intro")}</p>
+      <FixturesNotice />
       <EnterPanel />
     </main>
   );

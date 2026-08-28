@@ -90,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS ayarlanmamış — kontratı dağıt ve proxy adresini .env.local dosyasına ekle.",
     "connectWallet": "Cüzdan bağla",
     "loading": "Liste yükleniyor…",
-    "emptySlate": "Kura çekildi — lig aşamasının 144 maçı, UEFA fikstürü yayımlar yayımlamaz listeye düşecek.",
+    "emptySlate": "Kura çekildi — lig aşamasının 144 maçı 30 Ağustos Pazar günü burada yayınlanacak. O andan itibaren görünür ve tahmin edilebilir, her başlama vuruşundan 60 dakika öncesine kadar düzenlenebilir.",
     "stageLeague": "Lig aşaması",
     "stageKnockout": "Eleme turu",
     "stageFallback": "Aşama {stage}",
@@ -101,6 +101,9 @@
     "updatedSingle": "Tahmin güncellendi — {time} saatine kadar (T-60) tekrar değiştirebilirsin.",
     "updatedMany": "{count} tahmin güncellendi — her birini kendi başlama vuruşundan 60 dakika öncesine kadar değiştirebilirsin (T-60).",
     "batchNotConfirmed": "Paket 120s sonra onaylanmadı — yeniden denemeden önce cüzdanını ve Chiliscan’i kontrol et."
+  },
+  "fixtures": {
+    "notice": "📅 Maçlar 30 Ağustos Pazar günü yayında — lig aşamasının 144 maçı o andan itibaren görünür ve tahmin edilebilir olacak, her başlama vuruşundan 60 dakika öncesine kadar düzenlenebilir."
   },
   "predict": {
     "matchRow": {

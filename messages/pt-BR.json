@@ -90,7 +90,7 @@
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS não está definido — faça o deploy do contrato e adicione o endereço do proxy ao .env.local.",
     "connectWallet": "Conectar carteira",
     "loading": "Carregando a rodada…",
-    "emptySlate": "O sorteio já foi feito — os 144 jogos da fase de liga chegam à lousa assim que a UEFA publicar a tabela.",
+    "emptySlate": "O sorteio já foi feito — os 144 jogos da fase de liga entram aqui no domingo, 30 de agosto. Visíveis e abertos a palpites a partir daí, editáveis até 60 minutos antes de cada pontapé inicial.",
     "stageLeague": "Fase de liga",
     "stageKnockout": "Mata-mata",
     "stageFallback": "Fase {stage}",
@@ -101,6 +101,9 @@
     "updatedSingle": "Palpite atualizado — você pode mudar de novo até {time} (T-60).",
     "updatedMany": "{count} palpites atualizados — cada um pode mudar até 60 minutos antes do seu pontapé inicial (T-60).",
     "batchNotConfirmed": "Lote sem confirmação após 120s — confira sua carteira e o Chiliscan antes de tentar de novo."
+  },
+  "fixtures": {
+    "notice": "📅 Os jogos entram no ar no domingo, 30 de agosto — as 144 partidas da fase de liga ficam visíveis e abertas a palpites a partir daí, editáveis até 60 minutos antes de cada pontapé inicial."
   },
   "predict": {
     "matchRow": {

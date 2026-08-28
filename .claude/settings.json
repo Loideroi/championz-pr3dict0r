@@ -43,7 +43,6 @@
       "Bash(mkdir*)",
       "Bash(cp*)",
       "Bash(mv*)",
-      "Bash(rtk*)",
       "Edit",
       "Write",
       "Read"
