@@ -94,6 +94,7 @@ const manualPath = argVal('--manual');
 const source = manualPath ? manualSource(manualPath) : new UefaApiSource();
 const writer = viemWriter({
   rpcUrl: RPC_URL ?? 'https://spicy-rpc.chiliz.com',
+  chainId, // sign for the chain we are actually writing to (88888 mainnet / 88882 Spicy)
   contract: PREDICTOR_ADDRESS,
   oracleKey: key,
 });

@@ -12,10 +12,18 @@ export type SlateMatch = {
   kickoff: number;
   /** MatchStatus.COMPLETED on-chain */
   completed: boolean;
+  /** 3-letter on-chain codes (bytes3) */
   teamA: string;
   teamB: string;
   /** STAGE_LEAGUE (0) | STAGE_KNOCKOUT (1) */
   stage: number;
+  /** Club names from the bundled fixtures (lib/fixtures) — cosmetic, optional */
+  nameA?: string;
+  nameB?: string;
+  /** League-phase matchday 1..8 from the bundle; null/undefined when unknown */
+  matchday?: number | null;
+  /** UEFA match id from the bundle — the Match Insights key */
+  uefaMatchId?: string | null;
 };
 
 export type ScorePick = { scoreA: number; scoreB: number };
@@ -24,6 +32,8 @@ export type MatchPhase = "open" | "locked" | "completed";
 
 export type SlateGroup = {
   stage: number;
+  /** League-phase matchday when the bundle knows it, else null */
+  matchday: number | null;
   /** UTC day bucket, e.g. "2027-05-29" */
   dayKey: string;
   /** e.g. "Sat, May 29" (en-US, UTC — deterministic) */
@@ -37,6 +47,11 @@ export type SlateChange = {
   old: ScorePick | null;
   next: ScorePick;
 };
+
+/** Display name for a side: bundled club name, else the on-chain code. */
+export function displayTeam(match: SlateMatch, side: "A" | "B"): string {
+  return side === "A" ? (match.nameA ?? match.teamA) : (match.nameB ?? match.teamB);
+}
 
 /** Unix second at which predictions for a match lock (T-60, PRD §6). */
 export function lockAt(match: { kickoff: number }): number {
@@ -98,18 +113,21 @@ export function formatCountdown(seconds: number): string {
 }
 
 /**
- * Group the slate by stage, then by kickoff day (UTC). Groups are ordered by
- * stage then earliest kickoff; matches inside a group by kickoff then id.
+ * Group the slate by stage, then matchday (when known), then kickoff day
+ * (UTC). Groups are ordered by stage then earliest kickoff; matches inside a
+ * group by kickoff then id.
  */
 export function groupSlate(matches: SlateMatch[]): SlateGroup[] {
   const buckets = new Map<string, SlateGroup>();
   for (const match of matches) {
     const dayKey = kickoffDayKey(match.kickoff);
-    const key = `${match.stage}|${dayKey}`;
+    const matchday = match.matchday ?? null;
+    const key = `${match.stage}|${matchday ?? ""}|${dayKey}`;
     let group = buckets.get(key);
     if (!group) {
       group = {
         stage: match.stage,
+        matchday,
         dayKey,
         dayLabel: formatKickoffDay(match.kickoff),
         matches: [],

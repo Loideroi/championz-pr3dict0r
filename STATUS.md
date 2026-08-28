@@ -1,6 +1,6 @@
 # STATUS — ₵h@mpi0nz Pr3dict0r
 
-**Last updated:** 2026-07-05. Single source of truth for "where are we / what's next".
+**Last updated:** 2026-08-28 (post-draw fixture import in flight). Single source of truth for "where are we / what's next".
 See also: [`PRD.md`](./PRD.md) (spec), [`LAUNCH_CHECKLIST.md`](./LAUNCH_CHECKLIST.md)
 (PRD §22 gate), [`SECURITY_FINDINGS.md`](./SECURITY_FINDINGS.md) (pentest log),
 [`contracts/deployments.md`](./contracts/deployments.md) (live addresses).
@@ -59,26 +59,61 @@ sign-off) and is **deployed + verified on Chiliz mainnet**.
    the ERC-1271 path no simulation covers. Do it on the live mainnet `/enter` before real
    users arrive (the pre-6-Jul Spicy-staging window has now passed).
 
-## Post-deploy owner tasks for the REAL tournament (later, not launch-blocking)
+## POST-DRAW FIXTURE IMPORT — runbook (draw done 27 Aug; schedule due ≤ Sat 29 Aug)
 
-- After the **27 Aug 2026 league draw**: `cd relayer && node scripts/generate-matches.mjs
-  --season 2027 --out …` → `verify-fixtures.mjs` → `addMatches` + `setTies` on the
-  mainnet proxy via `/admin` (owner wallet). Until then the contract sits in SELLING
-  with no matches (correct).
-- Confirm/adjust the exact window timestamps via `setStageWindow` (owner, while
-  SELLING) once UEFA publishes precise kickoff times.
-- Update the mainnet `oracle-bot.yml` env `PREDICTOR_ADDRESS` to the mainnet proxy and
-  fund the oracle (item 1) before MD1.
-- If reconsidering the early-open decision: `pause()` or `setStageWindow` to defer the
-  league open are available to the owner.
+State on 2026-08-28 09:11 UTC: **43 Full Season entrants** (21,500 CHZ per pool, contract
+solvent at 47,300), `matchCount = 0`, both stages SELLING. The UEFA v5 feed for
+`seasonYear=2027` still carried **0 TOURNAMENT-phase matches** (90 qualifying only) —
+the draw fixed opponents; the fixture list with dates + kick-off times is published by
+UEFA **no later than Saturday 29 August**. Owner decisions: Hardhat script for the owner
+txs (same key setup as the deploy / v7 upgrade), **pause-bracketed** push (nobody predicts
+on an unverified slate), slate UI shows club names + matchday headers before opening.
+Tooling PR: `feat/league-fixtures-import`. **There is no "open predictions" switch** —
+matches are predictable the moment they exist on-chain (T-60 lock only); the pause
+bracket IS the gate.
+
+1. **Generate + verify against the live feed** (repeat until 144 league matches appear):
+   `cd relayer && npm run build && node scripts/generate-matches.mjs --season 2027 --out
+   ../lib/fixtures/matches.json && node scripts/verify-fixtures.mjs --matches
+   ../lib/fixtures/matches.json --season 2027` → expect `0 discrepancies`, 36 teams,
+   phases `{"0":144}` (knockout rounds appear after each later draw). LASK is pinned to
+   the bytes3 code `LAS` (`CODE_OVERRIDES` / `--code`). Eyeball the MD-by-MD table.
+2. **Rehearse on Spicy** (proxy `0xAE32…83D6`, holds 4 staging matches):
+   `cd contracts && PROXY=0xAE32d62B71DD1f6Eb4f27fC65Facc69AcFEe83D6 MATCHES=../lib/fixtures/matches.json
+   EXPECT_MATCHCOUNT=4 PAUSE=1 CONFIRM=1 npx hardhat run scripts/add-fixtures.ts --network spicy`,
+   then `RPC_URL=https://spicy-rpc.chiliz.com PREDICTOR_ADDRESS=0xAE32… node
+   relayer/scripts/verify-onchain.mjs --matches lib/fixtures/matches.json --phase 0 --id-offset 4`.
+   (Done 2026-08-28 with the 2025/26 archive season: Spicy now holds ids 5–148, so a
+   second rehearsal needs `EXPECT_MATCHCOUNT=148`. Lesson baked in: the public RPC lags
+   its own receipts — the script polls `matchCount` per chunk and supports `RESUME=1`.)
+3. **Mainnet push (pause-bracketed)** — dry run first, then CONFIRM:
+   `cd contracts && PROXY=0x742c6963a81012bc7949F0058Fba07c8d1A80c4d MATCHES=../lib/fixtures/matches.json
+   PAUSE=1 npx hardhat run scripts/add-fixtures.ts --network chiliz` (prints the 8 chunks,
+   gas ≈ 20 CHZ, and the D1 window check) → same command with `CONFIRM=1`. The script
+   pauses, pushes 8 × 18, reads every match back, and **unpauses only if the read-back
+   is exact** (otherwise it stays paused — fix via `setMatchTeams` / `batchUpdateKickoffs` /
+   `voidMatch` from /admin, then unpause).
+4. **Windows (D1):** if the first MD1 kickoff ≠ 2026-09-08 16:45 UTC the script says so →
+   `LEAGUE_CLOSE=<unix> KO_OPEN=<unix> CONFIRM=1 npx hardhat run scripts/set-stage-windows.ts --network chiliz`
+   (handles the M-3 ordering).
+5. **Verify on-chain + wire the oracle:** `RPC_URL=https://rpc.ankr.com/chiliz
+   PREDICTOR_ADDRESS=0x742c… node relayer/scripts/verify-onchain.mjs --matches lib/fixtures/matches.json --phase 0`
+   → `node relayer/scripts/generate-map.mjs --matches lib/fixtures/matches.json --out
+   relayer/config/mainnet-map.json --phase 0` → commit `lib/fixtures/matches.json` +
+   `relayer/config/mainnet-map.json` (one PR: names / matchdays / insights light up on prod,
+   oracle-bot starts tracking 144 matches). `oracle-bot.yml` already relays **mainnet**.
+6. **Owner clicks:** re-add the `TELEGRAM_CHANNEL_ID=@championz_pr3dict0r` Actions var;
+   run `generate-insights.mjs --season 2027 --out public/insights` for MD1; announce.
 
 ## Known follow-ups / tech debt (non-blocking)
 
-- **InsightCard is a placeholder** — the on-chain slate (`lib/predictor/slate.ts`)
-  carries only internal match ids, not `uefaMatchId`, so `/insights/<locale>.json`
-  never matches. Thread real `uefaMatchId` through the slate to light insights up.
-- **oracle-bot workflow** currently targets the **Spicy** address + runs the staging
-  self-settlement demo (7–8 Jul). Add/point a mainnet job before the season.
+- ~~InsightCard is a placeholder~~ — resolved 2026-08-28: the slate is decorated from
+  the bundled `lib/fixtures/matches.json` (names, matchday, `uefaMatchId`); the bundle
+  is defensive (used only when it agrees with the chain on both team codes).
+- ~~oracle-bot targets Spicy~~ — resolved 2026-08-28: the relay step points at the
+  mainnet proxy with `config/mainnet-map.json` (empty until the fixture push); Spicy
+  keeps its sentinels + balance watch only. `chain.ts` now signs with the CHAIN_ID's
+  chain (a Spicy-signed tx against mainnet would have been rejected by the node).
 - **GitHub merge queue** would replace the manual `update-branch` + auto-merge
   babysitter loop (every merge re-stales other open PRs under strict protection).
 - **Recurring CI gotchas** (see memory): contract PRs need `contracts/package-lock.json`

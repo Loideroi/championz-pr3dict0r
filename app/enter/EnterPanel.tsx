@@ -14,6 +14,7 @@ import {
   STAGE_LEAGUE,
 } from "@/lib/predictor/abi";
 import { ENTRY, PREDICTION_LOCKOUT_SECONDS, STAGE_FLOOR, formatChz } from "@/lib/economics";
+import { teamName } from "@/lib/fixtures";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 
@@ -213,7 +214,7 @@ export function EnterPanel() {
             <ul className="mb-2 font-mono text-muted">
               {lockedMatches!.map((m) => (
                 <li key={m.id}>
-                  {m.teamA} vs {m.teamB} · {fmtDate(m.kickoff)}
+                  {teamName(m.teamA)} vs {teamName(m.teamB)} · {fmtDate(m.kickoff)}
                 </li>
               ))}
             </ul>

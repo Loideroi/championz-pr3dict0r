@@ -5,6 +5,7 @@ import { Stepper } from "@/components/predict/Stepper";
 import { InsightCard } from "@/components/predict/InsightCard";
 import type { AppLocale } from "@/i18n/config";
 import {
+  displayTeam,
   formatCountdown,
   formatUtcTime,
   samePick,
@@ -18,7 +19,8 @@ const fmtPick = (p: ScorePick) => `${p.scoreA}–${p.scoreB}`;
 /**
  * One slate row (PRD §6). Purely presentational — the panel owns all chain
  * state. `secondsToLock` is null until the client clock mounts (SSR safety:
- * the countdown never renders on the server).
+ * the countdown never renders on the server). Club names come from the
+ * bundled fixtures (lib/fixtures) and fall back to the on-chain codes.
  */
 export function MatchRow({
   match,
@@ -51,6 +53,8 @@ export function MatchRow({
   const activeLocale = useLocale() as AppLocale;
   const editable = phase === "open" && connected && entered && !busy;
   const changed = draft !== null && !samePick(draft, onchain);
+  const nameA = displayTeam(match, "A");
+  const nameB = displayTeam(match, "B");
 
   return (
     <li
@@ -61,7 +65,7 @@ export function MatchRow({
       {/* fixture */}
       <div className="flex min-w-0 flex-col gap-1">
         <p className="font-semibold">
-          {match.teamA} <span className="text-muted-2">{t("vs")}</span> {match.teamB}
+          {nameA} <span className="text-muted-2">{t("vs")}</span> {nameB}
         </p>
         <p className="font-mono text-xs text-muted">
           {t("kickoff", { time: formatUtcTime(match.kickoff) })}
@@ -69,9 +73,9 @@ export function MatchRow({
             <span className="text-star"> {t("locksIn", { countdown: formatCountdown(secondsToLock) })}</span>
           )}
         </p>
-        {/* Pre-match insight (deferred mount — see InsightCard). The on-chain
-            match struct has no uefaMatchId, so we thread the internal id. */}
-        <InsightCard uefaMatchId={String(match.id)} locale={activeLocale} />
+        {/* Pre-match insight (deferred mount — see InsightCard). Keyed by the
+            UEFA match id from the bundled fixtures; renders nothing without it. */}
+        <InsightCard uefaMatchId={match.uefaMatchId ?? null} locale={activeLocale} />
       </div>
 
       {/* state */}
@@ -120,14 +124,14 @@ export function MatchRow({
         // steppers: fresh pick or an in-flight edit
         <div className="flex items-center gap-3">
           <Stepper
-            label={t("homeScoreLabel", { teamA: match.teamA, teamB: match.teamB })}
+            label={t("homeScoreLabel", { teamA: nameA, teamB: nameB })}
             value={draft?.scoreA ?? 0}
             disabled={!editable}
             onChange={(v) => onDraft({ scoreA: v, scoreB: draft?.scoreB ?? 0 })}
           />
           <span className="font-mono text-muted-2">:</span>
           <Stepper
-            label={t("awayScoreLabel", { teamA: match.teamA, teamB: match.teamB })}
+            label={t("awayScoreLabel", { teamA: nameA, teamB: nameB })}
             value={draft?.scoreB ?? 0}
             disabled={!editable}
             onChange={(v) => onDraft({ scoreA: draft?.scoreA ?? 0, scoreB: v })}

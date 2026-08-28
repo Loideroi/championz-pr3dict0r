@@ -3,6 +3,7 @@ import { PREDICTION_LOCKOUT_SECONDS } from "../economics";
 import { FLAG_SUBMITTED } from "./packed";
 import {
   diffSlate,
+  displayTeam,
   formatCountdown,
   formatKickoffDay,
   formatUtcTime,
@@ -62,6 +63,29 @@ describe("groupSlate", () => {
     // inside a group: kickoff order, then id
     expect(groups[0].matches.map((m) => m.id)).toEqual([1, 2]);
     expect(groups[0].dayLabel).toBe(formatKickoffDay(day1));
+  });
+
+  it("splits the same UTC day by matchday when the bundle knows it", () => {
+    const day = Date.UTC(2026, 8, 8, 16, 45) / 1000; // 2026-09-08 16:45 UTC
+    const slate = [
+      match({ id: 2, kickoff: day + 7200, matchday: 1 }),
+      match({ id: 3, kickoff: day + 3600, matchday: 2, teamA: "ARS", teamB: "INT" }),
+      match({ id: 1, kickoff: day, matchday: 1, teamA: "LIV", teamB: "BAY" }),
+      match({ id: 4, kickoff: day, stage: 1 }), // no matchday → null bucket
+    ];
+    const groups = groupSlate(slate);
+    expect(groups.map((g) => [g.stage, g.matchday, g.dayKey])).toEqual([
+      [0, 1, "2026-09-08"],
+      [0, 2, "2026-09-08"],
+      [1, null, "2026-09-08"],
+    ]);
+    expect(groups[0].matches.map((m) => m.id)).toEqual([1, 2]);
+  });
+
+  it("displayTeam prefers the bundled club name and falls back to the code", () => {
+    const m = match({ nameA: "Real Madrid" });
+    expect(displayTeam(m, "A")).toBe("Real Madrid");
+    expect(displayTeam(m, "B")).toBe("MCI");
   });
 
   it("day bucketing is UTC-deterministic", () => {
