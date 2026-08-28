@@ -28,8 +28,8 @@ Status legend: ✅ done · 🔄 in flight · 🔲 open (owner) · 🤖 open (age
 
 | Activity | Status | Notes |
 |---|---|---|
-| Telegram results channel @championz_pr3dict0r | ✅ | Bot admin'd. ⚠ Re-add `TELEGRAM_CHANNEL_ID` Actions var post-draw (sentinel reminds) |
-| Telegram community group | 🔲 | Create → add bot admin → set `TELEGRAM_GROUP_ID` var. Feedback + banter home |
+| Telegram results channel @championz_pr3dict0r | ✅ | Bot admin'd; `TELEGRAM_CHANNEL_ID` re-added 2026-08-28 — results + T-75 reminders post automatically from MD1 |
+| Telegram community group | ✅ | "₵h@mpi0nz Pr3dict0r — Community" (invite https://t.me/+sr2q2oEBPzliZDhk), bot admin, `TELEGRAM_GROUP_ID` set (Actions + Vercel), webhook registered → "Link Telegram" invites work |
 | X/Twitter handle (@pr3dict0r / @championz_pr3d) | 🔲 | Claim NOW even if quiet until August — squatting risk on a live product name |
 | Farcaster account | 🔲 | Crypto-native audience; low effort, high fit. Same handle |
 | Discord | 🔲 | Optional — only if the Telegram group outgrows itself; don't split community early |
@@ -52,7 +52,7 @@ Status legend: ✅ done · 🔄 in flight · 🔲 open (owner) · 🤖 open (age
 | Activity | Status | Notes |
 |---|---|---|
 | Launch thread/post: "the game continues" (WC predictor → UCL) | 🔲 | Needs the X handle first. Anchor: verified contract, real CHZ, zero admin — oracle does the work |
-| **Draw-day content (27 Aug)** | 🔲 | The natural viral moment: fixtures land on-chain the same day — "144 matches now on the slate" |
+| **Draw-day content (27 Aug)** | 🔄 | Draw done; UEFA publishes the schedule ≤ 29 Aug, fixtures go on-chain **Sun 30 Aug** (site + slate say so). Post "144 matches now on the slate" in the channel right after the push |
 | **Deadline campaign (1–8 Sep)** | 🔲 | Early-bird pass closes at MD1 kickoff — countdown content; the floor-risk sentinel doubles as the internal trigger |
 | Weekly leaderboard posts after each matchday | 🔲 | The results channel automates raw results; leaderboard screenshots + "flag flies" narrative are the shareable layer |
 | Knockout re-launch (Jan–Feb 2027) | 🔲 | Second acquisition window: 550 CHZ pass, fresh leaderboard — "latecomers welcome" |
