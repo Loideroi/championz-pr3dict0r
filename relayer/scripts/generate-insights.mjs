@@ -46,7 +46,7 @@ const played = matches
 const perLocale = Object.fromEntries(INSIGHT_LOCALES.map((l) => [l, {}]));
 for (const fixture of fixtures) {
   const decider = fixture.type === 'SECOND_LEG' || (fixture.type === 'SINGLE' && /final/i.test(fixture.roundName ?? ''));
-  const facts = buildFacts(fixture, played, decider);
+  const facts = buildFacts(fixture, played, decider, fixtures); // schedule context for form-less matchdays
   for (const locale of INSIGHT_LOCALES) {
     perLocale[locale][fixture.uefaMatchId] = renderInsight(facts, locale);
   }
