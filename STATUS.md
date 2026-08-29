@@ -63,7 +63,19 @@ sign-off) and is **deployed + verified on Chiliz mainnet**.
    the ERC-1271 path no simulation covers. Do it on the live mainnet `/enter` before real
    users arrive (the pre-6-Jul Spicy-staging window has now passed).
 
-## POST-DRAW FIXTURE IMPORT — runbook (draw done 27 Aug; schedule due ≤ Sat 29 Aug)
+## ✅ LEAGUE-PHASE FIXTURES ON-CHAIN — 2026-08-29 (pushed a day early)
+
+UEFA published the schedule in batches on Sat 29 Aug (12:06–13:36 UTC). Same afternoon:
+`generate-matches` → `verify-fixtures` (0 discrepancies) → mainnet **dry run** → `CONFIRM=1
+PAUSE=1` push: pause → 8 × `addMatches` (ids 1–144, 4.42M gas ≈ 11.1 CHZ) → all 144 read back
+exactly → unpause. Independent `verify-onchain.mjs`: 0 discrepancies. First kickoff
+2026-09-08T16:45Z == league close (D1 holds, no window change). 49 entrants at push time.
+`lib/fixtures/matches.json` + `relayer/config/mainnet-map.json` (144 entries) committed —
+oracle-bot tracks the season from the next cron tick. Txs: `0xef61…f294b` (MD1) …
+`0x4e93…2b2f` (MD8). **Knockout rounds + `setTies` follow the February draw** (same
+scripts, `EXPECT_MATCHCOUNT=144`).
+
+## Post-draw fixture import — runbook (kept for the knockout rounds)
 
 State on 2026-08-28 09:11 UTC: **43 Full Season entrants** (21,500 CHZ per pool, contract
 solvent at 47,300), `matchCount = 0`, both stages SELLING. The UEFA v5 feed for

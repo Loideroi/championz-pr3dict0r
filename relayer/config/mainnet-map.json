@@ -1,1 +1,1010 @@
-[]
+[
+  {
+    "matchId": 1,
+    "uefaMatchId": "2049556",
+    "homeTeamId": "50043",
+    "awayTeamId": "52683",
+    "label": "BRU–AVL"
+  },
+  {
+    "matchId": 2,
+    "uefaMatchId": "2049558",
+    "homeTeamId": "50129",
+    "awayTeamId": "63405",
+    "label": "AEK–LAS"
+  },
+  {
+    "matchId": 3,
+    "uefaMatchId": "2049553",
+    "homeTeamId": "50051",
+    "awayTeamId": "50138",
+    "label": "RMA–INT"
+  },
+  {
+    "matchId": 4,
+    "uefaMatchId": "2049554",
+    "homeTeamId": "52758",
+    "awayTeamId": "70691",
+    "label": "BVB–VIL"
+  },
+  {
+    "matchId": 5,
+    "uefaMatchId": "2049555",
+    "homeTeamId": "50064",
+    "awayTeamId": "52919",
+    "label": "POR–MCI"
+  },
+  {
+    "matchId": 6,
+    "uefaMatchId": "2049557",
+    "homeTeamId": "75797",
+    "awayTeamId": "52265",
+    "label": "LIL–BET"
+  },
+  {
+    "matchId": 7,
+    "uefaMatchId": "2049561",
+    "homeTeamId": "50080",
+    "awayTeamId": "52749",
+    "label": "BAR–FEY"
+  },
+  {
+    "matchId": 8,
+    "uefaMatchId": "2049564",
+    "homeTeamId": "50107",
+    "awayTeamId": "52319",
+    "label": "STU–VFK"
+  },
+  {
+    "matchId": 9,
+    "uefaMatchId": "2049559",
+    "homeTeamId": "52747",
+    "awayTeamId": "52797",
+    "label": "PSG–SLB"
+  },
+  {
+    "matchId": 10,
+    "uefaMatchId": "2049560",
+    "homeTeamId": "7889",
+    "awayTeamId": "50124",
+    "label": "LIV–ATM"
+  },
+  {
+    "matchId": 11,
+    "uefaMatchId": "2049562",
+    "homeTeamId": "50149",
+    "awayTeamId": "50067",
+    "label": "SPO–GAL"
+  },
+  {
+    "matchId": 12,
+    "uefaMatchId": "2049563",
+    "homeTeamId": "50136",
+    "awayTeamId": "52280",
+    "label": "NAP–ARS"
+  },
+  {
+    "matchId": 13,
+    "uefaMatchId": "2049567",
+    "homeTeamId": "50062",
+    "awayTeamId": "52707",
+    "label": "PSV–SHK"
+  },
+  {
+    "matchId": 14,
+    "uefaMatchId": "2049568",
+    "homeTeamId": "52692",
+    "awayTeamId": "50137",
+    "label": "FEN–ROM"
+  },
+  {
+    "matchId": 15,
+    "uefaMatchId": "2049565",
+    "homeTeamId": "50037",
+    "awayTeamId": "59333",
+    "label": "BAY–BOD"
+  },
+  {
+    "matchId": 16,
+    "uefaMatchId": "2049566",
+    "homeTeamId": "52682",
+    "awayTeamId": "2609356",
+    "label": "MUN–SAB"
+  },
+  {
+    "matchId": 17,
+    "uefaMatchId": "2049569",
+    "homeTeamId": "52498",
+    "awayTeamId": "52277",
+    "label": "SLA–LEN"
+  },
+  {
+    "matchId": 18,
+    "uefaMatchId": "2049570",
+    "homeTeamId": "79946",
+    "awayTeamId": "2603790",
+    "label": "COM–RBL"
+  },
+  {
+    "matchId": 19,
+    "uefaMatchId": "2049577",
+    "homeTeamId": "52277",
+    "awayTeamId": "50149",
+    "label": "LEN–SPO"
+  },
+  {
+    "matchId": 20,
+    "uefaMatchId": "2049579",
+    "homeTeamId": "2609356",
+    "awayTeamId": "52498",
+    "label": "SAB–SLA"
+  },
+  {
+    "matchId": 21,
+    "uefaMatchId": "2049571",
+    "homeTeamId": "50138",
+    "awayTeamId": "50043",
+    "label": "INT–BRU"
+  },
+  {
+    "matchId": 22,
+    "uefaMatchId": "2049572",
+    "homeTeamId": "52280",
+    "awayTeamId": "75797",
+    "label": "ARS–LIL"
+  },
+  {
+    "matchId": 23,
+    "uefaMatchId": "2049573",
+    "homeTeamId": "50124",
+    "awayTeamId": "52682",
+    "label": "ATM–MUN"
+  },
+  {
+    "matchId": 24,
+    "uefaMatchId": "2049574",
+    "homeTeamId": "2603790",
+    "awayTeamId": "50062",
+    "label": "RBL–PSV"
+  },
+  {
+    "matchId": 25,
+    "uefaMatchId": "2049575",
+    "homeTeamId": "70691",
+    "awayTeamId": "50136",
+    "label": "VIL–NAP"
+  },
+  {
+    "matchId": 26,
+    "uefaMatchId": "2049576",
+    "homeTeamId": "50067",
+    "awayTeamId": "50080",
+    "label": "GAL–BAR"
+  },
+  {
+    "matchId": 27,
+    "uefaMatchId": "2049578",
+    "homeTeamId": "52319",
+    "awayTeamId": "50037",
+    "label": "VFK–BAY"
+  },
+  {
+    "matchId": 28,
+    "uefaMatchId": "2049584",
+    "homeTeamId": "52749",
+    "awayTeamId": "79946",
+    "label": "FEY–COM"
+  },
+  {
+    "matchId": 29,
+    "uefaMatchId": "2049588",
+    "homeTeamId": "63405",
+    "awayTeamId": "7889",
+    "label": "LAS–LIV"
+  },
+  {
+    "matchId": 30,
+    "uefaMatchId": "2049580",
+    "homeTeamId": "52919",
+    "awayTeamId": "52747",
+    "label": "MCI–PSG"
+  },
+  {
+    "matchId": 31,
+    "uefaMatchId": "2049581",
+    "homeTeamId": "50137",
+    "awayTeamId": "50051",
+    "label": "ROM–RMA"
+  },
+  {
+    "matchId": 32,
+    "uefaMatchId": "2049582",
+    "homeTeamId": "52683",
+    "awayTeamId": "52692",
+    "label": "AVL–FEN"
+  },
+  {
+    "matchId": 33,
+    "uefaMatchId": "2049583",
+    "homeTeamId": "52265",
+    "awayTeamId": "50064",
+    "label": "BET–POR"
+  },
+  {
+    "matchId": 34,
+    "uefaMatchId": "2049585",
+    "homeTeamId": "59333",
+    "awayTeamId": "52758",
+    "label": "BOD–BVB"
+  },
+  {
+    "matchId": 35,
+    "uefaMatchId": "2049586",
+    "homeTeamId": "52707",
+    "awayTeamId": "50129",
+    "label": "SHK–AEK"
+  },
+  {
+    "matchId": 36,
+    "uefaMatchId": "2049587",
+    "homeTeamId": "52797",
+    "awayTeamId": "50107",
+    "label": "SLB–STU"
+  },
+  {
+    "matchId": 37,
+    "uefaMatchId": "2049595",
+    "homeTeamId": "52692",
+    "awayTeamId": "52498",
+    "label": "FEN–SLA"
+  },
+  {
+    "matchId": 38,
+    "uefaMatchId": "2049597",
+    "homeTeamId": "2609356",
+    "awayTeamId": "52758",
+    "label": "SAB–BVB"
+  },
+  {
+    "matchId": 39,
+    "uefaMatchId": "2049589",
+    "homeTeamId": "52747",
+    "awayTeamId": "50080",
+    "label": "PSG–BAR"
+  },
+  {
+    "matchId": 40,
+    "uefaMatchId": "2049590",
+    "homeTeamId": "7889",
+    "awayTeamId": "70691",
+    "label": "LIV–VIL"
+  },
+  {
+    "matchId": 41,
+    "uefaMatchId": "2049591",
+    "homeTeamId": "52919",
+    "awayTeamId": "50129",
+    "label": "MCI–AEK"
+  },
+  {
+    "matchId": 42,
+    "uefaMatchId": "2049592",
+    "homeTeamId": "50137",
+    "awayTeamId": "52797",
+    "label": "ROM–SLB"
+  },
+  {
+    "matchId": 43,
+    "uefaMatchId": "2049593",
+    "homeTeamId": "50064",
+    "awayTeamId": "50062",
+    "label": "POR–PSV"
+  },
+  {
+    "matchId": 44,
+    "uefaMatchId": "2049594",
+    "homeTeamId": "50136",
+    "awayTeamId": "59333",
+    "label": "NAP–BOD"
+  },
+  {
+    "matchId": 45,
+    "uefaMatchId": "2049596",
+    "homeTeamId": "50107",
+    "awayTeamId": "50124",
+    "label": "STU–ATM"
+  },
+  {
+    "matchId": 46,
+    "uefaMatchId": "2049605",
+    "homeTeamId": "75797",
+    "awayTeamId": "50067",
+    "label": "LIL–GAL"
+  },
+  {
+    "matchId": 47,
+    "uefaMatchId": "2049606",
+    "homeTeamId": "79946",
+    "awayTeamId": "52682",
+    "label": "COM–MUN"
+  },
+  {
+    "matchId": 48,
+    "uefaMatchId": "2049598",
+    "homeTeamId": "50037",
+    "awayTeamId": "52280",
+    "label": "BAY–ARS"
+  },
+  {
+    "matchId": 49,
+    "uefaMatchId": "2049599",
+    "homeTeamId": "50051",
+    "awayTeamId": "2603790",
+    "label": "RMA–RBL"
+  },
+  {
+    "matchId": 50,
+    "uefaMatchId": "2049600",
+    "homeTeamId": "50138",
+    "awayTeamId": "52707",
+    "label": "INT–SHK"
+  },
+  {
+    "matchId": 51,
+    "uefaMatchId": "2049601",
+    "homeTeamId": "50149",
+    "awayTeamId": "63405",
+    "label": "SPO–LAS"
+  },
+  {
+    "matchId": 52,
+    "uefaMatchId": "2049602",
+    "homeTeamId": "52683",
+    "awayTeamId": "52319",
+    "label": "AVL–VFK"
+  },
+  {
+    "matchId": 53,
+    "uefaMatchId": "2049603",
+    "homeTeamId": "50043",
+    "awayTeamId": "52277",
+    "label": "BRU–LEN"
+  },
+  {
+    "matchId": 54,
+    "uefaMatchId": "2049604",
+    "homeTeamId": "52265",
+    "awayTeamId": "52749",
+    "label": "BET–FEY"
+  },
+  {
+    "matchId": 55,
+    "uefaMatchId": "2049613",
+    "homeTeamId": "52707",
+    "awayTeamId": "50149",
+    "label": "SHK–SPO"
+  },
+  {
+    "matchId": 56,
+    "uefaMatchId": "2049614",
+    "homeTeamId": "50067",
+    "awayTeamId": "50107",
+    "label": "GAL–STU"
+  },
+  {
+    "matchId": 57,
+    "uefaMatchId": "2049607",
+    "homeTeamId": "50080",
+    "awayTeamId": "52683",
+    "label": "BAR–AVL"
+  },
+  {
+    "matchId": 58,
+    "uefaMatchId": "2049608",
+    "homeTeamId": "50124",
+    "awayTeamId": "50037",
+    "label": "ATM–BAY"
+  },
+  {
+    "matchId": 59,
+    "uefaMatchId": "2049609",
+    "homeTeamId": "52682",
+    "awayTeamId": "50137",
+    "label": "MUN–ROM"
+  },
+  {
+    "matchId": 60,
+    "uefaMatchId": "2049610",
+    "homeTeamId": "52749",
+    "awayTeamId": "50138",
+    "label": "FEY–INT"
+  },
+  {
+    "matchId": 61,
+    "uefaMatchId": "2049611",
+    "homeTeamId": "59333",
+    "awayTeamId": "75797",
+    "label": "BOD–LIL"
+  },
+  {
+    "matchId": 62,
+    "uefaMatchId": "2049612",
+    "homeTeamId": "70691",
+    "awayTeamId": "52747",
+    "label": "VIL–PSG"
+  },
+  {
+    "matchId": 63,
+    "uefaMatchId": "2049615",
+    "homeTeamId": "63405",
+    "awayTeamId": "52797",
+    "label": "LAS–SLB"
+  },
+  {
+    "matchId": 64,
+    "uefaMatchId": "2049620",
+    "homeTeamId": "52692",
+    "awayTeamId": "7889",
+    "label": "FEN–LIV"
+  },
+  {
+    "matchId": 65,
+    "uefaMatchId": "2049622",
+    "homeTeamId": "50129",
+    "awayTeamId": "50051",
+    "label": "AEK–RMA"
+  },
+  {
+    "matchId": 66,
+    "uefaMatchId": "2049616",
+    "homeTeamId": "52758",
+    "awayTeamId": "52265",
+    "label": "BVB–BET"
+  },
+  {
+    "matchId": 67,
+    "uefaMatchId": "2049617",
+    "homeTeamId": "50064",
+    "awayTeamId": "50136",
+    "label": "POR–NAP"
+  },
+  {
+    "matchId": 68,
+    "uefaMatchId": "2049618",
+    "homeTeamId": "50062",
+    "awayTeamId": "50043",
+    "label": "PSV–BRU"
+  },
+  {
+    "matchId": 69,
+    "uefaMatchId": "2049619",
+    "homeTeamId": "2603790",
+    "awayTeamId": "52919",
+    "label": "RBL–MCI"
+  },
+  {
+    "matchId": 70,
+    "uefaMatchId": "2049621",
+    "homeTeamId": "52498",
+    "awayTeamId": "52280",
+    "label": "SLA–ARS"
+  },
+  {
+    "matchId": 71,
+    "uefaMatchId": "2049623",
+    "homeTeamId": "52277",
+    "awayTeamId": "79946",
+    "label": "LEN–COM"
+  },
+  {
+    "matchId": 72,
+    "uefaMatchId": "2049624",
+    "homeTeamId": "52319",
+    "awayTeamId": "2609356",
+    "label": "VFK–SAB"
+  },
+  {
+    "matchId": 73,
+    "uefaMatchId": "2049629",
+    "homeTeamId": "59333",
+    "awayTeamId": "63405",
+    "label": "BOD–LAS"
+  },
+  {
+    "matchId": 74,
+    "uefaMatchId": "2049631",
+    "homeTeamId": "50067",
+    "awayTeamId": "52683",
+    "label": "GAL–AVL"
+  },
+  {
+    "matchId": 75,
+    "uefaMatchId": "2049625",
+    "homeTeamId": "50051",
+    "awayTeamId": "50062",
+    "label": "RMA–PSV"
+  },
+  {
+    "matchId": 76,
+    "uefaMatchId": "2049626",
+    "homeTeamId": "52919",
+    "awayTeamId": "50136",
+    "label": "MCI–NAP"
+  },
+  {
+    "matchId": 77,
+    "uefaMatchId": "2049627",
+    "homeTeamId": "52280",
+    "awayTeamId": "52758",
+    "label": "ARS–BVB"
+  },
+  {
+    "matchId": 78,
+    "uefaMatchId": "2049628",
+    "homeTeamId": "52749",
+    "awayTeamId": "50064",
+    "label": "FEY–POR"
+  },
+  {
+    "matchId": 79,
+    "uefaMatchId": "2049630",
+    "homeTeamId": "2603790",
+    "awayTeamId": "52277",
+    "label": "RBL–LEN"
+  },
+  {
+    "matchId": 80,
+    "uefaMatchId": "2049632",
+    "homeTeamId": "52797",
+    "awayTeamId": "52265",
+    "label": "SLB–BET"
+  },
+  {
+    "matchId": 81,
+    "uefaMatchId": "2049633",
+    "homeTeamId": "79946",
+    "awayTeamId": "50129",
+    "label": "COM–AEK"
+  },
+  {
+    "matchId": 82,
+    "uefaMatchId": "2049641",
+    "homeTeamId": "52498",
+    "awayTeamId": "70691",
+    "label": "SLA–VIL"
+  },
+  {
+    "matchId": 83,
+    "uefaMatchId": "2049642",
+    "homeTeamId": "2609356",
+    "awayTeamId": "50080",
+    "label": "SAB–BAR"
+  },
+  {
+    "matchId": 84,
+    "uefaMatchId": "2049634",
+    "homeTeamId": "52747",
+    "awayTeamId": "50137",
+    "label": "PSG–ROM"
+  },
+  {
+    "matchId": 85,
+    "uefaMatchId": "2049635",
+    "homeTeamId": "50138",
+    "awayTeamId": "50107",
+    "label": "INT–STU"
+  },
+  {
+    "matchId": 86,
+    "uefaMatchId": "2049636",
+    "homeTeamId": "50124",
+    "awayTeamId": "52319",
+    "label": "ATM–VFK"
+  },
+  {
+    "matchId": 87,
+    "uefaMatchId": "2049637",
+    "homeTeamId": "50149",
+    "awayTeamId": "52682",
+    "label": "SPO–MUN"
+  },
+  {
+    "matchId": 88,
+    "uefaMatchId": "2049638",
+    "homeTeamId": "50043",
+    "awayTeamId": "7889",
+    "label": "BRU–LIV"
+  },
+  {
+    "matchId": 89,
+    "uefaMatchId": "2049639",
+    "homeTeamId": "75797",
+    "awayTeamId": "50037",
+    "label": "LIL–BAY"
+  },
+  {
+    "matchId": 90,
+    "uefaMatchId": "2049640",
+    "homeTeamId": "52707",
+    "awayTeamId": "52692",
+    "label": "SHK–FEN"
+  },
+  {
+    "matchId": 91,
+    "uefaMatchId": "2049649",
+    "homeTeamId": "70691",
+    "awayTeamId": "2609356",
+    "label": "VIL–SAB"
+  },
+  {
+    "matchId": 92,
+    "uefaMatchId": "2049651",
+    "homeTeamId": "52319",
+    "awayTeamId": "52749",
+    "label": "VFK–FEY"
+  },
+  {
+    "matchId": 93,
+    "uefaMatchId": "2049643",
+    "homeTeamId": "50037",
+    "awayTeamId": "52498",
+    "label": "BAY–SLA"
+  },
+  {
+    "matchId": 94,
+    "uefaMatchId": "2049644",
+    "homeTeamId": "50080",
+    "awayTeamId": "52919",
+    "label": "BAR–MCI"
+  },
+  {
+    "matchId": 95,
+    "uefaMatchId": "2049645",
+    "homeTeamId": "50137",
+    "awayTeamId": "50149",
+    "label": "ROM–SPO"
+  },
+  {
+    "matchId": 96,
+    "uefaMatchId": "2049646",
+    "homeTeamId": "52683",
+    "awayTeamId": "52747",
+    "label": "AVL–PSG"
+  },
+  {
+    "matchId": 97,
+    "uefaMatchId": "2049647",
+    "homeTeamId": "52682",
+    "awayTeamId": "2603790",
+    "label": "MUN–RBL"
+  },
+  {
+    "matchId": 98,
+    "uefaMatchId": "2049648",
+    "homeTeamId": "50136",
+    "awayTeamId": "50043",
+    "label": "NAP–BRU"
+  },
+  {
+    "matchId": 99,
+    "uefaMatchId": "2049650",
+    "homeTeamId": "50129",
+    "awayTeamId": "50067",
+    "label": "AEK–GAL"
+  },
+  {
+    "matchId": 100,
+    "uefaMatchId": "2049655",
+    "homeTeamId": "52265",
+    "awayTeamId": "79946",
+    "label": "BET–COM"
+  },
+  {
+    "matchId": 101,
+    "uefaMatchId": "2049657",
+    "homeTeamId": "52797",
+    "awayTeamId": "52707",
+    "label": "SLB–SHK"
+  },
+  {
+    "matchId": 102,
+    "uefaMatchId": "2049652",
+    "homeTeamId": "7889",
+    "awayTeamId": "50064",
+    "label": "LIV–POR"
+  },
+  {
+    "matchId": 103,
+    "uefaMatchId": "2049653",
+    "homeTeamId": "52280",
+    "awayTeamId": "50051",
+    "label": "ARS–RMA"
+  },
+  {
+    "matchId": 104,
+    "uefaMatchId": "2049654",
+    "homeTeamId": "52758",
+    "awayTeamId": "50138",
+    "label": "BVB–INT"
+  },
+  {
+    "matchId": 105,
+    "uefaMatchId": "2049656",
+    "homeTeamId": "50062",
+    "awayTeamId": "50124",
+    "label": "PSV–ATM"
+  },
+  {
+    "matchId": 106,
+    "uefaMatchId": "2049658",
+    "homeTeamId": "50107",
+    "awayTeamId": "75797",
+    "label": "STU–LIL"
+  },
+  {
+    "matchId": 107,
+    "uefaMatchId": "2049659",
+    "homeTeamId": "63405",
+    "awayTeamId": "52692",
+    "label": "LAS–FEN"
+  },
+  {
+    "matchId": 108,
+    "uefaMatchId": "2049660",
+    "homeTeamId": "52277",
+    "awayTeamId": "59333",
+    "label": "LEN–BOD"
+  },
+  {
+    "matchId": 109,
+    "uefaMatchId": "2049666",
+    "homeTeamId": "59333",
+    "awayTeamId": "50124",
+    "label": "BOD–ATM"
+  },
+  {
+    "matchId": 110,
+    "uefaMatchId": "2049667",
+    "homeTeamId": "50067",
+    "awayTeamId": "52749",
+    "label": "GAL–FEY"
+  },
+  {
+    "matchId": 111,
+    "uefaMatchId": "2049661",
+    "homeTeamId": "50051",
+    "awayTeamId": "63405",
+    "label": "RMA–LAS"
+  },
+  {
+    "matchId": 112,
+    "uefaMatchId": "2049662",
+    "homeTeamId": "50138",
+    "awayTeamId": "7889",
+    "label": "INT–LIV"
+  },
+  {
+    "matchId": 113,
+    "uefaMatchId": "2049663",
+    "homeTeamId": "52683",
+    "awayTeamId": "52758",
+    "label": "AVL–BVB"
+  },
+  {
+    "matchId": 114,
+    "uefaMatchId": "2049664",
+    "homeTeamId": "50064",
+    "awayTeamId": "52498",
+    "label": "POR–SLA"
+  },
+  {
+    "matchId": 115,
+    "uefaMatchId": "2049665",
+    "homeTeamId": "75797",
+    "awayTeamId": "52797",
+    "label": "LIL–SLB"
+  },
+  {
+    "matchId": 116,
+    "uefaMatchId": "2049668",
+    "homeTeamId": "50107",
+    "awayTeamId": "50043",
+    "label": "STU–BRU"
+  },
+  {
+    "matchId": 117,
+    "uefaMatchId": "2049669",
+    "homeTeamId": "50129",
+    "awayTeamId": "50137",
+    "label": "AEK–ROM"
+  },
+  {
+    "matchId": 118,
+    "uefaMatchId": "2049674",
+    "homeTeamId": "52692",
+    "awayTeamId": "70691",
+    "label": "FEN–VIL"
+  },
+  {
+    "matchId": 119,
+    "uefaMatchId": "2049678",
+    "homeTeamId": "2609356",
+    "awayTeamId": "50136",
+    "label": "SAB–NAP"
+  },
+  {
+    "matchId": 120,
+    "uefaMatchId": "2049670",
+    "homeTeamId": "50149",
+    "awayTeamId": "50080",
+    "label": "SPO–BAR"
+  },
+  {
+    "matchId": 121,
+    "uefaMatchId": "2049671",
+    "homeTeamId": "52682",
+    "awayTeamId": "50037",
+    "label": "MUN–BAY"
+  },
+  {
+    "matchId": 122,
+    "uefaMatchId": "2049672",
+    "homeTeamId": "52265",
+    "awayTeamId": "52280",
+    "label": "BET–ARS"
+  },
+  {
+    "matchId": 123,
+    "uefaMatchId": "2049673",
+    "homeTeamId": "2603790",
+    "awayTeamId": "52707",
+    "label": "RBL–SHK"
+  },
+  {
+    "matchId": 124,
+    "uefaMatchId": "2049675",
+    "homeTeamId": "79946",
+    "awayTeamId": "52747",
+    "label": "COM–PSG"
+  },
+  {
+    "matchId": 125,
+    "uefaMatchId": "2049676",
+    "homeTeamId": "52277",
+    "awayTeamId": "52919",
+    "label": "LEN–MCI"
+  },
+  {
+    "matchId": 126,
+    "uefaMatchId": "2049677",
+    "homeTeamId": "52319",
+    "awayTeamId": "50062",
+    "label": "VFK–PSV"
+  },
+  {
+    "matchId": 127,
+    "uefaMatchId": "2049679",
+    "homeTeamId": "52747",
+    "awayTeamId": "50067",
+    "label": "PSG–GAL"
+  },
+  {
+    "matchId": 128,
+    "uefaMatchId": "2049680",
+    "homeTeamId": "50037",
+    "awayTeamId": "52265",
+    "label": "BAY–BET"
+  },
+  {
+    "matchId": 129,
+    "uefaMatchId": "2049681",
+    "homeTeamId": "7889",
+    "awayTeamId": "52277",
+    "label": "LIV–LEN"
+  },
+  {
+    "matchId": 130,
+    "uefaMatchId": "2049682",
+    "homeTeamId": "52919",
+    "awayTeamId": "50149",
+    "label": "MCI–SPO"
+  },
+  {
+    "matchId": 131,
+    "uefaMatchId": "2049683",
+    "homeTeamId": "52280",
+    "awayTeamId": "2609356",
+    "label": "ARS–SAB"
+  },
+  {
+    "matchId": 132,
+    "uefaMatchId": "2049684",
+    "homeTeamId": "50080",
+    "awayTeamId": "79946",
+    "label": "BAR–COM"
+  },
+  {
+    "matchId": 133,
+    "uefaMatchId": "2049685",
+    "homeTeamId": "50124",
+    "awayTeamId": "52692",
+    "label": "ATM–FEN"
+  },
+  {
+    "matchId": 134,
+    "uefaMatchId": "2049686",
+    "homeTeamId": "52758",
+    "awayTeamId": "50129",
+    "label": "BVB–AEK"
+  },
+  {
+    "matchId": 135,
+    "uefaMatchId": "2049687",
+    "homeTeamId": "50137",
+    "awayTeamId": "75797",
+    "label": "ROM–LIL"
+  },
+  {
+    "matchId": 136,
+    "uefaMatchId": "2049688",
+    "homeTeamId": "50043",
+    "awayTeamId": "59333",
+    "label": "BRU–BOD"
+  },
+  {
+    "matchId": 137,
+    "uefaMatchId": "2049689",
+    "homeTeamId": "50062",
+    "awayTeamId": "50107",
+    "label": "PSV–STU"
+  },
+  {
+    "matchId": 138,
+    "uefaMatchId": "2049690",
+    "homeTeamId": "52749",
+    "awayTeamId": "2603790",
+    "label": "FEY–RBL"
+  },
+  {
+    "matchId": 139,
+    "uefaMatchId": "2049691",
+    "homeTeamId": "50136",
+    "awayTeamId": "52319",
+    "label": "NAP–VFK"
+  },
+  {
+    "matchId": 140,
+    "uefaMatchId": "2049692",
+    "homeTeamId": "70691",
+    "awayTeamId": "52682",
+    "label": "VIL–MUN"
+  },
+  {
+    "matchId": 141,
+    "uefaMatchId": "2049693",
+    "homeTeamId": "52707",
+    "awayTeamId": "50051",
+    "label": "SHK–RMA"
+  },
+  {
+    "matchId": 142,
+    "uefaMatchId": "2049694",
+    "homeTeamId": "52498",
+    "awayTeamId": "52683",
+    "label": "SLA–AVL"
+  },
+  {
+    "matchId": 143,
+    "uefaMatchId": "2049695",
+    "homeTeamId": "52797",
+    "awayTeamId": "50138",
+    "label": "SLB–INT"
+  },
+  {
+    "matchId": 144,
+    "uefaMatchId": "2049696",
+    "homeTeamId": "63405",
+    "awayTeamId": "50064",
+    "label": "LAS–POR"
+  }
+]
