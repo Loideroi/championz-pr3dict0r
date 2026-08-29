@@ -76,6 +76,13 @@ oracle-bot tracks the season from the next cron tick. Txs: `0xef61…f294b` (MD1
 scripts, `EXPECT_MATCHCOUNT=144`). MD1 Match Insights generated 2026-08-29 into
 `public/insights/<locale>.json` (144 keys × 6 locales; regenerate before each matchday —
 `generate-insights.mjs --season 2027 --out public/insights` — so form/table lines appear).
+Since 2026-08-30 the generator also pulls **published strength** (`relayer/src/strength.ts`):
+UEFA's club coefficients (`comp.uefa.com/v2/coefficients`, base season = season − 1) and
+last season's run (previous season's match feed + `standings.uefa.com/v1/standings`), so a
+fixture reads as a real preview before any result exists — rank, a favourite call and last
+season's finish. Both feeds are optional: unreachable → warn and fall back to form-only copy
+(`--no-strength` forces that). The call is a transparent function of published numbers —
+log-ratio of coefficients plus a fixed home advantage — documented in `strength.ts`.
 Club crests: the bundle carries UEFA's own crest URL per team; `TeamCrest` renders it with
 a monogram fallback (`<img onError>`, PRD §7.6) on /play and the /enter disclosure.
 
