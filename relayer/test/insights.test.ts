@@ -64,6 +64,26 @@ describe('insight facts from the recorded archive', () => {
   });
 });
 
+describe('matchday 1 — no form on either side', () => {
+  it('renders one opening-night sentence instead of two "open their campaign" stubs, in every locale', () => {
+    const league = played.find((p) => p.fixture.type === 'GROUP_STAGE')!;
+    const facts = { ...buildFacts(league.fixture, [], false), homePos: null, awayPos: null };
+    expect(facts.homeForm).toEqual([]);
+    expect(facts.awayForm).toEqual([]);
+    const en = renderInsight(facts, 'en');
+    expect(en).toContain('Opening night');
+    expect(en).toContain(facts.home);
+    expect(en).toContain(facts.away);
+    expect(en).not.toContain('open their campaign');
+    const all = renderAllLocales(facts);
+    expect(new Set(Object.values(all)).size).toBe(INSIGHT_LOCALES.length);
+    // one side with form → back to the per-team lines
+    const mixed = renderInsight({ ...facts, homeForm: ['W', 'D'] }, 'en');
+    expect(mixed).toContain('arrive on a W-D run');
+    expect(mixed).toContain('open their campaign');
+  });
+});
+
 describe('six-locale parity (ADR-0011)', () => {
   it('renders all six locales with identical numeric slots', () => {
     const league = played.find((p) => p.fixture.type === 'GROUP_STAGE')!;

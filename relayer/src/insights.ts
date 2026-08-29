@@ -97,6 +97,8 @@ export function buildFacts(fixture: Fixture, played: PlayedMatch[], decider: boo
 type T = {
   formLine: (team: string, form: string) => string;
   noForm: (team: string) => string;
+  /** Both sides without any form yet — matchday 1 reads as one sentence, not two stubs */
+  opening: (home: string, away: string) => string;
   tableLine: (home: string, hp: number, away: string, ap: number) => string;
   knockout: string;
   decider: string;
@@ -115,6 +117,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
   en: {
     formLine: (t, f) => `${t} arrive on a ${f} run`,
     noForm: (t) => `${t} open their campaign`,
+    opening: (h, a) => `Opening night: ${h} and ${a} both start their campaign here — no form to read, only the pitch.`,
     tableLine: (h, hp, a, ap) => `The table says ${h} ${hp}ᵗʰ, ${a} ${ap}ᵗʰ — the pitch will have its own opinion.`,
     knockout: 'Knockout football: the 90-minute score feeds the rubric, the tie decides who breathes.',
     decider: 'A decider — extra time, penalties and the advancing team are all worth calling.',
@@ -122,6 +125,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
   es: {
     formLine: (t, f) => `${t} llega con una racha de ${f}`,
     noForm: (t) => `${t} estrena su campaña`,
+    opening: (h, a) => `Noche de estreno: ${h} y ${a} arrancan aquí su campaña — sin racha que leer, solo el césped.`,
     tableLine: (h, hp, a, ap) => `La tabla dice ${h} ${hp}º, ${a} ${ap}º — el césped tendrá su propia opinión.`,
     knockout: 'Eliminatoria: el marcador de 90 minutos alimenta la puntuación; la eliminatoria decide quién respira.',
     decider: 'Partido decisivo: prórroga, penaltis y quién avanza — todo puntúa.',
@@ -129,6 +133,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
   fr: {
     formLine: (t, f) => `${t} arrive sur une série ${f}`,
     noForm: (t) => `${t} lance sa campagne`,
+    opening: (h, a) => `Soir de première : ${h} et ${a} lancent ici leur campagne — aucune série à lire, seulement la pelouse.`,
     tableLine: (h, hp, a, ap) => `Le classement dit ${h} ${hp}ᵉ, ${a} ${ap}ᵉ — la pelouse aura son mot à dire.`,
     knockout: 'Match couperet : le score à 90 minutes nourrit le barème, la confrontation décide qui respire.',
     decider: 'Match décisif — prolongation, tirs au but et qualifié : tout se pronostique.',
@@ -136,6 +141,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
   it: {
     formLine: (t, f) => `${t} arriva con una striscia di ${f}`,
     noForm: (t) => `${t} inaugura il suo cammino`,
+    opening: (h, a) => `Serata d'esordio: ${h} e ${a} iniziano qui il loro cammino — nessuna striscia da leggere, solo il campo.`,
     tableLine: (h, hp, a, ap) => `La classifica dice ${h} ${hp}º, ${a} ${ap}º — il campo avrà la sua opinione.`,
     knockout: 'Gara a eliminazione: il punteggio dei 90 minuti alimenta il punteggio, il confronto decide chi respira.',
     decider: 'Gara decisiva: supplementari, rigori e chi passa — si pronostica tutto.',
@@ -143,6 +149,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
   'pt-BR': {
     formLine: (t, f) => `${t} chega numa sequência de ${f}`,
     noForm: (t) => `${t} estreia na campanha`,
+    opening: (h, a) => `Noite de estreia: ${h} e ${a} começam aqui a campanha — sem sequência para ler, só o gramado.`,
     tableLine: (h, hp, a, ap) => `A tabela diz ${h} ${hp}º, ${a} ${ap}º — o gramado terá opinião própria.`,
     knockout: 'Mata-mata: o placar dos 90 minutos alimenta a pontuação; o confronto decide quem respira.',
     decider: 'Jogo decisivo: prorrogação, pênaltis e quem avança — tudo vale ponto.',
@@ -150,6 +157,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
   tr: {
     formLine: (t, f) => `${t}, ${f} serisiyle geliyor`,
     noForm: (t) => `${t} kampanyasına başlıyor`,
+    opening: (h, a) => `Açılış gecesi: ${h} ve ${a} kampanyalarına burada başlıyor — okunacak seri yok, yalnızca saha var.`,
     tableLine: (h, hp, a, ap) => `Puan durumu ${h} ${hp}., ${a} ${ap}. diyor — sahanın kendi fikri olacak.`,
     knockout: 'Eleme maçı: 90 dakikalık skor puanlamayı besler; turu kimin geçtiğini eşleşme belirler.',
     decider: 'Karar maçı — uzatmalar, penaltılar ve tur atlayan takım: hepsi tahmin edilir.',
@@ -164,7 +172,8 @@ export function renderInsight(facts: MatchFacts, locale: InsightLocale): string 
     facts.homeForm.length > 0 ? t.formLine(facts.home, fmtForm(facts.homeForm)) : t.noForm(facts.home);
   const awayPart =
     facts.awayForm.length > 0 ? t.formLine(facts.away, fmtForm(facts.awayForm)) : t.noForm(facts.away);
-  const parts: string[] = [`${homePart}; ${awayPart}.`];
+  const bothFresh = facts.homeForm.length === 0 && facts.awayForm.length === 0;
+  const parts: string[] = [bothFresh ? t.opening(facts.home, facts.away) : `${homePart}; ${awayPart}.`];
   if (facts.homePos !== null && facts.awayPos !== null) {
     parts.push(t.tableLine(facts.home, facts.homePos, facts.away, facts.awayPos));
   }
