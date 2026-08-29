@@ -39,13 +39,23 @@ export function deployBlockFor(chainId: number): bigint {
   return PREDICTOR_DEPLOY_BLOCK[chainId] ?? 0n;
 }
 
-/** RPC endpoint for server-side reads; falls back to the chain's public URL. */
-export function rpcUrlFor(chainId: number): string {
-  return (
-    process.env.CHILIZ_RPC_URL ??
-    process.env.NEXT_PUBLIC_RPC_URL ??
-    chainFor(chainId).rpcUrls.default.http[0]!
+/**
+ * RPC endpoints to try, in order: whatever the deployment configures, then the
+ * chain's own public endpoints.
+ *
+ * Not every Chiliz RPC can answer every query. Production runs on Ankr's free
+ * tier, which caps `eth_getLogs` at a **1,000-block** range — measured — and
+ * answers `-32062 "Block range is too large"` to anything wider. Scanning a
+ * season of Entered events is ~1.6M blocks, so on Ankr it is not a matter of
+ * chunking: 1,600 requests is not a strategy. `rpc.chiliz.com` answers the same
+ * scan from genesis in ~230ms. Callers that need a wide range walk this list
+ * until one endpoint can serve them; contract reads work on either.
+ */
+export function rpcCandidatesFor(chainId: number): string[] {
+  const configured = [process.env.CHILIZ_RPC_URL, process.env.NEXT_PUBLIC_RPC_URL].filter(
+    (url): url is string => typeof url === "string" && url.length > 0,
   );
+  return [...new Set([...configured, ...chainFor(chainId).rpcUrls.default.http])];
 }
 
 /** Multicall3 caps out well before this; 40 keeps heavy views inside gas. */

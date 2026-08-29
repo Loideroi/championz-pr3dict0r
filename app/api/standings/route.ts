@@ -25,7 +25,7 @@ import {
   deployBlockFor,
   isSupportedChain,
   readBatch,
-  rpcUrlFor,
+  rpcCandidatesFor,
 } from "@/lib/predictor/chains";
 import { toRowJson, type StandingsPayload } from "@/lib/predictor/standingsPayload";
 import type { StandingRow } from "@/lib/predictor/standings";
@@ -89,19 +89,40 @@ async function loadEntrants(client: PublicClient, chainId: number): Promise<Map<
   return wallets;
 }
 
+/**
+ * The season-wide log scan is the one query a Chiliz RPC can refuse: Ankr's
+ * free tier — what production is configured with — caps `eth_getLogs` at 1,000
+ * blocks. So try the endpoints in order and keep the client that could answer,
+ * rather than assuming the configured one can. Contract reads then run on the
+ * same client, which is also the one the timings were measured on.
+ */
+async function scanEntrants(
+  chainId: number,
+): Promise<{ client: PublicClient; wallets: Map<string, boolean> }> {
+  const candidates = rpcCandidatesFor(chainId);
+  let lastError: unknown;
+  for (const url of candidates) {
+    const client = createPublicClient({
+      chain: chainFor(chainId),
+      transport: http(url),
+    }) as PublicClient;
+    try {
+      return { client, wallets: await loadEntrants(client, chainId) };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  const detail = lastError instanceof Error ? lastError.message.split("\n")[0] : String(lastError);
+  throw new Error(`no RPC could scan entrants (tried ${candidates.length}): ${detail}`);
+}
+
 const big = (v: unknown): bigint => (typeof v === "bigint" ? v : BigInt(Number(v ?? 0)));
 
 async function buildPayload(chainId: number): Promise<StandingsPayload> {
-  const client = createPublicClient({
-    chain: chainFor(chainId),
-    transport: http(rpcUrlFor(chainId)),
-  }) as PublicClient;
-
-  const [wallets, matchCountRaw] = await Promise.all([
-    loadEntrants(client, chainId),
-    client.readContract({ ...contract, functionName: "matchCount" }),
-  ]);
-  const matchCount = Number(matchCountRaw ?? 0);
+  const { client, wallets } = await scanEntrants(chainId);
+  const matchCount = Number(
+    (await client.readContract({ ...contract, functionName: "matchCount" })) ?? 0,
+  );
   const addresses = [...wallets.keys()];
 
   // One flat call list: six per entrant, one per match. Order is reconstructed
