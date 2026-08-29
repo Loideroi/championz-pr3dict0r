@@ -15,7 +15,15 @@
     "standings": "Puan Durumu",
     "hallOfFame": "Şöhretler Salonu",
     "profile": "Profil",
-    "connect": "Bağlan"
+    "connect": "Bağlan",
+    "mobileLabel": "Bölümler",
+    "short": {
+      "enter": "Katıl",
+      "predict": "Tahmin",
+      "standings": "Puan",
+      "hallOfFame": "Şöhret",
+      "profile": "Profil"
+    }
   },
   "localeSwitcher": {
     "label": "Dil"

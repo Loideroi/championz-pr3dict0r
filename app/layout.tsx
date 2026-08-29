@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Providers } from "./providers";
 import { HealthBanner } from "@/components/chrome/HealthBanner";
 import { SiteFooter } from "@/components/chrome/SiteFooter";
+import { MobileNav } from "@/components/chrome/MobileNav";
 import { SiteNav } from "@/components/chrome/SiteNav";
 import { Starfield } from "@/components/chrome/Starfield";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
@@ -86,7 +87,8 @@ export default async function RootLayout({
       lang={locale}
       className={`${archivo.variable} ${inter.variable} ${spaceMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-night text-ink font-body">
+      {/* Bottom padding clears the fixed mobile nav (h-14 + iOS safe area); md+ has the header row instead. */}
+      <body className="min-h-full flex flex-col bg-night text-ink font-body pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <NextIntlClientProvider>
           <Starfield />
           <Providers>
@@ -95,6 +97,7 @@ export default async function RootLayout({
             <div className="flex-1 flex flex-col">{children}</div>
             <InstallBanner />
             <SiteFooter />
+            <MobileNav />
           </Providers>
         </NextIntlClientProvider>
       </body>

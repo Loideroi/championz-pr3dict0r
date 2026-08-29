@@ -15,7 +15,15 @@
     "standings": "Standings",
     "hallOfFame": "Hall of Fame",
     "profile": "Profile",
-    "connect": "Connect"
+    "connect": "Connect",
+    "mobileLabel": "Sections",
+    "short": {
+      "enter": "Enter",
+      "predict": "Predict",
+      "standings": "Table",
+      "hallOfFame": "Hall",
+      "profile": "Profile"
+    }
   },
   "localeSwitcher": {
     "label": "Language"

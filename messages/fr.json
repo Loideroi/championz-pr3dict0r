@@ -15,7 +15,15 @@
     "standings": "Classement",
     "hallOfFame": "Panthéon",
     "profile": "Profil",
-    "connect": "Connecter"
+    "connect": "Connecter",
+    "mobileLabel": "Sections",
+    "short": {
+      "enter": "Entrer",
+      "predict": "Pronos",
+      "standings": "Classement",
+      "hallOfFame": "Panthéon",
+      "profile": "Profil"
+    }
   },
   "localeSwitcher": {
     "label": "Langue"

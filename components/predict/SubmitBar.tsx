@@ -30,7 +30,7 @@ export function SubmitBar({
   const edits = changes.filter((c) => c.old !== null).length;
 
   return (
-    <div className="sticky bottom-4 flex flex-col gap-3 rounded-2xl border border-glow/50 bg-night-3/95 p-4 shadow-lg shadow-night/60 backdrop-blur">
+    <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-4 flex flex-col gap-3 rounded-2xl border border-glow/50 bg-night-3/95 p-4 shadow-lg shadow-night/60 backdrop-blur">
       <p className="font-mono text-xs uppercase tracking-widest text-glow-2">
         {t("review", { count: changes.length })}
         {edits > 0 && ` ${t("edits", { count: edits })}`}
