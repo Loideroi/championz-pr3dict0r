@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
-import { parseAbiItem } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import {
   flagEmoji,
@@ -12,11 +11,9 @@ import {
   type StandingRow,
   type StageView,
 } from "@/lib/predictor/standings";
+import { parseStandingsPayload } from "@/lib/predictor/standingsPayload";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
-const ENTERED_EVENT = parseAbiItem(
-  "event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass)",
-);
 
 /** view key → messages key for its label (translated at render). */
 const VIEWS: { key: StageView; labelKey: "viewLeague" | "viewKnockout" | "viewSeason" }[] = [
@@ -116,91 +113,35 @@ function ClaimBanner() {
 
 export function StandingsPanel() {
   const t = useTranslations("standings");
-  const client = usePublicClient();
   const [view, setView] = useState<StageView>("season");
   const [rows, setRows] = useState<StandingRow[] | null>(null);
   const [hasProvisional, setHasProvisional] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * One request. The whole board — entrants, points, exact counts, entry
+   * times, usernames, flags and the provisional badge — is derived server-side
+   * in /api/standings and cached at the edge. The browser used to derive it
+   * itself: ~450 serial eth_calls plus one /api/profile round trip per
+   * entrant, which is tens of seconds before the first row appears.
+   */
   const load = useCallback(async () => {
-    if (!client || !PREDICTOR_ADDRESS) return;
+    if (!PREDICTOR_ADDRESS) return;
     try {
-      // entrants from Entered events (read-model cache replaces this at scale)
-      const logs = await client.getLogs({
-        address: PREDICTOR_ADDRESS,
-        event: ENTERED_EVENT,
-        fromBlock: 0n,
-        toBlock: "latest",
-      });
-      const wallets = new Map<string, boolean>(); // address → fullSeason
-      for (const log of logs) {
-        const wallet = (log.args.wallet as string).toLowerCase();
-        wallets.set(wallet, (wallets.get(wallet) ?? false) || Boolean(log.args.fullSeasonPass));
+      const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "88882");
+      const res = await fetch(`/api/standings?chainId=${chainId}`);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `standings unavailable (${res.status})`);
       }
-
-      const built: StandingRow[] = [];
-      for (const [address, fullSeason] of wallets) {
-        const addr = address as `0x${string}`;
-        const [leaguePts, koPts, exactL, exactK, atL, atK] = await Promise.all([
-          fullSeason
-            ? client.readContract({ ...contract, functionName: "pointsOf", args: [addr, STAGE_LEAGUE] })
-            : Promise.resolve(null),
-          client.readContract({ ...contract, functionName: "pointsOf", args: [addr, STAGE_KNOCKOUT] }),
-          fullSeason
-            ? client.readContract({ ...contract, functionName: "exactCountOf", args: [addr, STAGE_LEAGUE] })
-            : Promise.resolve(0n),
-          client.readContract({ ...contract, functionName: "exactCountOf", args: [addr, STAGE_KNOCKOUT] }),
-          client.readContract({ ...contract, functionName: "enteredAt", args: [STAGE_LEAGUE, addr] }),
-          client.readContract({ ...contract, functionName: "enteredAt", args: [STAGE_KNOCKOUT, addr] }),
-        ]);
-        // optional profile (username + flag) — graceful when Supabase isn't
-        // configured. Chain-aware: profiles are keyed per chain.
-        let username: string | undefined;
-        let countryCode: string | undefined;
-        try {
-          const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "88882");
-          const res = await fetch(`/api/profile?address=${addr}&chainId=${chainId}`);
-          if (res.ok) {
-            const p = (await res.json()) as {
-              profile?: { username?: string; countryCode?: string } | null;
-            };
-            username = p.profile?.username ?? undefined;
-            countryCode = p.profile?.countryCode ?? undefined;
-          }
-        } catch {
-          /* no profile service — addresses only */
-        }
-        built.push({
-          address: addr,
-          username,
-          countryCode,
-          fullSeason,
-          leaguePoints: leaguePts as bigint | null,
-          knockoutPoints: koPts as bigint,
-          exactCount: ((exactL as bigint) ?? 0n) + (exactK as bigint),
-          enteredAt: BigInt(Number(atL) || Number(atK) || 0), // uint40 → number from viem
-        });
-      }
-      setRows(built);
-
-      // provisional badge (D9): any completed-but-unfinalized result?
-      const n = Number(
-        await client.readContract({ ...contract, functionName: "matchCount" }),
-      );
-      let provisional = false;
-      for (let id = 1; id <= n && !provisional; id++) {
-        const r = (await client.readContract({
-          ...contract,
-          functionName: "resultOf",
-          args: [id],
-        })) as readonly [number, number, boolean, boolean, number, boolean, boolean];
-        provisional = r[5] && r[6];
-      }
-      setHasProvisional(provisional);
+      const parsed = parseStandingsPayload(await res.json());
+      setRows(parsed.rows);
+      setHasProvisional(parsed.hasProvisional);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      setRows([]);
     }
-  }, [client]);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
@@ -258,7 +199,8 @@ export function StandingsPanel() {
             ) : sorted.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center font-mono text-xs text-muted">
-                  {t("noEntrants")}
+                  {/* an empty board after a failed read is a read failure, not an empty pool */}
+                  {error ? t("unavailable") : t("noEntrants")}
                 </td>
               </tr>
             ) : (
