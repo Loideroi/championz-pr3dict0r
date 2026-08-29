@@ -170,6 +170,7 @@
     "colPoints": "Puntos",
     "reading": "Leyendo la cadena…",
     "noEntrants": "Aún no hay participantes — sé el primero.",
+    "unavailable": "No se pudo leer la clasificación ahora mismo — inténtalo de nuevo en un momento.",
     "koPass": "Pase KO",
     "footnote": "Los puntos se calculan en vivo desde el estado de la cadena — no existen transacciones de liquidación. La Vista de temporada corona al ₵h@mpi0n definitivo (el NFT del trofeo llega con el slice 11).",
     "claim": {

@@ -170,6 +170,7 @@
     "colPoints": "Points",
     "reading": "Reading the chain…",
     "noEntrants": "No entrants yet — be the first.",
+    "unavailable": "The board could not be read just now — try again in a moment.",
     "koPass": "KO pass",
     "footnote": "Points compute live from chain state — no settlement transactions exist. Season View crowns the Ultimate ₵h@mpi0n (trophy NFT lands with slice 11).",
     "claim": {
