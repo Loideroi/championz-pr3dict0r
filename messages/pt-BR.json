@@ -170,6 +170,7 @@
     "colPoints": "Pontos",
     "reading": "Lendo a chain…",
     "noEntrants": "Ainda sem participantes — seja o primeiro.",
+    "unavailable": "Não foi possível ler a classificação agora — tente novamente em instantes.",
     "koPass": "Passe KO",
     "footnote": "Os pontos são calculados ao vivo do estado da chain — não existem transações de liquidação. A Visão da temporada coroa o ₵h@mpi0n supremo (o NFT do troféu chega com o slice 11).",
     "claim": {

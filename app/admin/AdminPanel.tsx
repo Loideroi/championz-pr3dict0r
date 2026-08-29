@@ -5,6 +5,7 @@ import { useAccount, usePublicClient, useReadContract, useWriteContract } from "
 import { hexToString, parseAbiItem, stringToHex } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import { compareRows, type StandingRow } from "@/lib/predictor/standings";
+import { MULTICALL_BATCH } from "@/lib/predictor/chains";
 import { packPrediction } from "@/lib/predictor/packed";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
@@ -51,14 +52,32 @@ export function AdminPanel() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
+  /**
+   * The whole slate in multicall batches. Serially this is 2 × matchCount
+   * eth_calls — 288 at a full league phase, which is exactly the burst that
+   * exhausted Ankr's free-tier rate limit on the relayer (PR #60).
+   */
   const loadMatches = useCallback(async () => {
     if (!client || matchCount.data === undefined) return;
+    const count = Number(matchCount.data);
+    const ids = Array.from({ length: count }, (_, i) => i + 1);
+    const calls = ids.flatMap((id) => [
+      { ...contract, functionName: "matches", args: [id] } as const,
+      { ...contract, functionName: "resultOf", args: [id] } as const,
+    ]);
+    const results: unknown[] = [];
+    for (let i = 0; i < calls.length; i += MULTICALL_BATCH) {
+      const batch = await client.multicall({
+        contracts: calls.slice(i, i + MULTICALL_BATCH),
+        allowFailure: true,
+      });
+      results.push(...batch.map((r) => (r.status === "success" ? r.result : null)));
+    }
     const rows: MatchRow[] = [];
-    for (let id = 1; id <= Number(matchCount.data); id++) {
-      const [m, r] = await Promise.all([
-        client.readContract({ ...contract, functionName: "matches", args: [id] }),
-        client.readContract({ ...contract, functionName: "resultOf", args: [id] }),
-      ]);
+    ids.forEach((id, i) => {
+      const m = results[i * 2] as readonly unknown[] | null;
+      const r = results[i * 2 + 1] as readonly unknown[] | null;
+      if (!m || !r) return; // a failed read drops its row rather than the console
       rows.push({
         id,
         kickoff: Number(m[0]),
@@ -69,7 +88,7 @@ export function AdminPanel() {
         scoreB: Number(r[1]),
         provisional: Boolean(r[6]),
       });
-    }
+    });
     setMatches(rows);
   }, [client, matchCount.data]);
 
@@ -123,23 +142,37 @@ export function AdminPanel() {
       toBlock: "latest",
     });
     const wallets = [...new Set(logsE.map((l) => (l.args.wallet as string).toLowerCase()))];
-    const rows: StandingRow[] = [];
-    for (const w of wallets) {
+    // Batched, but deliberately allowFailure:false — this ranking decides who
+    // gets paid, so a rate-limited read must abort the freeze, never quietly
+    // rank a wallet at zero points.
+    const calls = wallets.flatMap((w) => {
       const addr = w as `0x${string}`;
-      const [pts, exact, at] = await Promise.all([
-        client.readContract({ ...contract, functionName: "pointsOf", args: [addr, stage] }),
-        client.readContract({ ...contract, functionName: "exactCountOf", args: [addr, stage] }),
-        client.readContract({ ...contract, functionName: "enteredAt", args: [stage, addr] }),
-      ]);
-      rows.push({
-        address: addr,
+      return [
+        { ...contract, functionName: "pointsOf", args: [addr, stage] } as const,
+        { ...contract, functionName: "exactCountOf", args: [addr, stage] } as const,
+        { ...contract, functionName: "enteredAt", args: [stage, addr] } as const,
+      ];
+    });
+    const read: unknown[] = [];
+    for (let i = 0; i < calls.length; i += MULTICALL_BATCH) {
+      read.push(
+        ...(await client.multicall({
+          contracts: calls.slice(i, i + MULTICALL_BATCH),
+          allowFailure: false,
+        })),
+      );
+    }
+    const rows: StandingRow[] = wallets.map((w, i) => {
+      const [pts, exact, at] = [read[i * 3], read[i * 3 + 1], read[i * 3 + 2]];
+      return {
+        address: w as `0x${string}`,
         fullSeason: true,
         leaguePoints: stage === STAGE_LEAGUE ? (pts as bigint) : null,
         knockoutPoints: stage === STAGE_KNOCKOUT ? (pts as bigint) : 0n,
         exactCount: exact as bigint,
         enteredAt: BigInt(Number(at) || 0),
-      });
-    }
+      };
+    });
     rows.sort(compareRows(stage === STAGE_LEAGUE ? "league" : "knockout"));
     return rows.slice(0, Math.min(20, rows.length)).map((r) => r.address);
   }

@@ -170,6 +170,7 @@
     "colPoints": "Points",
     "reading": "Lecture de la chaîne…",
     "noEntrants": "Encore aucun participant — soyez le premier.",
+    "unavailable": "Le classement n’a pas pu être lu pour le moment — réessayez dans un instant.",
     "koPass": "Pass KO",
     "footnote": "Les points se calculent en direct depuis l’état de la chaîne — aucune transaction de règlement n’existe. La Vue saison couronne l’Ultime ₵h@mpi0n (le NFT trophée arrive avec le slice 11).",
     "claim": {

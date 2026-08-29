@@ -170,6 +170,7 @@
     "colPoints": "Punti",
     "reading": "Lettura della chain…",
     "noEntrants": "Ancora nessun iscritto — sii il primo.",
+    "unavailable": "Non è stato possibile leggere la classifica in questo momento — riprova tra poco.",
     "koPass": "Pass KO",
     "footnote": "I punti si calcolano in tempo reale dallo stato della chain — non esistono transazioni di regolamento. La Vista stagione incorona l’Ultimate ₵h@mpi0n (l’NFT del trofeo arriva con lo slice 11).",
     "claim": {
