@@ -10,6 +10,7 @@ import {
   type PlayedMatch,
 } from '../src/insights.js';
 import { toFixture, toMatchResult } from '../src/source.js';
+import type { TeamStrength } from '../src/strength.js';
 
 const archive = JSON.parse(
   readFileSync(new URL('./fixtures/matches-ucl-2026-aet.json', import.meta.url), 'utf8'),
@@ -125,6 +126,92 @@ describe('matchday 2+ before any result — schedule context', () => {
     const en = renderInsight(facts, 'en');
     expect(en).toContain('Lens arrive on a L run');
     expect(en).toContain('Sporting CP after hosting Galatasaray');
+  });
+});
+
+describe('matchday 1 with published strength — the whole point of the exercise', () => {
+  const league = played.find((p) => p.fixture.type === 'GROUP_STAGE')!;
+  const strong = (over: Partial<TeamStrength> = {}): TeamStrength => ({
+    coefRank: 2,
+    coefValue: 144.5,
+    prevRun: 'QUARTER_FINAL',
+    prevLeagueRank: 9,
+    ...over,
+  });
+  const index = (home: TeamStrength, away: TeamStrength) =>
+    new Map([
+      [league.fixture.home.uefaTeamId, home],
+      [league.fixture.away.uefaTeamId, away],
+    ]);
+  const factsWith = (home: TeamStrength, away: TeamStrength) => ({
+    ...buildFacts(league.fixture, [], false, [], index(home, away)),
+    homePos: null,
+    awayPos: null,
+  });
+
+  it('replaces the identical opening-night sentence with ranks, a call and last season', () => {
+    const facts = factsWith(strong(), strong({ coefRank: 27, coefValue: 71, prevRun: 'ABSENT' }));
+    const en = renderInsight(facts, 'en');
+    expect(en).not.toContain('Opening night');
+    expect(en).toContain('UEFA coefficients');
+    expect(en).toContain('No. 2');
+    expect(en).toContain('No. 27');
+    expect(en).toContain('start favourites');
+    expect(en).toContain('quarter-finalists');
+    expect(en).toContain('not in the competition');
+  });
+
+  it('says "unranked" rather than inventing a position for a club UEFA does not list', () => {
+    const facts = factsWith(strong({ coefRank: null, coefValue: 1 }), strong({ coefRank: 37, coefValue: 61 }));
+    const en = renderInsight(facts, 'en');
+    expect(en).toContain('unranked');
+    expect(en).not.toMatch(/No\. (null|NaN|0)\b/);
+    expect(en).toContain('clear favourites'); // the floor still produces a call
+  });
+
+  it('credits home ground explicitly when that is what decides the call', () => {
+    const facts = factsWith(strong({ coefValue: 100 }), strong({ coefValue: 108 }));
+    expect(facts.verdict).toEqual({ side: 'home', tier: 'edge', homeGroundDecides: true });
+    expect(renderInsight(facts, 'en')).toContain('edge it at home');
+  });
+
+  it('collapses two absences into one clause instead of repeating it', () => {
+    const absent = strong({ prevRun: 'ABSENT', prevLeagueRank: null });
+    const en = renderInsight(factsWith(absent, absent), 'en');
+    expect(en).toContain('Neither');
+    expect(en.match(/not in the competition/g)).toBeNull();
+  });
+
+  it('gives a league-phase finisher its position, with a correct ordinal', () => {
+    const facts = factsWith(
+      strong({ prevRun: 'LEAGUE_PHASE', prevLeagueRank: 1 }),
+      strong({ prevRun: 'LEAGUE_PHASE', prevLeagueRank: 22 }),
+    );
+    const en = renderInsight(facts, 'en');
+    expect(en).toContain('1st in the league phase');
+    expect(en).toContain('22nd in the league phase');
+    expect(renderInsight(facts, 'fr')).toContain('1er de la phase de ligue');
+  });
+
+  it('drops last season once this season has form to read', () => {
+    const facts = { ...factsWith(strong(), strong()), homeForm: ['W', 'D'] };
+    const en = renderInsight(facts, 'en');
+    expect(en).toContain('arrive on a W-D run');
+    expect(en).toContain('UEFA coefficients'); // the call still stands
+    expect(en).not.toContain('Last season');
+  });
+
+  it('falls back to the old copy when the strength feeds were unreachable', () => {
+    const facts = { ...buildFacts(league.fixture, [], false), homePos: null, awayPos: null };
+    expect(facts.verdict).toBeNull();
+    expect(renderInsight(facts, 'en')).toContain('Opening night');
+  });
+
+  it('renders the same numbers in all six locales', () => {
+    const all = renderAllLocales(factsWith(strong(), strong({ coefRank: 27, coefValue: 71 })));
+    const numbers = (s: string) => (s.match(/\d+/g) ?? []).join(',');
+    for (const locale of INSIGHT_LOCALES) expect(numbers(all[locale]), locale).toBe(numbers(all.en));
+    expect(new Set(Object.values(all)).size).toBe(INSIGHT_LOCALES.length);
   });
 });
 
