@@ -15,7 +15,15 @@
     "standings": "Classifica",
     "hallOfFame": "Albo d’oro",
     "profile": "Profilo",
-    "connect": "Connetti"
+    "connect": "Connetti",
+    "mobileLabel": "Sezioni",
+    "short": {
+      "enter": "Entra",
+      "predict": "Pronostici",
+      "standings": "Classifica",
+      "hallOfFame": "Albo",
+      "profile": "Profilo"
+    }
   },
   "localeSwitcher": {
     "label": "Lingua"

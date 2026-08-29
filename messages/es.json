@@ -15,7 +15,15 @@
     "standings": "Clasificación",
     "hallOfFame": "Salón de la Fama",
     "profile": "Perfil",
-    "connect": "Conectar"
+    "connect": "Conectar",
+    "mobileLabel": "Secciones",
+    "short": {
+      "enter": "Entrar",
+      "predict": "Predecir",
+      "standings": "Tabla",
+      "hallOfFame": "Salón",
+      "profile": "Perfil"
+    }
   },
   "localeSwitcher": {
     "label": "Idioma"
