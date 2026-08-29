@@ -73,7 +73,11 @@ exactly → unpause. Independent `verify-onchain.mjs`: 0 discrepancies. First ki
 `lib/fixtures/matches.json` + `relayer/config/mainnet-map.json` (144 entries) committed —
 oracle-bot tracks the season from the next cron tick. Txs: `0xef61…f294b` (MD1) …
 `0x4e93…2b2f` (MD8). **Knockout rounds + `setTies` follow the February draw** (same
-scripts, `EXPECT_MATCHCOUNT=144`).
+scripts, `EXPECT_MATCHCOUNT=144`). MD1 Match Insights generated 2026-08-29 into
+`public/insights/<locale>.json` (144 keys × 6 locales; regenerate before each matchday —
+`generate-insights.mjs --season 2027 --out public/insights` — so form/table lines appear).
+Club crests: the bundle carries UEFA's own crest URL per team; `TeamCrest` renders it with
+a monogram fallback (`<img onError>`, PRD §7.6) on /play and the /enter disclosure.
 
 ## Post-draw fixture import — runbook (kept for the knockout rounds)
 

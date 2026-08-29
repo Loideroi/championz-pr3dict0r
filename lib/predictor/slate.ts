@@ -20,6 +20,9 @@ export type SlateMatch = {
   /** Club names from the bundled fixtures (lib/fixtures) — cosmetic, optional */
   nameA?: string;
   nameB?: string;
+  /** Crest URLs from the bundle; null/undefined → monogram fallback */
+  crestA?: string | null;
+  crestB?: string | null;
   /** League-phase matchday 1..8 from the bundle; null/undefined when unknown */
   matchday?: number | null;
   /** UEFA match id from the bundle — the Match Insights key */

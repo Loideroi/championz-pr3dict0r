@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Stepper } from "@/components/predict/Stepper";
+import { TeamCrest } from "@/components/predict/TeamCrest";
 import { InsightCard } from "@/components/predict/InsightCard";
 import type { AppLocale } from "@/i18n/config";
 import {
@@ -64,8 +65,16 @@ export function MatchRow({
     >
       {/* fixture */}
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-semibold">
-          {nameA} <span className="text-muted-2">{t("vs")}</span> {nameB}
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+          <span className="inline-flex items-center gap-2">
+            <TeamCrest code={match.teamA} name={nameA} src={match.crestA ?? null} />
+            {nameA}
+          </span>
+          <span className="text-muted-2">{t("vs")}</span>
+          <span className="inline-flex items-center gap-2">
+            <TeamCrest code={match.teamB} name={nameB} src={match.crestB ?? null} />
+            {nameB}
+          </span>
         </p>
         <p className="font-mono text-xs text-muted">
           {t("kickoff", { time: formatUtcTime(match.kickoff) })}

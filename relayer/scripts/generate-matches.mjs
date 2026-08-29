@@ -191,6 +191,8 @@ const registerTeam = (t) => {
     uefaId: t.id,
     ...(t.countryCode ? { country: t.countryCode } : {}),
     ...(t.teamCode && t.teamCode !== code ? { uefaCode: t.teamCode } : {}),
+    // official crest as served by UEFA's own site (240x240 PNG) — cosmetic, PRD §7.6
+    ...(t.mediumLogoUrl ? { crest: t.mediumLogoUrl } : {}),
   };
   codeByUefaId.set(t.id, code);
   return code;

@@ -1,224 +1,260 @@
 {
   "generatedFrom": "live:seasonYear=2027",
-  "generatedAt": "2026-08-29T13:37:27.704Z",
+  "generatedAt": "2026-08-29T14:53:53.199Z",
   "source": "uefa-api@1.0.2 (match.uefa.com/v5/matches, competitionId=1)",
   "teams": {
     "BRU": {
       "name": "Club Brugge",
       "code": "BRU",
       "uefaId": "50043",
-      "country": "BEL"
+      "country": "BEL",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50043.png"
     },
     "AVL": {
       "name": "Aston Villa",
       "code": "AVL",
       "uefaId": "52683",
-      "country": "ENG"
+      "country": "ENG",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52683.png"
     },
     "AEK": {
       "name": "AEK Athens",
       "code": "AEK",
       "uefaId": "50129",
-      "country": "GRE"
+      "country": "GRE",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50129.png"
     },
     "LAS": {
       "name": "LASK",
       "code": "LAS",
       "uefaId": "63405",
       "country": "AUT",
-      "uefaCode": "LASK"
+      "uefaCode": "LASK",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/63405.png"
     },
     "RMA": {
       "name": "Real Madrid",
       "code": "RMA",
       "uefaId": "50051",
-      "country": "ESP"
+      "country": "ESP",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50051.png"
     },
     "INT": {
       "name": "Inter",
       "code": "INT",
       "uefaId": "50138",
-      "country": "ITA"
+      "country": "ITA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50138.png"
     },
     "BVB": {
       "name": "B. Dortmund",
       "code": "BVB",
       "uefaId": "52758",
-      "country": "GER"
+      "country": "GER",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52758.png"
     },
     "VIL": {
       "name": "Villarreal",
       "code": "VIL",
       "uefaId": "70691",
-      "country": "ESP"
+      "country": "ESP",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/70691.png"
     },
     "POR": {
       "name": "Porto",
       "code": "POR",
       "uefaId": "50064",
-      "country": "POR"
+      "country": "POR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50064.png"
     },
     "MCI": {
       "name": "Man City",
       "code": "MCI",
       "uefaId": "52919",
-      "country": "ENG"
+      "country": "ENG",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52919.png"
     },
     "LIL": {
       "name": "Lille",
       "code": "LIL",
       "uefaId": "75797",
-      "country": "FRA"
+      "country": "FRA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/75797.png"
     },
     "BET": {
       "name": "Real Betis",
       "code": "BET",
       "uefaId": "52265",
-      "country": "ESP"
+      "country": "ESP",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52265.png"
     },
     "BAR": {
       "name": "Barcelona",
       "code": "BAR",
       "uefaId": "50080",
-      "country": "ESP"
+      "country": "ESP",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50080.png"
     },
     "FEY": {
       "name": "Feyenoord",
       "code": "FEY",
       "uefaId": "52749",
-      "country": "NED"
+      "country": "NED",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52749.png"
     },
     "STU": {
       "name": "Stuttgart",
       "code": "STU",
       "uefaId": "50107",
-      "country": "GER"
+      "country": "GER",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50107.png"
     },
     "VFK": {
       "name": "Viking",
       "code": "VFK",
       "uefaId": "52319",
-      "country": "NOR"
+      "country": "NOR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52319.png"
     },
     "PSG": {
       "name": "Paris",
       "code": "PSG",
       "uefaId": "52747",
-      "country": "FRA"
+      "country": "FRA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52747.png"
     },
     "SLB": {
       "name": "S. Bratislava",
       "code": "SLB",
       "uefaId": "52797",
-      "country": "SVK"
+      "country": "SVK",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52797.png"
     },
     "LIV": {
       "name": "Liverpool",
       "code": "LIV",
       "uefaId": "7889",
-      "country": "ENG"
+      "country": "ENG",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/7889.png"
     },
     "ATM": {
       "name": "Atleti",
       "code": "ATM",
       "uefaId": "50124",
-      "country": "ESP"
+      "country": "ESP",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50124.png"
     },
     "SPO": {
       "name": "Sporting CP",
       "code": "SPO",
       "uefaId": "50149",
-      "country": "POR"
+      "country": "POR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50149.png"
     },
     "GAL": {
       "name": "Galatasaray",
       "code": "GAL",
       "uefaId": "50067",
-      "country": "TUR"
+      "country": "TUR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50067.png"
     },
     "NAP": {
       "name": "Napoli",
       "code": "NAP",
       "uefaId": "50136",
-      "country": "ITA"
+      "country": "ITA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50136.png"
     },
     "ARS": {
       "name": "Arsenal",
       "code": "ARS",
       "uefaId": "52280",
-      "country": "ENG"
+      "country": "ENG",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52280.png"
     },
     "PSV": {
       "name": "PSV",
       "code": "PSV",
       "uefaId": "50062",
-      "country": "NED"
+      "country": "NED",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50062.png"
     },
     "SHK": {
       "name": "Shakhtar",
       "code": "SHK",
       "uefaId": "52707",
-      "country": "UKR"
+      "country": "UKR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52707.png"
     },
     "FEN": {
       "name": "Fenerbahçe",
       "code": "FEN",
       "uefaId": "52692",
-      "country": "TUR"
+      "country": "TUR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52692.png"
     },
     "ROM": {
       "name": "Roma",
       "code": "ROM",
       "uefaId": "50137",
-      "country": "ITA"
+      "country": "ITA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50137.png"
     },
     "BAY": {
       "name": "Bayern München",
       "code": "BAY",
       "uefaId": "50037",
-      "country": "GER"
+      "country": "GER",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/50037.png"
     },
     "BOD": {
       "name": "Bodø/Glimt",
       "code": "BOD",
       "uefaId": "59333",
-      "country": "NOR"
+      "country": "NOR",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/59333.png"
     },
     "MUN": {
       "name": "Man Utd",
       "code": "MUN",
       "uefaId": "52682",
-      "country": "ENG"
+      "country": "ENG",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52682.png"
     },
     "SAB": {
       "name": "Sabah",
       "code": "SAB",
       "uefaId": "2609356",
-      "country": "AZE"
+      "country": "AZE",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/2609356.png"
     },
     "SLA": {
       "name": "Slavia Praha",
       "code": "SLA",
       "uefaId": "52498",
-      "country": "CZE"
+      "country": "CZE",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52498.png"
     },
     "LEN": {
       "name": "Lens",
       "code": "LEN",
       "uefaId": "52277",
-      "country": "FRA"
+      "country": "FRA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/52277.png"
     },
     "COM": {
       "name": "Como",
       "code": "COM",
       "uefaId": "79946",
-      "country": "ITA"
+      "country": "ITA",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/79946.png"
     },
     "RBL": {
       "name": "Leipzig",
       "code": "RBL",
       "uefaId": "2603790",
-      "country": "GER"
+      "country": "GER",
+      "crest": "https://img.uefa.com/imgml/TP/teams/logos/240x240/2603790.png"
     }
   },
   "matches": [
