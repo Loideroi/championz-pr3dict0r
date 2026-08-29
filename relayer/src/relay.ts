@@ -36,6 +36,12 @@ export interface ChainState {
 
 export interface ChainWriter {
   read(matchId: number): Promise<ChainState>;
+  /**
+   * Optional bulk read (multicall): one run over 144 matches is 288 eth_calls
+   * done one by one — Ankr's free tier rate-limits that burst. relayOnce
+   * prefetches through this when available and falls back to read().
+   */
+  readMany?(ids: number[]): Promise<Map<number, ChainState>>;
   pushResult(matchId: number, packed: bigint): Promise<void>;
   correctResult(matchId: number, packed: bigint): Promise<void>;
 }
@@ -80,9 +86,17 @@ export async function relayOnce(
   nowSeconds: number = Math.floor(Date.now() / 1000),
 ): Promise<RelaySummary> {
   const summary: RelaySummary = { pushed: [], corrected: [], skipped: [], errors: [], states: new Map() };
+  let prefetched: Map<number, ChainState> | null = null;
+  if (writer.readMany && map.length > 0) {
+    try {
+      prefetched = await writer.readMany(map.map((e) => e.matchId));
+    } catch {
+      prefetched = null; // per-entry reads below still work, just slower
+    }
+  }
   for (const entry of map) {
     try {
-      const state = await writer.read(entry.matchId);
+      const state = prefetched?.get(entry.matchId) ?? (await writer.read(entry.matchId));
       summary.states.set(entry.matchId, state);
       if (state.completed && !state.provisional) {
         summary.skipped.push(entry.matchId); // finalized — never touch (idempotent)
