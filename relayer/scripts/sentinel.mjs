@@ -22,6 +22,7 @@ import {
   composeSentinelAlert,
 } from '../dist/src/sentinels.js';
 import { telegramTransport } from '../dist/src/alerts.js';
+import { CHILIZ_MULTICALL3, withRetry } from '../dist/src/chain.js';
 import { supabaseLogger } from '../dist/src/oracleLog.js';
 
 const {
@@ -81,7 +82,25 @@ const IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d3
 
 const client = createPublicClient({ transport: http(RPC_URL) });
 const read = (functionName, cArgs = []) =>
-  client.readContract({ address: PREDICTOR_ADDRESS, abi: ABI, functionName, args: cArgs });
+  withRetry(() => client.readContract({ address: PREDICTOR_ADDRESS, abi: ABI, functionName, args: cArgs }));
+/** (matches, resultOf) for many ids — one multicall per 48 matches on mainnet, sequential elsewhere. */
+async function readGames(ids) {
+  const rows = [];
+  if (chainId !== 88888) {
+    for (const id of ids) rows.push(await Promise.all([read('matches', [id]), read('resultOf', [id])]));
+    return rows;
+  }
+  for (let i = 0; i < ids.length; i += 48) {
+    const slice = ids.slice(i, i + 48);
+    const contracts = slice.flatMap((id) => [
+      { address: PREDICTOR_ADDRESS, abi: ABI, functionName: 'matches', args: [id] },
+      { address: PREDICTOR_ADDRESS, abi: ABI, functionName: 'resultOf', args: [id] },
+    ]);
+    const res = await withRetry(() => client.multicall({ contracts, multicallAddress: CHILIZ_MULTICALL3, allowFailure: false }));
+    slice.forEach((_, k) => rows.push([res[2 * k], res[2 * k + 1]]));
+  }
+  return rows;
+}
 
 const issues = [];
 
@@ -133,8 +152,8 @@ if (args.includes('--deep') && matchCount > 0 && matchCount <= 250) {
     { label: 'league', frozen: frozen0, totalMatches: 0, completedMatches: 0 },
     { label: 'knockout', frozen: frozen1, totalMatches: 0, completedMatches: 0 },
   ];
-  for (let id = 1; id <= matchCount; id++) {
-    const [game, result] = await Promise.all([read('matches', [id]), read('resultOf', [id])]);
+  const games = await readGames(Array.from({ length: matchCount }, (_, i) => i + 1));
+  for (const [game, result] of games) {
     const s = perStage[Number(game[4])] ?? perStage[0];
     s.totalMatches += 1;
     if (result[5]) s.completedMatches += 1; // completed flag

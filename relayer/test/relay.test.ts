@@ -186,3 +186,41 @@ describe('relayOnce — a matchday settles hands-off', () => {
     expect(run.pushed).toEqual([3]); // u3 still relayed
   });
 });
+
+describe('relayOnce — bulk prefetch (multicall)', () => {
+  class BulkWriter extends MockWriter {
+    manyCalls: number[][] = [];
+    singleReads = 0;
+    override async read(id: number) {
+      this.singleReads++;
+      return super.read(id);
+    }
+    async readMany(ids: number[]) {
+      this.manyCalls.push(ids);
+      const out = new Map<number, ChainState>();
+      for (const id of ids) out.set(id, await super.read(id));
+      return out;
+    }
+  }
+
+  it('reads every mapped match in one readMany call instead of N single reads', async () => {
+    const source = stubSource({ u1: result({ uefaMatchId: 'u1' }), u2: null });
+    const writer = new BulkWriter();
+    const map = [entry(1, 'u1'), entry(2, 'u2')];
+    const summary = await relayOnce(source, writer, map);
+    expect(writer.manyCalls).toEqual([[1, 2]]);
+    expect(writer.singleReads).toBe(0);
+    expect(summary.pushed).toEqual([1]);
+    expect(summary.states.size).toBe(2);
+  });
+
+  it('falls back to single reads when the bulk read fails', async () => {
+    const source = stubSource({ u1: result({ uefaMatchId: 'u1' }) });
+    const writer = new BulkWriter();
+    writer.readMany = async () => { throw new Error('multicall unavailable'); };
+    const summary = await relayOnce(source, writer, [entry(1, 'u1')]);
+    expect(writer.singleReads).toBe(1);
+    expect(summary.pushed).toEqual([1]);
+    expect(summary.errors).toEqual([]);
+  });
+});
