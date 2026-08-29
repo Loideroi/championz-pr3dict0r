@@ -20,6 +20,21 @@ export interface MatchFacts {
   awayPos: number | null;
   knockout: boolean;
   decider: boolean;
+  /** League-phase matchday (1..8), null for knockout */
+  matchday: number | null;
+  /**
+   * The team's previous fixture in the schedule (opponent + venue) — known
+   * from the draw, so matchday 2+ has real context even before any result
+   * exists; the form line replaces it once results come in.
+   */
+  homePrev: PrevFixture | null;
+  awayPrev: PrevFixture | null;
+}
+
+export interface PrevFixture {
+  opponent: string;
+  /** the team played that previous fixture at home */
+  home: boolean;
 }
 
 export const INSIGHT_LOCALES = ['en', 'es', 'fr', 'it', 'pt-BR', 'tr'] as const;
@@ -73,7 +88,27 @@ export function tablePositions(played: PlayedMatch[]): Map<string, number> {
   return new Map(ranked.map(([id], i) => [id, i + 1]));
 }
 
-export function buildFacts(fixture: Fixture, played: PlayedMatch[], decider: boolean): MatchFacts {
+/** The team's latest scheduled fixture before `beforeKickoff`, from the full schedule. */
+export function previousFixture(teamId: string, schedule: Fixture[], beforeKickoff: number): PrevFixture | null {
+  const prev = schedule
+    .filter(
+      (f) =>
+        (f.home.uefaTeamId === teamId || f.away.uefaTeamId === teamId) &&
+        f.kickoffUnix !== null &&
+        f.kickoffUnix < beforeKickoff,
+    )
+    .sort((a, b) => (b.kickoffUnix ?? 0) - (a.kickoffUnix ?? 0))[0];
+  if (!prev) return null;
+  const home = prev.home.uefaTeamId === teamId;
+  return { opponent: home ? prev.away.name : prev.home.name, home };
+}
+
+export function buildFacts(
+  fixture: Fixture,
+  played: PlayedMatch[],
+  decider: boolean,
+  schedule: Fixture[] = [],
+): MatchFacts {
   const table = tablePositions(played);
   const knockout = fixture.type !== 'GROUP_STAGE';
   const kickoff = fixture.kickoffUnix ?? Number.MAX_SAFE_INTEGER;
@@ -87,6 +122,9 @@ export function buildFacts(fixture: Fixture, played: PlayedMatch[], decider: boo
     awayPos: knockout ? null : (table.get(fixture.away.uefaTeamId) ?? null),
     knockout,
     decider,
+    matchday: knockout ? null : fixture.matchday,
+    homePrev: previousFixture(fixture.home.uefaTeamId, schedule, kickoff),
+    awayPrev: previousFixture(fixture.away.uefaTeamId, schedule, kickoff),
   };
 }
 
@@ -99,6 +137,8 @@ type T = {
   noForm: (team: string) => string;
   /** Both sides without any form yet — matchday 1 reads as one sentence, not two stubs */
   opening: (home: string, away: string) => string;
+  /** No form yet but a previous fixture on the schedule (matchday 2+ before results land) */
+  prevLine: (team: string, opponent: string, home: boolean) => string;
   tableLine: (home: string, hp: number, away: string, ap: number) => string;
   knockout: string;
   decider: string;
@@ -118,6 +158,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
     formLine: (t, f) => `${t} arrive on a ${f} run`,
     noForm: (t) => `${t} open their campaign`,
     opening: (h, a) => `Opening night: ${h} and ${a} both start their campaign here — no form to read, only the pitch.`,
+    prevLine: (t, o, h) => `${t} after ${h ? 'hosting' : 'visiting'} ${o}`,
     tableLine: (h, hp, a, ap) => `The table says ${h} ${hp}ᵗʰ, ${a} ${ap}ᵗʰ — the pitch will have its own opinion.`,
     knockout: 'Knockout football: the 90-minute score feeds the rubric, the tie decides who breathes.',
     decider: 'A decider — extra time, penalties and the advancing team are all worth calling.',
@@ -126,6 +167,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
     formLine: (t, f) => `${t} llega con una racha de ${f}`,
     noForm: (t) => `${t} estrena su campaña`,
     opening: (h, a) => `Noche de estreno: ${h} y ${a} arrancan aquí su campaña — sin racha que leer, solo el césped.`,
+    prevLine: (t, o, h) => `${t} tras ${h ? 'recibir a' : 'visitar a'} ${o}`,
     tableLine: (h, hp, a, ap) => `La tabla dice ${h} ${hp}º, ${a} ${ap}º — el césped tendrá su propia opinión.`,
     knockout: 'Eliminatoria: el marcador de 90 minutos alimenta la puntuación; la eliminatoria decide quién respira.',
     decider: 'Partido decisivo: prórroga, penaltis y quién avanza — todo puntúa.',
@@ -134,6 +176,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
     formLine: (t, f) => `${t} arrive sur une série ${f}`,
     noForm: (t) => `${t} lance sa campagne`,
     opening: (h, a) => `Soir de première : ${h} et ${a} lancent ici leur campagne — aucune série à lire, seulement la pelouse.`,
+    prevLine: (t, o, h) => `${t} après ${h ? 'avoir reçu' : 'un déplacement chez'} ${o}`,
     tableLine: (h, hp, a, ap) => `Le classement dit ${h} ${hp}ᵉ, ${a} ${ap}ᵉ — la pelouse aura son mot à dire.`,
     knockout: 'Match couperet : le score à 90 minutes nourrit le barème, la confrontation décide qui respire.',
     decider: 'Match décisif — prolongation, tirs au but et qualifié : tout se pronostique.',
@@ -142,6 +185,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
     formLine: (t, f) => `${t} arriva con una striscia di ${f}`,
     noForm: (t) => `${t} inaugura il suo cammino`,
     opening: (h, a) => `Serata d'esordio: ${h} e ${a} iniziano qui il loro cammino — nessuna striscia da leggere, solo il campo.`,
+    prevLine: (t, o, h) => `${t} dopo ${h ? 'aver ospitato' : 'la trasferta contro'} ${o}`,
     tableLine: (h, hp, a, ap) => `La classifica dice ${h} ${hp}º, ${a} ${ap}º — il campo avrà la sua opinione.`,
     knockout: 'Gara a eliminazione: il punteggio dei 90 minuti alimenta il punteggio, il confronto decide chi respira.',
     decider: 'Gara decisiva: supplementari, rigori e chi passa — si pronostica tutto.',
@@ -150,6 +194,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
     formLine: (t, f) => `${t} chega numa sequência de ${f}`,
     noForm: (t) => `${t} estreia na campanha`,
     opening: (h, a) => `Noite de estreia: ${h} e ${a} começam aqui a campanha — sem sequência para ler, só o gramado.`,
+    prevLine: (t, o, h) => `${t} depois de ${h ? 'receber' : 'visitar'} ${o}`,
     tableLine: (h, hp, a, ap) => `A tabela diz ${h} ${hp}º, ${a} ${ap}º — o gramado terá opinião própria.`,
     knockout: 'Mata-mata: o placar dos 90 minutos alimenta a pontuação; o confronto decide quem respira.',
     decider: 'Jogo decisivo: prorrogação, pênaltis e quem avança — tudo vale ponto.',
@@ -158,6 +203,7 @@ const TEMPLATES: Record<InsightLocale, T> = {
     formLine: (t, f) => `${t}, ${f} serisiyle geliyor`,
     noForm: (t) => `${t} kampanyasına başlıyor`,
     opening: (h, a) => `Açılış gecesi: ${h} ve ${a} kampanyalarına burada başlıyor — okunacak seri yok, yalnızca saha var.`,
+    prevLine: (t, o, h) => `${t}, ${o} ile oynadıktan sonra (${h ? 'iç saha' : 'deplasman'})`,
     tableLine: (h, hp, a, ap) => `Puan durumu ${h} ${hp}., ${a} ${ap}. diyor — sahanın kendi fikri olacak.`,
     knockout: 'Eleme maçı: 90 dakikalık skor puanlamayı besler; turu kimin geçtiğini eşleşme belirler.',
     decider: 'Karar maçı — uzatmalar, penaltılar ve tur atlayan takım: hepsi tahmin edilir.',
@@ -168,11 +214,17 @@ export function renderInsight(facts: MatchFacts, locale: InsightLocale): string 
   const t = TEMPLATES[locale];
   const fmtForm = (form: string[]) =>
     form.map((x) => FORM_WORD[locale][x as 'W' | 'D' | 'L']).join('-');
-  const homePart =
-    facts.homeForm.length > 0 ? t.formLine(facts.home, fmtForm(facts.homeForm)) : t.noForm(facts.home);
-  const awayPart =
-    facts.awayForm.length > 0 ? t.formLine(facts.away, fmtForm(facts.awayForm)) : t.noForm(facts.away);
-  const bothFresh = facts.homeForm.length === 0 && facts.awayForm.length === 0;
+  // form (results exist) > schedule context (draw known, no results) > bare opener
+  const side = (team: string, form: string[], prev: PrevFixture | null) =>
+    form.length > 0
+      ? t.formLine(team, fmtForm(form))
+      : prev
+        ? t.prevLine(team, prev.opponent, prev.home)
+        : t.noForm(team);
+  const homePart = side(facts.home, facts.homeForm, facts.homePrev);
+  const awayPart = side(facts.away, facts.awayForm, facts.awayPrev);
+  const bothFresh =
+    facts.homeForm.length === 0 && facts.awayForm.length === 0 && !facts.homePrev && !facts.awayPrev;
   const parts: string[] = [bothFresh ? t.opening(facts.home, facts.away) : `${homePart}; ${awayPart}.`];
   if (facts.homePos !== null && facts.awayPos !== null) {
     parts.push(t.tableLine(facts.home, facts.homePos, facts.away, facts.awayPos));
