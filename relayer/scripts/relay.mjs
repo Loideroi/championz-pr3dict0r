@@ -24,7 +24,12 @@ import { composeAlert, composeHeartbeat, telegramTransport } from '../dist/src/a
 import { composeBalanceLine, DEFAULT_MIN_BALANCE_CHZ, readBalance } from '../dist/src/balance.js';
 import { detectIssues } from '../dist/src/watchdog.js';
 import { supabaseLogger } from '../dist/src/oracleLog.js';
-import { composeReminder, composeResultsDigest, matchesNeedingReminder } from '../dist/src/channel.js';
+import {
+  composeReminder,
+  composeResultsDigest,
+  matchesNeedingReminder,
+  minutesToLock,
+} from '../dist/src/channel.js';
 
 const args = process.argv.slice(2);
 const argVal = (flag) => {
@@ -168,7 +173,15 @@ if (TELEGRAM_CHANNEL_ID) {
     const already = await logger.recentReminderIds(new Date(Date.now() - 2 * 3600 * 1000).toISOString());
     const fresh = due.filter((id) => !already.has(id));
     if (fresh.length > 0) {
-      await channel.send(composeReminder(fresh.map((id) => ({ matchId: id, label: labelOf(id) })), 15));
+      // The window is wider than one cron tick, so quote the real countdown
+      // rather than a constant that could be off by 20 minutes.
+      const now = Math.floor(Date.now() / 1000);
+      const soonest = Math.min(
+        ...fresh.map((id) => minutesToLock(summary.states.get(id)?.kickoff ?? 0, now)),
+      );
+      await channel.send(
+        composeReminder(fresh.map((id) => ({ matchId: id, label: labelOf(id) })), soonest),
+      );
       await logger.insert(
         fresh.map((id) => ({ kind: 'alert', chain_id: chainId, match_id: id, detail: { type: 't75_reminder' } })),
       );
