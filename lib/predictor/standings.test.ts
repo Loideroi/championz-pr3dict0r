@@ -1,26 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { compareRows, flagEmoji, pointsFor, rowsForView, type StandingRow } from "./standings";
+import {
+  compareRows,
+  exactFor,
+  flagEmoji,
+  pointsFor,
+  rowsForView,
+  type StandingRow,
+} from "./standings";
 
 const row = (over: Partial<StandingRow>): StandingRow => ({
   address: "0x00000000000000000000000000000000000000aa",
   fullSeason: true,
   leaguePoints: 0n,
   knockoutPoints: 0n,
-  exactCount: 0n,
+  leagueExact: 0n,
+  knockoutExact: 0n,
   enteredAt: 100n,
   ...over,
 });
 
 describe("tie-break chain (PRD §5.3)", () => {
   it("points beat everything", () => {
-    const a = row({ knockoutPoints: 10n, exactCount: 0n });
-    const b = row({ knockoutPoints: 9n, exactCount: 99n });
+    const a = row({ knockoutPoints: 10n, knockoutExact: 0n });
+    const b = row({ knockoutPoints: 9n, knockoutExact: 99n });
     expect([a, b].sort(compareRows("knockout"))[0]).toBe(a);
   });
 
   it("equal points → most exact scores wins", () => {
-    const a = row({ knockoutPoints: 10n, exactCount: 2n });
-    const b = row({ knockoutPoints: 10n, exactCount: 1n });
+    const a = row({ knockoutPoints: 10n, knockoutExact: 2n });
+    const b = row({ knockoutPoints: 10n, knockoutExact: 1n });
     expect([b, a].sort(compareRows("knockout"))[0]).toBe(a);
   });
 
@@ -34,6 +42,36 @@ describe("tie-break chain (PRD §5.3)", () => {
     const a = row({ address: "0x00000000000000000000000000000000000000aa" });
     const b = row({ address: "0x00000000000000000000000000000000000000bb" });
     expect([b, a].sort(compareRows("knockout"))[0]).toBe(a);
+  });
+});
+
+describe("tie-break #2 is scoped to the stage, exactly like the contract", () => {
+  // ChampionzPredictor._applyRanking breaks a tie on _score(stage, wallet),
+  // which counts that stage's exacts only. A board that summed both stages
+  // would show an order freezeStage rejects — "I was 20th but got nothing".
+  it("ignores league exacts when ordering the knockout board", () => {
+    const seasonLong = row({
+      address: "0x00000000000000000000000000000000000000aa",
+      knockoutPoints: 10n,
+      leagueExact: 40n, // a whole league phase of exact scores
+      knockoutExact: 1n,
+    });
+    const latecomer = row({
+      address: "0x00000000000000000000000000000000000000bb",
+      knockoutPoints: 10n,
+      leagueExact: 0n,
+      knockoutExact: 2n, // better where it counts
+    });
+    expect([seasonLong, latecomer].sort(compareRows("knockout"))[0]).toBe(latecomer);
+    // ...and the league board reads the other column, undisturbed
+    expect([latecomer, seasonLong].sort(compareRows("league"))[0]).toBe(seasonLong);
+  });
+
+  it("Season View sums both, since its points column does too", () => {
+    const r = row({ leagueExact: 3n, knockoutExact: 4n });
+    expect(exactFor(r, "league")).toBe(3n);
+    expect(exactFor(r, "knockout")).toBe(4n);
+    expect(exactFor(r, "season")).toBe(7n);
   });
 });
 
