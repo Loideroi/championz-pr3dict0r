@@ -12,9 +12,16 @@ import { isActivePath, MOBILE_NAV_LINKS } from "@/lib/nav";
  *
  * Fixed to the bottom with iOS safe-area padding (the PWA runs
  * `black-translucent`, so the home-indicator strip must not eat the labels).
- * `<body>` carries matching bottom padding, so nothing hides behind the bar.
+ *
+ * Cells are 4.25rem/68px tall so the *whole* cell — icon and label — clears the
+ * 44px minimum tap target rather than just the icon; the 56px version read as a
+ * thin strip and mis-taps were common. That height is duplicated in
+ * `app/layout.tsx` (body bottom padding) and `components/predict/SubmitBar.tsx`
+ * (sticky offset) — the three move together or content hides behind the bar.
+ *
  * Labels are the short per-locale forms — "Şöhretler Salonu" never fits five
- * across a 360px screen.
+ * across a 360px screen. 10 mono chars at 10px is the ceiling that still fits
+ * (fr "Classement", it "Classifica"); `truncate` catches anything longer.
  */
 export function MobileNav() {
   const pathname = usePathname();
@@ -29,11 +36,11 @@ export function MobileNav() {
         {MOBILE_NAV_LINKS.map((link) => {
           const active = isActivePath(pathname, link.href);
           return (
-            <li key={link.href} className="flex-1">
+            <li key={link.href} className="flex flex-1">
               <Link
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative flex h-14 flex-col items-center justify-center gap-1 px-1 ${
+                className={`relative flex h-[4.25rem] w-full flex-col items-center justify-center gap-1.5 px-1 transition-colors touch-manipulation active:bg-night-2 active:text-glow-soft ${
                   active ? "text-glow-2" : "text-muted"
                 }`}
               >
@@ -56,7 +63,11 @@ export function MobileNav() {
   );
 }
 
-/** Inline stroke icons (currentColor) — no icon dependency, tokens stay in CSS. */
+/**
+ * Inline stroke icons (currentColor) — no icon dependency, tokens stay in CSS.
+ * 22px at strokeWidth 2: the 20px/1.6 pair rendered hairline-thin against the
+ * night background once the browser snapped it to a physical pixel.
+ */
 function Icon({ name }: { name: (typeof MOBILE_NAV_LINKS)[number]["icon"] }) {
   const paths: Record<typeof name, string> = {
     enter: "M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M15 8l4 4-4 4M19 12H9",
@@ -69,11 +80,11 @@ function Icon({ name }: { name: (typeof MOBILE_NAV_LINKS)[number]["icon"] }) {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      width="20"
-      height="20"
+      width="22"
+      height="22"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className="shrink-0"
