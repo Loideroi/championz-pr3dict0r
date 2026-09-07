@@ -363,7 +363,9 @@ const TEMPLATES: Record<InsightLocale, T> = {
     callEdge: (t) => `${t} az farkla önde`,
     callEdgeHome: (t) => `${t} iç sahada öne geçiyor`,
     callLevel: 'başa baş',
-    lastSeasonLine: (h, hr, a, ar) => `Geçen sezon: ${h} ${hr}, ${a} ${ar}.`,
+    // Turkish ordinals already end in "." (e.g. "35.") — don't double it up
+    // when that ordinal lands right before the sentence's own full stop.
+    lastSeasonLine: (h, hr, a, ar) => `Geçen sezon: ${h} ${hr}, ${a} ${ar}${ar.endsWith('.') ? '' : '.'}`,
     lastSeasonNeither: (h, a) => `Geçen sezon ne ${h} ne de ${a} turnuvadaydı.`,
     runs: {
       WINNER: 'şampiyon',

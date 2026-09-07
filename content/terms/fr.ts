@@ -60,7 +60,7 @@ const fr: TermsDocument = {
       heading: "6. Remboursements (article bref)",
       body: [
         "Les entrées sont définitives et non remboursables dès l'achat. « Dès l'achat » signifie dès l'achat : un pass Knockout acheté en septembre est verrouillé en septembre, pas en février.",
-        "Il existe exactement une exception. Si une étape se verrouille avec moins de 20 participants, elle est annulée et chaque participant récupère l'intégralité de son entrée pour cette étape, commission fixe comprise. Dix-neuf personnes, ce n'est pas une compétition ; c'est une boucle WhatsApp avec un séquestre.",
+        "Il existe exactement une exception. Si une étape se verrouille avec moins de 20 participants, elle est annulée et chaque participant récupère l'intégralité de son entrée pour cette étape, commission fixe comprise. Dix-neuf personnes, ce n'est pas une compétition ; c'est un groupe WhatsApp avec un séquestre.",
       ],
       joke: "C'est l'article le plus court du document : chaque phrase supprimée était une façon plus longue de dire « non ».",
     },
