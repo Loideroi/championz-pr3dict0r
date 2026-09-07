@@ -33,8 +33,12 @@ function LocaleSwitcher() {
   const t = useTranslations("localeSwitcher");
 
   function onChange(next: AppLocale) {
-    // One-year cookie, root path — matches next-intl's convention.
-    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
+    // One-year cookie, root path — matches next-intl's convention. `secure` is
+    // conditional rather than hardcoded: Safari will not store a Secure cookie
+    // on http://localhost, so pinning it on would silently break the switcher
+    // in local dev while changing nothing in production, which is HTTPS-only.
+    const secure = window.location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax${secure}`;
     router.refresh();
   }
 
