@@ -33,7 +33,7 @@
   },
   "home": {
     "tagline": "★ UEFA Champions League 2026/27",
-    "intro": "CHZ stake et, 90 dakikalık skorları söyle ve ilk maç haftasından Madrid’e kadar iki liderlik tablosunda yüksel — UEFA beslemeli bir oracle idari işleri hallederken.",
+    "intro": "CHZ stake et, 90 dakikalık skorları tuttur ve ilk maç haftasından Madrid’e kadar iki liderlik tablosunda yüksel — UEFA beslemeli bir oracle idari işleri hallederken.",
     "fullSeasonPill": "Tam sezon · {amount} CHZ",
     "knockoutPill": "Eleme turu · {amount} CHZ",
     "ctaEnter": "Havuza katıl →",
@@ -93,7 +93,7 @@
       "title": "Oyna — ₵h@mpi0nz Pr3dict0r"
     },
     "tagline": "Maç haftası listesi · Chiliz Chain",
-    "heading": "Her skoru söyle",
+    "heading": "Her skoru tuttur",
     "intro": "90 dakikalık skorlarını ayarla, tüm maç haftasını tek işlemle kilitle ve her tahmini başlama vuruşundan 60 dakika öncesine kadar özgürce düzenle — fikir değiştirmek yalnızca kuruşluk gas öder.",
     "notConfigured": "NEXT_PUBLIC_PREDICTOR_ADDRESS ayarlanmamış — kontratı dağıt ve proxy adresini .env.local dosyasına ekle.",
     "connectWallet": "Cüzdan bağla",
