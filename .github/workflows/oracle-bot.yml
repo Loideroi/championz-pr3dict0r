@@ -2,10 +2,13 @@ name: oracle-bot
 
 on:
   schedule:
-    # matchday window (UEFA kickoffs 16:45–21:00 UTC): every 5 min
-    - cron: "*/5 16-23 * * *"
+    # Matchday window: every 5 min. Starts at 15:00, NOT 16:00 — the earliest
+    # UEFA slot kicks off at 16:45 UTC, so its T-60 prediction lock is 15:45
+    # and the last-call reminder window opens at 15:15. A 16:00 start missed
+    # it entirely: by the first run those matches were already locked.
+    - cron: "*/5 15-23 * * *"
     # off-window poll: hourly (catches reschedules + late corrections)
-    - cron: "17 0-15 * * *"
+    - cron: "17 0-14 * * *"
     # daily heartbeat DM — silence itself becomes detectable (PRD §8.3)
     - cron: "7 7 * * *"
   workflow_dispatch:

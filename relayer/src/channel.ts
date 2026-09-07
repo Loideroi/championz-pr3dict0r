@@ -52,11 +52,26 @@ export function composeReminder(matches: MatchInfo[], minutesToLock: number): st
  * Window: lock (kickoff-60min) is 0<Δ≤15 min away. The caller dedupes via the
  * oracle log (a 5-min cron would otherwise post up to 3 times per match).
  */
+/**
+ * How far ahead of the T-60 lock the last-call reminder may fire.
+ *
+ * 30 minutes, not 15: GitHub's cron is best-effort and routinely runs several
+ * minutes late under load, so a window only as wide as a couple of cron ticks
+ * can be missed entirely. The caller dedupes on the oracle log, so a wider
+ * window costs nothing — one reminder per match either way.
+ */
+export const DEFAULT_REMINDER_WINDOW_SECONDS = 30 * 60;
+
+/** Whole minutes until this match's T-60 lock, floored at 1. */
+export function minutesToLock(kickoff: number, nowSeconds: number): number {
+  return Math.max(1, Math.round((kickoff - 3600 - nowSeconds) / 60));
+}
+
 export function matchesNeedingReminder(
   map: MapEntry[],
   states: Map<number, ChainState>,
   nowSeconds: number,
-  windowSeconds = 15 * 60,
+  windowSeconds = DEFAULT_REMINDER_WINDOW_SECONDS,
 ): number[] {
   const due: number[] = [];
   for (const entry of map) {
