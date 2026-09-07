@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ENTRY, formatChz } from "@/lib/economics";
 import { FixturesNotice } from "@/components/chrome/FixturesNotice";
+import { HomeCta } from "@/components/chrome/HomeCta";
 import { StatStrip } from "@/components/chrome/StatStrip";
 import { TrustBox } from "@/components/chrome/TrustBox";
 
@@ -30,28 +31,7 @@ export default async function Home() {
       <FixturesNotice />
       <StatStrip />
       <TrustBox />
-      {/* Mobile: stacked full-width CTAs so "Enter the pool →" never wraps;
-          from sm: the original inline row. */}
-      <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
-        <a
-          href="/enter"
-          className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-6 py-3 text-center font-semibold text-white"
-        >
-          {t("ctaEnter")}
-        </a>
-        <a
-          href="/play"
-          className="rounded-xl border border-line px-6 py-3 text-center font-semibold text-ink"
-        >
-          {t("ctaPredict")}
-        </a>
-        <a
-          href="/standings"
-          className="rounded-xl border border-line px-6 py-3 text-center font-semibold text-ink"
-        >
-          {t("ctaStandings")}
-        </a>
-      </div>
+      <HomeCta />
     </main>
   );
 }
