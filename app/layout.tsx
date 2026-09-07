@@ -87,8 +87,8 @@ export default async function RootLayout({
       lang={locale}
       className={`${archivo.variable} ${inter.variable} ${spaceMono.variable} h-full antialiased`}
     >
-      {/* Bottom padding clears the fixed mobile nav (h-14 + iOS safe area); md+ has the header row instead. */}
-      <body className="min-h-full flex flex-col bg-night text-ink font-body pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      {/* Bottom padding clears the fixed mobile nav (h-[4.25rem] + iOS safe area); md+ has the header row instead. */}
+      <body className="min-h-full flex flex-col bg-night text-ink font-body pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
         <NextIntlClientProvider>
           <Starfield />
           <Providers>

@@ -181,24 +181,35 @@ export function StandingsPanel() {
       <div className="overflow-x-auto rounded-2xl border border-line bg-night-2/60">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line-soft font-mono text-xs uppercase tracking-widest text-muted">
-              <th className="px-4 py-3 text-left">{t("colRank")}</th>
-              <th className="px-4 py-3 text-left">{t("colPredictor")}</th>
-              {view === "season" && <th className="px-4 py-3 text-right">{t("colLeague")}</th>}
-              {view === "season" && <th className="px-4 py-3 text-right">{t("colKnockout")}</th>}
-              <th className="px-4 py-3 text-right">{t("colPoints")}</th>
+            {/* headers shrink first on a phone: five columns have to fit ~360px */}
+            <tr className="border-b border-line-soft font-mono text-[10px] uppercase tracking-wide text-muted sm:text-xs sm:tracking-widest">
+              <th className="px-2 py-2.5 text-left sm:px-4 sm:py-3">{t("colRank")}</th>
+              <th className="px-2 py-2.5 text-left sm:px-4 sm:py-3">
+                <ColHead full={t("colPredictor")} short={t("colPredictorShort")} />
+              </th>
+              {view === "season" && (
+                <th className="px-2 py-2.5 text-right sm:px-4 sm:py-3">
+                  <ColHead full={t("colLeague")} short={t("colLeagueShort")} />
+                </th>
+              )}
+              {view === "season" && (
+                <th className="px-2 py-2.5 text-right sm:px-4 sm:py-3">
+                  <ColHead full={t("colKnockout")} short={t("colKnockoutShort")} />
+                </th>
+              )}
+              <th className="px-2 py-2.5 text-right sm:px-4 sm:py-3">{t("colPoints")}</th>
             </tr>
           </thead>
           <tbody>
             {sorted === null ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center font-mono text-xs text-muted">
+                <td colSpan={5} className="px-2 py-6 text-center font-mono text-xs text-muted sm:px-4">
                   {t("reading")}
                 </td>
               </tr>
             ) : sorted.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center font-mono text-xs text-muted">
+                <td colSpan={5} className="px-2 py-6 text-center font-mono text-xs text-muted sm:px-4">
                   {/* an empty board after a failed read is a read failure, not an empty pool */}
                   {error ? t("unavailable") : t("noEntrants")}
                 </td>
@@ -206,36 +217,39 @@ export function StandingsPanel() {
             ) : (
               sorted.map((r, i) => (
                 <tr key={r.address} className="border-b border-line-soft last:border-0">
-                  <td className="px-4 py-3 font-mono text-muted">
+                  <td className="px-2 py-2.5 font-mono text-muted sm:px-4 sm:py-3">
                     {view === "season" && i === 0 ? "👑" : i + 1}
                   </td>
-                  <td className="px-4 py-3">
+                  {/* the widest cell — it absorbs the squeeze so the rest keep their words intact */}
+                  <td className="wrap-anywhere px-2 py-2.5 sm:wrap-normal sm:px-4 sm:py-3">
                     <span aria-hidden>{flagEmoji(r.countryCode) || "🌐"}</span>{" "}
                     {r.username ? (
                       <span className="font-semibold">{r.username}</span>
                     ) : (
                       <span className="text-muted">{t("anonymous")}</span>
-                    )}{" "}
-                    <span className="font-mono text-xs text-muted-2">
+                    )}
+                    {/* the address is the width hog next to the name — phones drop it */}
+                    <span className="hidden font-mono text-xs text-muted-2 sm:inline">
+                      {" "}
                       {r.address.slice(0, 6)}…{r.address.slice(-4)}
                     </span>
                     {!r.fullSeason && (
-                      <span className="ml-2 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted">
+                      <span className="ml-1 whitespace-nowrap rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted sm:ml-2">
                         {t("koPass")}
                       </span>
                     )}
                   </td>
                   {view === "season" && (
-                    <td className="px-4 py-3 text-right font-mono text-glow-2">
+                    <td className="px-2 py-2.5 text-right font-mono text-glow-2 sm:px-4 sm:py-3">
                       {r.leaguePoints === null ? "—" : r.leaguePoints.toString()}
                     </td>
                   )}
                   {view === "season" && (
-                    <td className="px-4 py-3 text-right font-mono text-glow-2">
+                    <td className="px-2 py-2.5 text-right font-mono text-glow-2 sm:px-4 sm:py-3">
                       {r.knockoutPoints.toString()}
                     </td>
                   )}
-                  <td className="px-4 py-3 text-right font-mono font-bold text-star">
+                  <td className="px-2 py-2.5 text-right font-mono font-bold text-star sm:px-4 sm:py-3">
                     {(pointsFor(r, view) ?? 0n).toString()}
                   </td>
                 </tr>
@@ -248,5 +262,22 @@ export function StandingsPanel() {
       <p className="font-mono text-xs text-muted-2">{t("footnote")}</p>
       {error && <p className="font-mono text-xs text-chz-2">{error}</p>}
     </div>
+  );
+}
+
+/**
+ * A column header, with a phone-sized alternative. The header words set the
+ * table's minimum width, so a locale whose term is long enough to force
+ * horizontal scroll ships a shorter one: Italian "Pronosticatore"/"Eliminazione"
+ * overflow 360px by ~22px, and French "Elim. directe" wraps to two lines.
+ * Locales that already fit set short === full and render a single node.
+ */
+function ColHead({ full, short }: { full: string; short: string }) {
+  if (full === short) return <>{full}</>;
+  return (
+    <>
+      <span className="sm:hidden">{short}</span>
+      <span className="hidden sm:inline">{full}</span>
+    </>
   );
 }
