@@ -23,7 +23,9 @@ export interface StandingsRowJson {
   /** null = not in Stage 1 (renders "—") */
   leaguePoints: string | null;
   knockoutPoints: string;
-  exactCount: string;
+  /** Per stage — the freeze comparator never mixes the two (see StandingRow). */
+  leagueExact: string;
+  knockoutExact: string;
   enteredAt: string;
 }
 
@@ -50,7 +52,8 @@ export function toRowJson(row: StandingRow): StandingsRowJson {
     fullSeason: row.fullSeason,
     leaguePoints: row.leaguePoints === null ? null : row.leaguePoints.toString(),
     knockoutPoints: row.knockoutPoints.toString(),
-    exactCount: row.exactCount.toString(),
+    leagueExact: row.leagueExact.toString(),
+    knockoutExact: row.knockoutExact.toString(),
     enteredAt: row.enteredAt.toString(),
   };
 }
@@ -65,7 +68,8 @@ export function fromRowJson(raw: unknown): StandingRow | null {
   const r = raw as Record<string, unknown>;
   if (!isAddress(r.address)) return null;
   if (typeof r.fullSeason !== "boolean") return null;
-  if (!isUint(r.knockoutPoints) || !isUint(r.exactCount) || !isUint(r.enteredAt)) return null;
+  if (!isUint(r.knockoutPoints) || !isUint(r.enteredAt)) return null;
+  if (!isUint(r.leagueExact) || !isUint(r.knockoutExact)) return null;
   if (r.leaguePoints !== null && !isUint(r.leaguePoints)) return null;
   return {
     address: r.address,
@@ -74,7 +78,8 @@ export function fromRowJson(raw: unknown): StandingRow | null {
     fullSeason: r.fullSeason,
     leaguePoints: r.leaguePoints === null ? null : BigInt(r.leaguePoints as string),
     knockoutPoints: BigInt(r.knockoutPoints),
-    exactCount: BigInt(r.exactCount),
+    leagueExact: BigInt(r.leagueExact),
+    knockoutExact: BigInt(r.knockoutExact),
     enteredAt: BigInt(r.enteredAt),
   };
 }

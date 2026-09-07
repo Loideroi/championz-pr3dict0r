@@ -162,7 +162,11 @@ async function buildPayload(chainId: number): Promise<StandingsPayload> {
       // Stage 1 points are meaningless for a knockout-only wallet — null renders "—"
       leaguePoints: fullSeason ? big(results[base]) : null,
       knockoutPoints: big(results[base + 1]),
-      exactCount: (fullSeason ? big(results[base + 2]) : 0n) + big(results[base + 3]),
+      // Per stage, never summed: the contract breaks a Stage-2 tie on Stage-2
+      // exacts alone, so a combined count would render an order freezeStage
+      // would reject.
+      leagueExact: fullSeason ? big(results[base + 2]) : 0n,
+      knockoutExact: big(results[base + 3]),
       enteredAt: BigInt(enteredLeague || enteredKO || 0),
     };
   });

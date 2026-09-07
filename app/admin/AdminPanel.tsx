@@ -169,7 +169,8 @@ export function AdminPanel() {
         fullSeason: true,
         leaguePoints: stage === STAGE_LEAGUE ? (pts as bigint) : null,
         knockoutPoints: stage === STAGE_KNOCKOUT ? (pts as bigint) : 0n,
-        exactCount: exact as bigint,
+        leagueExact: stage === STAGE_LEAGUE ? (exact as bigint) : 0n,
+        knockoutExact: stage === STAGE_KNOCKOUT ? (exact as bigint) : 0n,
         enteredAt: BigInt(Number(at) || 0),
       };
     });

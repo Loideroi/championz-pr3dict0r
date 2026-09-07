@@ -7,7 +7,8 @@ const row = (over: Partial<StandingRow> = {}): StandingRow => ({
   fullSeason: true,
   leaguePoints: 12n,
   knockoutPoints: 3n,
-  exactCount: 2n,
+  leagueExact: 2n,
+  knockoutExact: 1n,
   enteredAt: 1_750_000_000n,
   ...over,
 });
@@ -37,6 +38,7 @@ describe("standings wire format", () => {
   it.each([
     ["a non-address", { ...toRowJson(row()), address: "nope" }],
     ["a negative points value", { ...toRowJson(row()), knockoutPoints: "-1" }],
+    ["a missing per-stage exact count", { ...toRowJson(row()), knockoutExact: undefined }],
     ["a float points value", { ...toRowJson(row()), knockoutPoints: "1.5" }],
     ["a missing flag", { ...toRowJson(row()), fullSeason: undefined }],
     ["a non-object", "0x1234"],
@@ -64,9 +66,9 @@ describe("standings wire format", () => {
 
   it("survives the §5.3 sort after a round trip (the ordering the board renders)", () => {
     const wire = [
-      toRowJson(row({ address: "0x3333333333333333333333333333333333333333", leaguePoints: 5n, knockoutPoints: 0n })),
-      toRowJson(row({ address: "0x1111111111111111111111111111111111111111", leaguePoints: 9n, knockoutPoints: 0n })),
-      toRowJson(row({ address: "0x2222222222222222222222222222222222222222", leaguePoints: 9n, knockoutPoints: 0n, exactCount: 5n })),
+      toRowJson(row({ address: "0x3333333333333333333333333333333333333333", leaguePoints: 5n, knockoutPoints: 0n, leagueExact: 0n })),
+      toRowJson(row({ address: "0x1111111111111111111111111111111111111111", leaguePoints: 9n, knockoutPoints: 0n, leagueExact: 0n })),
+      toRowJson(row({ address: "0x2222222222222222222222222222222222222222", leaguePoints: 9n, knockoutPoints: 0n, leagueExact: 5n })),
     ];
     const sorted = rowsForView(parseStandingsPayload({ rows: wire }).rows, "league");
     expect(sorted.map((r) => r.address.slice(0, 4))).toEqual(["0x22", "0x11", "0x33"]);
