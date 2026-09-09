@@ -1,0 +1,102 @@
+name: matchday-watch
+
+# Why this exists instead of a tighter cron.
+#
+# GitHub's `schedule` trigger is best-effort, and "best-effort" here means:
+# measured 28 Aug - 9 Sep 2026, oracle-bot asked for ~124 runs a day and got
+# 7-10, with 2-5 hour gaps as the norm. That is fine for a poller and useless
+# for anything that has to happen inside a particular half hour. On 8 Sep the
+# runs nearest the first kickoff were 12:05, 14:35 and 18:23 UTC, so the
+# 15:15-15:45 last-call window was never sampled and MD1's reminder was never
+# sent. Widening the cron does not help; the ticks simply do not arrive.
+#
+# So stop asking the scheduler to be punctual. Hold one runner for the part of
+# a matchday that matters and poll every 5 minutes from inside it. Actions
+# minutes are free on public repositories, which this repo is.
+#
+# Bootstrapping needs exactly ONE oracle-bot run to complete somewhere in the
+# four hours before the first lock. Every day in the measured window had
+# several, so this is the reliable half of the arrangement.
+on:
+  workflow_run:
+    workflows: ["oracle-bot"]
+    types: [completed]
+  workflow_dispatch:
+
+# Deliberately shares oracle-bot's concurrency group: one oracle key, one
+# nonce sequence, so the two must never relay at the same time. A watcher
+# holding the group blocks scheduled oracle-bot runs, which is the correct
+# trade — the watcher is already running the same relay, far more often.
+concurrency:
+  group: oracle-bot
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340 # under the 6h job ceiling, with room for the tail
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install + build relayer
+        working-directory: relayer
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      # 0 = nothing to watch right now (too early, or the season is done), in
+      # which case the job exits without holding a runner.
+      - name: Is this a matchday?
+        id: span
+        working-directory: relayer
+        run: |
+          END=$(node scripts/matchday-span.mjs ../lib/fixtures/matches.json)
+          echo "end=$END" >> "$GITHUB_OUTPUT"
+          if [ "$END" = "0" ]; then
+            echo "no matchday coverage due — exiting"
+          else
+            echo "covering until $(date -u -d "@$END" '+%F %H:%M UTC')"
+          fi
+
+      - name: Watch the matchday
+        if: steps.span.outputs.end != '0'
+        working-directory: relayer
+        env:
+          ORACLE_PRIVATE_KEY: ${{ secrets.ORACLE_PRIVATE_KEY }}
+          PREDICTOR_ADDRESS: "0x742c6963a81012bc7949F0058Fba07c8d1A80c4d"
+          RPC_URL: "https://rpc.ankr.com/chiliz"
+          CHAIN_ID: "88888"
+          ORACLE_MIN_CHZ: "20"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_CHANNEL_ID: ${{ vars.TELEGRAM_CHANNEL_ID }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          END=${{ steps.span.outputs.end }}
+          # Stop well short of timeout-minutes so the job always ends cleanly.
+          BUDGET=$(( $(date -u +%s) + 320 * 60 ))
+          ticks=0
+          fails=0
+          while :; do
+            NOW=$(date -u +%s)
+            [ "$NOW" -ge "$END" ] && { echo "coverage window closed"; break; }
+            [ "$NOW" -ge "$BUDGET" ] && { echo "runner budget spent — a later oracle-bot run starts the next watcher"; break; }
+            ticks=$(( ticks + 1 ))
+            echo "--- tick $ticks at $(date -u '+%F %H:%M:%S UTC') ---"
+            node scripts/relay.mjs --map config/mainnet-map.json || fails=$(( fails + 1 ))
+            sleep 300
+          done
+          echo "watch done: $ticks ticks, $fails failed"
+          # Per-match problems already alert over Telegram, so a single flaky
+          # RPC tick must not turn the whole matchday red. Only a watcher that
+          # never once succeeded is a real failure.
+          if [ "$ticks" -gt 0 ] && [ "$fails" -eq "$ticks" ]; then
+            echo "::error::every relay tick failed"
+            exit 1
+          fi
+          if [ "$fails" -gt 0 ]; then
+            echo "::warning::$fails of $ticks relay ticks failed"
+          fi
