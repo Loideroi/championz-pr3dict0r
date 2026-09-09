@@ -10,6 +10,13 @@ import {
 
 export type StageTuple = readonly [number, number, number, number, bigint, bigint];
 
+/** The nag under a fully played stage: freeze now, or wait out the provisional window. */
+function freezeNag(p: StagePlay): string {
+  return p.provisional > 0
+    ? `Fully played — ${p.provisional} result(s) still inside the 24h provisional window; freeze opens when it closes.`
+    : "Fully played — freeze so winners can claim (the bot is nagging about this too).";
+}
+
 type Props = {
   label: string;
   /** stages(stage) tuple: openAt, closeAt, status, entryCount, pool, feeEscrow */
@@ -50,11 +57,7 @@ export function StageCard({ label, data, play: p, nowSec, busy, onLock, onFreeze
       </p>
       {hint && <p className="mt-1 font-mono text-xs text-star">{hint}</p>}
       {needsFreeze && (
-        <p className="mt-1 font-mono text-xs text-star">
-          {p.provisional > 0
-            ? `Fully played — ${p.provisional} result(s) still inside the 24h provisional window; freeze opens when it closes.`
-            : "Fully played — freeze so winners can claim (the bot is nagging about this too)."}
-        </p>
+        <p className="mt-1 font-mono text-xs text-star">{freezeNag(p)}</p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         <button
