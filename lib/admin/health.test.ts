@@ -8,6 +8,7 @@ import {
   freezeCallable,
   gasStatus,
   governanceCheck,
+  governanceDrifted,
   groupAlerts,
   implementationFromSlot,
   lockCallable,
@@ -18,6 +19,8 @@ import {
   STAGE_STATUS,
   stageNeedsFreeze,
   summarizeRun,
+  watcherAlive,
+  WATCHER_STALE_AFTER_MS,
   type OracleLogRow,
 } from "./health";
 
@@ -84,26 +87,31 @@ describe("governance", () => {
 
   it("compares case-insensitively against the sentinel's expected values", () => {
     const ok = governanceCheck(88888, {
+      owner: "0x47103b0fc04c91ac388eae3c4f91d038cbfd9cf8",
       oracle: "0xb57cb421e3b707d0970ec758d40a4366db317b15",
       implementation: "0x09fec2ea6f5a1eea5171cb0ffbc65dcf76ed72f6",
     });
-    expect(ok).toEqual({ oracleOk: true, implementationOk: true });
+    expect(ok).toEqual({ ownerOk: true, oracleOk: true, implementationOk: true });
+    expect(governanceDrifted(ok)).toBe(false);
     const drift = governanceCheck(88888, { oracle: "0x0000000000000000000000000000000000000001", implementation: null });
-    expect(drift).toEqual({ oracleOk: false, implementationOk: null });
+    expect(drift).toEqual({ ownerOk: null, oracleOk: false, implementationOk: null });
+    expect(governanceDrifted(drift)).toBe(true);
+    // the bot checks owner() too — a silent owner rotation must mark the line
+    expect(governanceDrifted(governanceCheck(88888, { owner: "0x0000000000000000000000000000000000000002" }))).toBe(true);
   });
 
   it("has no opinion on an unknown chain", () => {
-    expect(governanceCheck(1, { oracle: "0x1" })).toEqual({ oracleOk: null, implementationOk: null });
+    expect(governanceCheck(1, { oracle: "0x1" })).toEqual({ ownerOk: null, oracleOk: null, implementationOk: null });
   });
 });
 
 describe("stageNeedsFreeze — mirrors sentinels.ts checkUnfrozenStage", () => {
   it("fires only when every playable match is completed and the stage is not frozen", () => {
-    expect(stageNeedsFreeze({ frozen: false, total: 144, completed: 144, voided: 0 })).toBe(true);
-    expect(stageNeedsFreeze({ frozen: false, total: 144, completed: 143, voided: 1 })).toBe(true);
-    expect(stageNeedsFreeze({ frozen: false, total: 144, completed: 143, voided: 0 })).toBe(false);
-    expect(stageNeedsFreeze({ frozen: true, total: 144, completed: 144, voided: 0 })).toBe(false);
-    expect(stageNeedsFreeze({ frozen: false, total: 0, completed: 0, voided: 0 })).toBe(false);
+    expect(stageNeedsFreeze({ frozen: false, total: 144, completed: 144, voided: 0, provisional: 0 })).toBe(true);
+    expect(stageNeedsFreeze({ frozen: false, total: 144, completed: 143, voided: 1, provisional: 0 })).toBe(true);
+    expect(stageNeedsFreeze({ frozen: false, total: 144, completed: 143, voided: 0, provisional: 0 })).toBe(false);
+    expect(stageNeedsFreeze({ frozen: true, total: 144, completed: 144, voided: 0, provisional: 0 })).toBe(false);
+    expect(stageNeedsFreeze({ frozen: false, total: 0, completed: 0, voided: 0, provisional: 0 })).toBe(false);
   });
 });
 
@@ -216,7 +224,7 @@ describe("stage lifecycle — mirrors lockStage / freezeStage guards", () => {
   });
 
   it("freezeStage needs LOCKED plus every playable match completed", () => {
-    const played = { frozen: false, total: 144, completed: 144, voided: 0 };
+    const played = { frozen: false, total: 144, completed: 144, voided: 0, provisional: 0 };
     expect(freezeCallable(STAGE_STATUS.LOCKED, played)).toBe(true);
     expect(freezeCallable(STAGE_STATUS.SELLING, played)).toBe(false);
     expect(freezeCallable(STAGE_STATUS.LOCKED, { ...played, completed: 143 })).toBe(false);
@@ -224,9 +232,40 @@ describe("stage lifecycle — mirrors lockStage / freezeStage guards", () => {
   });
 
   it("explains why freeze is greyed out", () => {
-    expect(freezeBlocker(undefined, false)).toBe("reading stage");
-    expect(freezeBlocker(STAGE_STATUS.SELLING, false)).toContain("LOCKED first");
-    expect(freezeBlocker(STAGE_STATUS.LOCKED, true)).toBe("already frozen");
-    expect(freezeBlocker(STAGE_STATUS.LOCKED, false)).toContain("COMPLETED");
+    const played = { frozen: false, total: 144, completed: 144, voided: 0, provisional: 0 };
+    expect(freezeBlocker(undefined, played)).toBe("reading stage");
+    expect(freezeBlocker(STAGE_STATUS.SELLING, played)).toContain("LOCKED first");
+    expect(freezeBlocker(STAGE_STATUS.LOCKED, { ...played, frozen: true })).toBe("already frozen");
+    expect(freezeBlocker(STAGE_STATUS.LOCKED, { ...played, completed: 140 })).toContain("COMPLETED");
+    expect(freezeBlocker(STAGE_STATUS.LOCKED, { ...played, provisional: 3 })).toContain("3 result(s)");
+  });
+
+  it("re-exports the contract enums from their existing homes, not copies", async () => {
+    const { STAGE_STATUS: canonical } = await import("../predictor/standingsPayload");
+    expect(STAGE_STATUS).toBe(canonical);
+  });
+});
+
+describe("watcherAlive — newest watcher-tagged run on the tick-scale clock", () => {
+  const run = (runner: string, ageMs: number, tick?: number): OracleLogRow =>
+    row({ kind: "run", created_at: ago(ageMs), detail: { runner, ...(tick ? { tick } : {}) } });
+
+  it("ignores a newer cron or dispatch run and keeps the live watcher", () => {
+    const rows = [run("cron", 60_000), run("dispatch", 120_000), run("watcher", 4 * 60_000, 12)];
+    const w = watcherAlive(rows, NOW);
+    expect(w.alive).toBe(true);
+    expect(w.run?.tick).toBe(12);
+  });
+
+  it("calls a watcher dead after three missed ticks even when a fresh cron run exists", () => {
+    const rows = [run("cron", 60_000), run("watcher", WATCHER_STALE_AFTER_MS + 1, 64)];
+    const w = watcherAlive(rows, NOW);
+    expect(w.alive).toBe(false);
+    expect(w.run?.tick).toBe(64);
+    expect(WATCHER_STALE_AFTER_MS).toBe(15 * 60 * 1000);
+  });
+
+  it("reports no watcher at all when none is tagged", () => {
+    expect(watcherAlive([run("cron", 1000)], NOW)).toEqual({ run: null, alive: false });
   });
 });

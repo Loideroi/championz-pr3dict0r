@@ -102,7 +102,14 @@ function manualSource(path) {
 }
 
 const manualPath = argVal('--manual');
+// Allowlisted: /admin keys its watcher-liveness signal on the literal
+// 'watcher', so a typo in a workflow must fail loudly, not tag every run cron.
+const RUNNERS = ['cron', 'watcher', 'dispatch'];
 const runner = argVal('--runner') ?? (manualPath ? 'dispatch' : 'cron');
+if (!RUNNERS.includes(runner)) {
+  console.error(`--runner must be one of ${RUNNERS.join('|')}, got "${runner}"`);
+  process.exit(1);
+}
 const tickArg = Number(argVal('--tick'));
 const tick = Number.isInteger(tickArg) && tickArg > 0 ? tickArg : undefined;
 const source = manualPath ? manualSource(manualPath) : new UefaApiSource();
