@@ -148,4 +148,50 @@ describe('oracle log writer', () => {
     const log = supabaseLogger({ url: undefined, serviceKey: undefined });
     expect(await log.insert([{ kind: 'heartbeat', chain_id: 88882 }])).toBe(false);
   });
+
+  // Regression, 8 Sep 2026: the run that pushed all six MD1 results logged
+  // nothing at all. PostgREST rejects a bulk insert whose objects carry
+  // different keys (PGRST102) and drops the whole batch — and a 'run' row
+  // (detail, no match_id) beside 'result_push' rows (match_id, no detail) is
+  // exactly that shape. Every row must go out with an identical key set.
+  it('pads a mixed batch to one key set', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init! });
+      return new Response(null, { status: 201 });
+    }) as unknown as typeof fetch;
+    const log = supabaseLogger({ url: 'https://x.supabase.co', serviceKey: 'k', fetchImpl });
+
+    expect(
+      await log.insert([
+        { kind: 'run', chain_id: 88888, detail: { pushed: [1, 2] } },
+        { kind: 'result_push', chain_id: 88888, match_id: 1 },
+        { kind: 'result_push', chain_id: 88888, match_id: 2 },
+      ]),
+    ).toBe(true);
+
+    const rows = JSON.parse(String(calls[0]?.init.body)) as Array<Record<string, unknown>>;
+    const shapes = new Set(rows.map((r) => Object.keys(r).sort().join(',')));
+    expect(shapes.size).toBe(1);
+    expect([...shapes][0]).toBe('chain_id,detail,kind,match_id,tx_hash');
+    expect(rows[0]?.match_id).toBeNull(); // run row padded
+    expect(rows[1]?.detail).toBeNull(); // push row padded
+  });
+
+  it('dedupes reminders per tier, not across them', async () => {
+    const urls: string[] = [];
+    const fetchImpl = vi.fn(async (url: string | URL | Request) => {
+      urls.push(String(url));
+      return new Response('[]', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof fetch;
+    const log = supabaseLogger({ url: 'https://x.supabase.co', serviceKey: 'k', fetchImpl });
+
+    await log.recentReminderIds('2026-09-08T00:00:00Z');
+    await log.recentReminderIds('2026-09-08T00:00:00Z', 'heads_up');
+    expect(urls[0]).toContain('eq.t75_reminder'); // default stays the last-call tier
+    expect(urls[1]).toContain('eq.heads_up');
+  });
 });

@@ -17,7 +17,7 @@ export interface LogRow {
 export interface OracleLogger {
   insert(rows: LogRow[]): Promise<boolean>;
   /** match_ids that already got a T-75 reminder recently (dedupe for the 5-min cron). */
-  recentReminderIds(sinceIso: string): Promise<Set<number>>;
+  recentReminderIds(sinceIso: string, type?: string): Promise<Set<number>>;
   /** True when an alert of detail.type already fired for chain_id since sinceIso (dedupe). */
   hasRecentAlert(type: string, chainId: number, sinceIso: string): Promise<boolean>;
 }
@@ -34,6 +34,19 @@ export function supabaseLogger(opts: {
         console.error('[oracle log skipped — SUPABASE env missing]');
         return false;
       }
+      // PostgREST rejects a bulk insert whose objects do not all carry the
+      // same keys (PGRST102), and it rejects the whole batch rather than the
+      // odd row. Mixed batches are the normal case here: a 'run' row has
+      // detail but no match_id, a 'result_push' row the reverse. On 8 Sep
+      // 2026 that silently lost every result_push of MD1 *and* its run row.
+      // Pad every row to one shape so the batch is always uniform.
+      const padded = rows.map((r) => ({
+        kind: r.kind,
+        chain_id: r.chain_id ?? null,
+        match_id: r.match_id ?? null,
+        tx_hash: r.tx_hash ?? null,
+        detail: r.detail ?? null,
+      }));
       try {
         const res = await doFetch(`${opts.url}/rest/v1/clp_oracle_log`, {
           method: 'POST',
@@ -43,7 +56,7 @@ export function supabaseLogger(opts: {
             'content-type': 'application/json',
             prefer: 'return=minimal',
           },
-          body: JSON.stringify(rows),
+          body: JSON.stringify(padded),
         });
         if (!res.ok) console.error(`oracle log insert failed: HTTP ${res.status}`);
         return res.ok;
@@ -75,13 +88,13 @@ export function supabaseLogger(opts: {
       }
     },
 
-    async recentReminderIds(sinceIso: string): Promise<Set<number>> {
+    async recentReminderIds(sinceIso: string, type = 't75_reminder'): Promise<Set<number>> {
       if (!opts.url || !opts.serviceKey) return new Set();
       try {
         const params = new URLSearchParams({
           select: 'match_id',
           kind: 'eq.alert',
-          'detail->>type': 'eq.t75_reminder',
+          'detail->>type': `eq.${type}`,
           created_at: `gte.${sinceIso}`,
         });
         const res = await doFetch(`${opts.url}/rest/v1/clp_oracle_log?${params}`, {

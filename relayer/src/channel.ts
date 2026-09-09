@@ -3,10 +3,9 @@ import type { ChainState, MapEntry, RelaySummary } from './relay.js';
 
 /**
  * Public-channel content (slice 10, PRD §12): results digests after each run
- * that changed chain state, and the last-call reminder ~75 min before kickoff
- * (i.e. ≤15 min before the T-60 prediction lock). Pure composers — transports
- * and dedupe live at the edges. Rate-limit friendly: one digest per run, not
- * one message per match (20 msg/min channel cap).
+ * that changed chain state, and the pre-lock reminders (lock is T-60). Pure
+ * composers — transports and dedupe live at the edges. Rate-limit friendly:
+ * one digest per run, not one message per match (20 msg/min channel cap).
  */
 
 export interface MatchInfo {
@@ -37,10 +36,26 @@ export function composeResultsDigest(pushed: MatchInfo[], corrected: MatchInfo[]
   return parts.join('\n');
 }
 
+/** "~35 minutes" / "~1h 10m" / "~3h" — reads naturally at either tier. */
+export function formatLead(minutes: number): string {
+  if (minutes < 60) return `~${minutes} minutes`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `~${h}h` : `~${h}h ${m}m`;
+}
+
+/**
+ * One message per tier. "Last call" only when it is genuinely last call —
+ * a heads-up three hours out that shouts "Last call" trains people to ignore it.
+ */
 export function composeReminder(matches: MatchInfo[], minutesToLock: number): string {
   const list = matches.map((m) => `• ${escapeHtml(m.label)}`).join('\n');
+  const headline =
+    minutesToLock * 60 <= LAST_CALL_WINDOW_SECONDS
+      ? `⏰ <b>Last call</b> — predictions lock in ${formatLead(minutesToLock)}:`
+      : `⏰ <b>Predictions lock in ${formatLead(minutesToLock)}</b>:`;
   return [
-    `⏰ <b>Last call</b> — predictions lock in ~${minutesToLock} minutes:`,
+    headline,
     list,
     '',
     'Edit until T-60 (you only re-pay ~$0.05 gas) → https://pr3dict0r.com/play',
@@ -48,25 +63,34 @@ export function composeReminder(matches: MatchInfo[], minutesToLock: number): st
 }
 
 /**
- * Which mapped matches should get the last-call reminder this run?
- * Window: lock (kickoff-60min) is 0<Δ≤15 min away. The caller dedupes via the
- * oracle log (a 5-min cron would otherwise post up to 3 times per match).
- */
-/**
- * How far ahead of the T-60 lock the last-call reminder may fire.
+ * How far ahead of the T-60 lock each reminder tier may fire.
  *
- * 30 minutes, not 15: GitHub's cron is best-effort and routinely runs several
- * minutes late under load, so a window only as wide as a couple of cron ticks
- * can be missed entirely. The caller dedupes on the oracle log, so a wider
- * window costs nothing — one reminder per match either way.
+ * Two tiers, because GitHub's scheduler is not merely "a few minutes late".
+ * Measured 28 Aug – 9 Sep 2026, the 5-minute matchday cron delivered 7–10 runs a
+ * day against ~124 requested: gaps of 2–5 hours are normal, not exceptional.
+ * On 8 Sep the runs were 12:05, 14:35 and 18:23 — a 30-minute window around
+ * the 15:45 lock was never sampled and MD1 got no reminder at all.
+ *
+ * LAST_CALL is the message worth sending: close enough to the lock to act on.
+ * HEADS_UP is the net that catches the case where no run lands near the lock.
+ * Each tier dedupes independently on the oracle log, so a match gets at most
+ * one of each — and on a well-sampled day, only the last call.
  */
-export const DEFAULT_REMINDER_WINDOW_SECONDS = 30 * 60;
+export const LAST_CALL_WINDOW_SECONDS = 90 * 60;
+export const HEADS_UP_WINDOW_SECONDS = 4 * 60 * 60;
+
+/** Back-compat: the unqualified "reminder window" is the last-call tier. */
+export const DEFAULT_REMINDER_WINDOW_SECONDS = LAST_CALL_WINDOW_SECONDS;
 
 /** Whole minutes until this match's T-60 lock, floored at 1. */
 export function minutesToLock(kickoff: number, nowSeconds: number): number {
   return Math.max(1, Math.round((kickoff - 3600 - nowSeconds) / 60));
 }
 
+/**
+ * Which mapped matches fall inside `windowSeconds` of their T-60 lock right
+ * now? Callers pass the tier's window and dedupe per tier via the oracle log.
+ */
 export function matchesNeedingReminder(
   map: MapEntry[],
   states: Map<number, ChainState>,

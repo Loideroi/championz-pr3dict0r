@@ -25,6 +25,8 @@ import { composeBalanceLine, DEFAULT_MIN_BALANCE_CHZ, readBalance } from '../dis
 import { detectIssues } from '../dist/src/watchdog.js';
 import { supabaseLogger } from '../dist/src/oracleLog.js';
 import {
+  HEADS_UP_WINDOW_SECONDS,
+  LAST_CALL_WINDOW_SECONDS,
   composeReminder,
   composeResultsDigest,
   matchesNeedingReminder,
@@ -168,24 +170,36 @@ if (TELEGRAM_CHANNEL_ID && (summary.pushed.length > 0 || summary.corrected.lengt
   if (digest) await channel.send(digest);
 }
 if (TELEGRAM_CHANNEL_ID) {
-  const due = matchesNeedingReminder(map, summary.states, Math.floor(Date.now() / 1000));
-  if (due.length > 0) {
-    const already = await logger.recentReminderIds(new Date(Date.now() - 2 * 3600 * 1000).toISOString());
+  const now = Math.floor(Date.now() / 1000);
+  // A matchday's lookback, not two hours: the heads-up tier can fire four
+  // hours before the lock, so a 2h dedupe window would let the same match be
+  // reminded twice on a day where the cron happens to run densely.
+  const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+  const lastCall = matchesNeedingReminder(map, summary.states, now, LAST_CALL_WINDOW_SECONDS);
+  // The heads-up net covers only what is not already close enough to warrant
+  // the real last call — never both in the same run.
+  const headsUp = matchesNeedingReminder(map, summary.states, now, HEADS_UP_WINDOW_SECONDS).filter(
+    (id) => !lastCall.includes(id),
+  );
+  for (const [type, due] of [
+    ['t75_reminder', lastCall],
+    ['heads_up', headsUp],
+  ]) {
+    if (due.length === 0) continue;
+    const already = await logger.recentReminderIds(since, type);
     const fresh = due.filter((id) => !already.has(id));
-    if (fresh.length > 0) {
-      // The window is wider than one cron tick, so quote the real countdown
-      // rather than a constant that could be off by 20 minutes.
-      const now = Math.floor(Date.now() / 1000);
-      const soonest = Math.min(
-        ...fresh.map((id) => minutesToLock(summary.states.get(id)?.kickoff ?? 0, now)),
-      );
-      await channel.send(
-        composeReminder(fresh.map((id) => ({ matchId: id, label: labelOf(id) })), soonest),
-      );
-      await logger.insert(
-        fresh.map((id) => ({ kind: 'alert', chain_id: chainId, match_id: id, detail: { type: 't75_reminder' } })),
-      );
-    }
+    if (fresh.length === 0) continue;
+    // Quote the real countdown: these windows are hours wide, so a constant
+    // would be wrong by hours rather than by minutes.
+    const soonest = Math.min(
+      ...fresh.map((id) => minutesToLock(summary.states.get(id)?.kickoff ?? 0, now)),
+    );
+    await channel.send(
+      composeReminder(fresh.map((id) => ({ matchId: id, label: labelOf(id) })), soonest),
+    );
+    await logger.insert(
+      fresh.map((id) => ({ kind: 'alert', chain_id: chainId, match_id: id, detail: { type } })),
+    );
   }
 }
 
