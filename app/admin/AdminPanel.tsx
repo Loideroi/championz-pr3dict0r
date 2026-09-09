@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { hexToString, parseAbiItem, stringToHex } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
@@ -106,7 +106,20 @@ export function AdminPanel() {
   }, [client, matchCount.data]);
 
   const { reload } = log;
+  /**
+   * Refresh EVERYTHING the console reasons about, in one go. The solvency
+   * verdict compares a live balance against the stage structs; refetching one
+   * without the other produced a false SOLVENCY_BREACH right after
+   * lockStage(0) on 9 Sep 2026 — the balance had dropped by the forwarded
+   * fees while the cached league struct still carried them as escrow.
+   */
+  const reads = [paused, oracle, sourceRef, league, knockout, leagueFrozen, knockoutFrozen, matchCount];
+  const readsRef = useRef(reads);
+  useEffect(() => {
+    readsRef.current = reads;
+  });
   const refreshAll = useCallback(() => {
+    for (const r of readsRef.current) void r.refetch();
     void loadMatches();
     void reload();
     setRefreshKey((k) => k + 1);
@@ -127,14 +140,11 @@ export function AdminPanel() {
       setMessage(`${label} failed: ${err instanceof Error ? err.message.slice(0, 160) : String(err)}`);
     }
     setBusy(false);
-    setTimeout(() => {
-      refreshAll();
-      void paused.refetch();
-      void oracle.refetch();
-      void sourceRef.refetch();
-      void leagueFrozen.refetch();
-      void knockoutFrozen.refetch();
-    }, 6000);
+    // Socios.com Wallet relays: the receipt may land well after the 6s mark,
+    // so refresh twice — chain state is the confirmation (CLAUDE.md), and a
+    // stale struct next to a fresh balance is exactly the false alarm above.
+    setTimeout(refreshAll, 6000);
+    setTimeout(refreshAll, 20000);
   }
 
   /** Compute the §5.3-ordered top-N for a stage from chain state (freeze input). */
