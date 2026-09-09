@@ -114,7 +114,7 @@ export function AdminPanel() {
    * lockStage(0) on 9 Sep 2026 — the balance had dropped by the forwarded
    * fees while the cached league struct still carried them as escrow.
    */
-  const reads = [paused, oracle, sourceRef, league, knockout, leagueFrozen, knockoutFrozen, matchCount];
+  const reads = [owner, paused, oracle, sourceRef, league, knockout, leagueFrozen, knockoutFrozen, matchCount];
   const readsRef = useRef(reads);
   useEffect(() => {
     readsRef.current = reads;
