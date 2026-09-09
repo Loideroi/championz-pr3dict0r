@@ -45,11 +45,11 @@ class MockWriter implements ChainWriter {
   async read(id: number) {
     return this.state.get(id) ?? { completed: false, provisional: false, packed: null, kickoff: 0 };
   }
-  async pushResult(id: number, packed: bigint) {
+  async pushResult(id: number, packed: bigint): Promise<`0x${string}` | void> {
     this.pushes.push([id, packed]);
     this.state.set(id, { completed: true, provisional: true, packed, kickoff: 0 });
   }
-  async correctResult(id: number, packed: bigint) {
+  async correctResult(id: number, packed: bigint): Promise<`0x${string}` | void> {
     this.corrections.push([id, packed]);
     this.state.set(id, { completed: true, provisional: true, packed, kickoff: 0 });
   }
@@ -222,5 +222,41 @@ describe('relayOnce — bulk prefetch (multicall)', () => {
     expect(writer.singleReads).toBe(1);
     expect(summary.pushed).toEqual([1]);
     expect(summary.errors).toEqual([]);
+  });
+});
+
+describe('relayOnce — tx hashes for the oracle log', () => {
+  class HashingWriter extends MockWriter {
+    override async pushResult(id: number, packed: bigint) {
+      await super.pushResult(id, packed);
+      return `0x${'ab'.repeat(32)}` as `0x${string}`;
+    }
+    override async correctResult(id: number, packed: bigint) {
+      await super.correctResult(id, packed);
+      return `0x${'cd'.repeat(32)}` as `0x${string}`;
+    }
+  }
+
+  it('records the hash a writer reports, per pushed or corrected match', async () => {
+    const writer = new HashingWriter({
+      2: { completed: true, provisional: true, packed: 1n | FLAG, kickoff: 0 },
+    });
+    const source = stubSource({
+      u1: result({ uefaMatchId: 'u1', scoreA90: 1, scoreB90: 0 }),
+      u2: result({ uefaMatchId: 'u2', scoreA90: 2, scoreB90: 2 }),
+    });
+    const summary = await relayOnce(source, writer, [entry(1, 'u1'), entry(2, 'u2')], 10);
+    expect(summary.pushed).toEqual([1]);
+    expect(summary.corrected).toEqual([2]);
+    expect(summary.txHashes.get(1)).toBe(`0x${'ab'.repeat(32)}`);
+    expect(summary.txHashes.get(2)).toBe(`0x${'cd'.repeat(32)}`);
+  });
+
+  it('tolerates a writer that returns nothing (tests, older writers)', async () => {
+    const writer = new MockWriter();
+    const source = stubSource({ u1: result({ uefaMatchId: 'u1' }) });
+    const summary = await relayOnce(source, writer, [entry(1, 'u1')], 10);
+    expect(summary.pushed).toEqual([1]);
+    expect(summary.txHashes.size).toBe(0);
   });
 });

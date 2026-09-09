@@ -86,7 +86,7 @@ jobs:
             [ "$NOW" -ge "$BUDGET" ] && { echo "runner budget spent — a later oracle-bot run starts the next watcher"; break; }
             ticks=$(( ticks + 1 ))
             echo "--- tick $ticks at $(date -u '+%F %H:%M:%S UTC') ---"
-            node scripts/relay.mjs --map config/mainnet-map.json || fails=$(( fails + 1 ))
+            node scripts/relay.mjs --map config/mainnet-map.json --runner watcher --tick "$ticks" || fails=$(( fails + 1 ))
             sleep 300
           done
           echo "watch done: $ticks ticks, $fails failed"
