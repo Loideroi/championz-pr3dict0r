@@ -6,7 +6,7 @@
  * Tests exercise the real CLI contract (argv + exit codes) via child_process.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -241,5 +241,41 @@ describe('generate-matches.mjs — bytes3 team codes', () => {
     const res = run(GENERATE, ['--from', ...FEED_ARGS, '--out', join(tmp, 'x.json'), '--code', `${GALATASARAY}=GALA`]);
     expect(res.status).toBe(1);
     expect(res.stdout).toContain('3 ASCII');
+  });
+});
+
+describe('relay.mjs --runner allowlist', () => {
+  const RELAY = resolve(relayerRoot, 'scripts/relay.mjs');
+  // relay.mjs imports the compiled dist/; CI runs the tests without a build
+  // step, so compile on demand (a no-op locally after `npm run build`).
+  beforeAll(() => {
+    if (!existsSync(resolve(relayerRoot, 'dist/src/source.js'))) {
+      execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { cwd: relayerRoot, stdio: 'pipe' });
+    }
+  }, 120_000);
+  // A valid-looking key and address: the check must fail BEFORE any network
+  // or signing work, so nothing here ever reaches an RPC.
+  const env = {
+    ...process.env,
+    ORACLE_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+    PREDICTOR_ADDRESS: '0x0000000000000000000000000000000000000001',
+    SUPABASE_URL: '',
+    TELEGRAM_BOT_TOKEN: '',
+  };
+
+  it('exits 1 with a clear message on a runner tag /admin would not recognise', () => {
+    let status = 0;
+    let stderr = '';
+    try {
+      execFileSync('node', [RELAY, '--map', resolve(relayerRoot, 'config/mainnet-map.json'), '--runner', 'watch'], {
+        env,
+        stdio: 'pipe',
+      });
+    } catch (err) {
+      status = (err as { status: number }).status;
+      stderr = String((err as { stderr: Buffer }).stderr);
+    }
+    expect(status).toBe(1);
+    expect(stderr).toContain('--runner must be one of cron|watcher|dispatch');
   });
 });

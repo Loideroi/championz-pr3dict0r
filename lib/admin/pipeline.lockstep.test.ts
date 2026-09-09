@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as relayer from "../../relayer/src/matchday";
+import { RUNNERS } from "./health";
 import * as app from "./pipeline";
 
 /**
@@ -28,5 +30,12 @@ describe("matchday coverage — app port stays in lockstep with the relayer", ()
       expect(app.matchdayKickoffs(kickoffs, now)).toEqual(relayer.matchdayKickoffs(kickoffs, now));
       expect(app.matchdaySpan(kickoffs, now)).toEqual(relayer.matchdaySpan(kickoffs, now));
     }
+  });
+
+  it("keeps the --runner allowlist in relay.mjs identical to the app's Runner union", () => {
+    const src = readFileSync(new URL("../../relayer/scripts/relay.mjs", import.meta.url), "utf8");
+    const m = /const RUNNERS = \[([^\]]+)\]/.exec(src);
+    const inScript = (m?.[1] ?? "").split(",").map((x) => x.trim().replace(/['"]/g, ""));
+    expect(inScript).toEqual([...RUNNERS]);
   });
 });
