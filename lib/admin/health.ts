@@ -9,6 +9,17 @@
  * tests pin the thresholds to the bot's.
  */
 
+import { STAGE_FLOOR } from "../economics";
+import { STAGE_STATUS } from "../predictor/standingsPayload";
+
+/**
+ * The chain this deployment is built for (inlined at build, same source as
+ * lib/wagmi/config.ts). Never the wallet's selected chain: an owner whose
+ * wallet sits on Spicy while looking at the mainnet site must still see
+ * mainnet logs and mainnet governance expectations.
+ */
+export const DEPLOYED_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "88882");
+
 /* ------------------------------------------------------------------ */
 /* Chain-read verdicts                                                 */
 /* ------------------------------------------------------------------ */
@@ -111,7 +122,14 @@ export function governanceCheck(
   };
 }
 
-export type StagePlay = { frozen: boolean; total: number; completed: number; voided: number };
+export type StagePlay = {
+  frozen: boolean;
+  total: number;
+  completed: number;
+  voided: number;
+  /** completed results still inside their 24h provisional window */
+  provisional: number;
+};
 
 /** Same trigger as relayer/src/sentinels.ts checkUnfrozenStage(). */
 export function stageNeedsFreeze(s: StagePlay): boolean {
@@ -123,11 +141,7 @@ export function stageNeedsFreeze(s: StagePlay): boolean {
 /* Stage lifecycle (mirrors lockStage / freezeStage guards)            */
 /* ------------------------------------------------------------------ */
 
-/** StageStatus enum in ChampionzPredictor.sol. */
-export const STAGE_STATUS = { SELLING: 0, LOCKED: 1, VOID: 2 } as const;
-
-/** STAGE_FLOOR in the contract (ADR-0002) — lib/economics.ts keeps the same number. */
-export const STAGE_FLOOR = 20;
+export { STAGE_STATUS };
 
 export type StageLifecycle = {
   closeAt: number;
@@ -160,22 +174,22 @@ export function lockHint(s: StageLifecycle, nowSec: number): string | null {
 }
 
 /**
- * True when freezeStage(stage) has a chance of succeeding: LOCKED, not yet
- * frozen, every playable match COMPLETED. The contract additionally requires
- * each result to be past its 24h provisional window; the console cannot see
- * that cheaply, so a freeze attempted within a day of the last whistle can
- * still revert.
+ * True exactly when freezeStage(stage) would pass _requireStageFinalized:
+ * LOCKED, not yet frozen, every playable match COMPLETED and none of them
+ * still provisional. resultOf().provisional is computed on-chain from the
+ * same clock the guard uses, so this mirrors the revert conditions 1:1.
  */
 export function freezeCallable(status: number, play: StagePlay): boolean {
-  return status === STAGE_STATUS.LOCKED && stageNeedsFreeze(play);
+  return status === STAGE_STATUS.LOCKED && stageNeedsFreeze(play) && play.provisional === 0;
 }
 
 /** Why the freeze button is greyed out — the tooltip text. */
-export function freezeBlocker(status: number | undefined, frozen: boolean): string {
+export function freezeBlocker(status: number | undefined, play: StagePlay): string {
   if (status === undefined) return "reading stage";
   if (status !== STAGE_STATUS.LOCKED) return "stage must be LOCKED first (lockStage)";
-  if (frozen) return "already frozen";
-  return "every match of the stage must be COMPLETED (and past its 24h provisional window)";
+  if (play.frozen) return "already frozen";
+  if (!stageNeedsFreeze(play)) return "every match of the stage must be COMPLETED";
+  return `${play.provisional} result(s) still inside the 24h provisional window`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -211,6 +225,29 @@ export const RUN_STALE_AFTER_MS = 6 * 3600 * 1000;
 
 /** The heartbeat is daily at 07:07 UTC; two missed beats is a real silence. */
 export const HEARTBEAT_STALE_AFTER_MS = 36 * 3600 * 1000;
+
+/**
+ * A matchday-watch runner ticks every 5 minutes and dies after its runner
+ * budget; three missed ticks means it is gone. Judged on the newest
+ * WATCHER-tagged run only — a cron or dispatch run landing in the window
+ * must neither hide a live watcher nor stand in for a dead one.
+ */
+export const WATCHER_STALE_AFTER_MS = 15 * 60 * 1000;
+
+export type Runner = "cron" | "watcher" | "dispatch";
+export const RUNNERS: readonly Runner[] = ["cron", "watcher", "dispatch"];
+
+/** Newest run row tagged with `runner`, summarized; null when none in the rows. */
+export function latestRunBy(rows: OracleLogRow[], runner: Runner, nowMs: number): RunSummary | null {
+  const row = rows.find((r) => r.kind === "run" && (r.detail as { runner?: unknown } | null)?.runner === runner);
+  return row ? summarizeRun(row, nowMs) : null;
+}
+
+/** Is a watcher holding the relay right now, on the tick-scale clock? */
+export function watcherAlive(rows: OracleLogRow[], nowMs: number): { run: RunSummary | null; alive: boolean } {
+  const run = latestRunBy(rows, "watcher", nowMs);
+  return { run, alive: run !== null && run.ageMs <= WATCHER_STALE_AFTER_MS };
+}
 
 export type RunSummary = {
   at: string;

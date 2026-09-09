@@ -22,6 +22,7 @@ import {
   type OracleLogRow,
   type RunSummary,
   type StageFunds,
+  watcherAlive,
 } from "@/lib/admin/health";
 import { coverageStatus, type CoverageStatus } from "@/lib/admin/pipeline";
 
@@ -128,12 +129,13 @@ function HeartbeatTile({ log }: { log: LogView }) {
 
 /**
  * Is matchday-watch supposed to be holding the relay right now? The span is
- * computed from on-chain kickoffs exactly as the workflow computes it from
- * the bundle; whether a runner is actually alive shows up as the last run's
- * `watcher #N` tag — a covering window with a stale cron-tagged run means
- * the watcher never bootstrapped.
+ * computed the same way the workflow computes it, from on-chain kickoffs of
+ * non-voided matches rather than the bundle. Liveness is judged on the
+ * newest WATCHER-tagged run against the tick-scale clock (health.ts
+ * WATCHER_STALE_AFTER_MS): a cron or dispatch run landing mid-window must
+ * neither hide a live watcher nor stand in for a dead one.
  */
-function CoverageLine({ coverage, run }: { coverage: CoverageStatus; run: RunSummary | null }) {
+function CoverageLine({ coverage, watcher }: { coverage: CoverageStatus; watcher: { run: RunSummary | null; alive: boolean } }) {
   if (coverage.state === "none") {
     return <p className="font-mono text-[11px] text-muted">Matchday watch · no matchday left on-chain</p>;
   }
@@ -145,11 +147,15 @@ function CoverageLine({ coverage, run }: { coverage: CoverageStatus; run: RunSum
       </p>
     );
   }
-  const alive = run?.runner === "watcher" && !run.stale;
+  const { run, alive } = watcher;
   return (
     <p className={`font-mono text-[11px] ${alive ? "text-ok" : "text-star"}`}>
       Matchday watch · covering now ({window}, {coverage.kickoffs} kickoffs)
-      {alive ? ` · watcher tick #${run?.tick ?? "?"} ${formatAge(run?.ageMs ?? 0)}` : " · no fresh watcher run — check Actions → matchday-watch"}
+      {alive
+        ? ` · watcher tick #${run?.tick ?? "?"} ${formatAge(run?.ageMs ?? 0)}`
+        : run
+          ? ` · last watcher tick #${run.tick ?? "?"} ${formatAge(run.ageMs)} — runner gone, check Actions → matchday-watch`
+          : " · no watcher run yet — bootstraps from the next oracle-bot run"}
     </p>
   );
 }
@@ -222,7 +228,8 @@ type Props = {
   kickoffs: number[] | null;
   logs: OracleLogRow[] | null;
   logAvailable: boolean;
-  loadedAt: number | null;
+  /** ticking wall clock (ms), null before the first client tick */
+  now: number | null;
   /** bump to re-read the chain tripwires */
   refreshKey: number;
   onRefresh: () => void;
@@ -235,7 +242,7 @@ type Props = {
  * (lib/admin/health.ts); the rest comes from clp_oracle_log.
  */
 export function HealthStrip(props: Props) {
-  const { chainId, oracle, paused, sourceRef, stages, kickoffs, logs, logAvailable, loadedAt, refreshKey, onRefresh } = props;
+  const { chainId, oracle, paused, sourceRef, stages, kickoffs, logs, logAvailable, now, refreshKey, onRefresh } = props;
   const client = usePublicClient();
   const [chain, setChain] = useState<ChainHealth | null>(null);
 
@@ -256,15 +263,19 @@ export function HealthStrip(props: Props) {
     };
   }, [client, oracle, refreshKey]);
 
-  const log: LogView = { rows: logs, available: logAvailable, now: loadedAt ?? 0 };
+  const log: LogView = { rows: logs, available: logAvailable, now: now ?? 0 };
   const run = useMemo(() => {
     const row = logs?.find((l) => l.kind === "run");
-    return row && loadedAt ? summarizeRun(row, loadedAt) : null;
-  }, [logs, loadedAt]);
-  const alertGroups = useMemo(() => (logs && loadedAt ? groupAlerts(logs, loadedAt) : []), [logs, loadedAt]);
+    return row && now ? summarizeRun(row, now) : null;
+  }, [logs, now]);
+  const watcher = useMemo(
+    () => (logs && now ? watcherAlive(logs, now) : { run: null, alive: false }),
+    [logs, now],
+  );
+  const alertGroups = useMemo(() => (logs && now ? groupAlerts(logs, now) : []), [logs, now]);
   const coverage = useMemo(
-    () => (kickoffs && loadedAt ? coverageStatus(kickoffs, Math.floor(loadedAt / 1000)) : null),
-    [kickoffs, loadedAt],
+    () => (kickoffs && now ? coverageStatus(kickoffs, Math.floor(now / 1000)) : null),
+    [kickoffs, now],
   );
   const governance = governanceCheck(chainId, { oracle: oracle ?? null, implementation: chain?.implementation ?? null });
   const mark = (ok: boolean | null) => (ok === null ? "" : ok ? " ✓" : " ⚠ DRIFT");
@@ -282,7 +293,7 @@ export function HealthStrip(props: Props) {
       <div className="rounded-2xl border border-line bg-night-2/60 p-4">
         {coverage && (
           <div className="mb-2 border-b border-line-soft pb-2">
-            <CoverageLine coverage={coverage} run={run} />
+            <CoverageLine coverage={coverage} watcher={watcher} />
           </div>
         )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs">
