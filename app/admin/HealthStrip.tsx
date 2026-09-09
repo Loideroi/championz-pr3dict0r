@@ -306,14 +306,17 @@ export function HealthStrip(props: Props) {
     const row = logs?.find((l) => l.kind === "run");
     return row && now ? summarizeRun(row, now) : null;
   }, [logs, now]);
-  const watcher = useMemo(
-    () => (logs && now ? watcherAlive(logs, now) : { run: null, alive: false }),
-    [logs, now],
-  );
   const alertGroups = useMemo(() => (logs && now ? groupAlerts(logs, now) : []), [logs, now]);
   const coverage = useMemo(
     () => (kickoffs && now ? coverageStatus(kickoffs, Math.floor(now / 1000)) : null),
     [kickoffs, now],
+  );
+  // Scoped to the current window: a run from yesterday's watcher is "no
+  // watcher yet", not "runner gone".
+  const windowStartMs = coverage && coverage.state !== "none" ? coverage.span.start * 1000 : 0;
+  const watcher = useMemo(
+    () => (logs && now ? watcherAlive(logs, now, windowStartMs) : { run: null, alive: false }),
+    [logs, now, windowStartMs],
   );
   const governance = governanceCheck(chainId, {
     owner: owner ?? null,

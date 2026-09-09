@@ -15,6 +15,8 @@ import { StageCard, type StageTuple } from "./StageCard";
 import { useOracleLog } from "./useOracleLog";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
+/** A watcher ticks every 5 min; the console re-reads on the same cadence. */
+const REFRESH_EVERY_MS = 5 * 60_000;
 const ENTERED_EVENT = parseAbiItem(
   "event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass)",
 );
@@ -125,9 +127,18 @@ export function AdminPanel() {
     setRefreshKey((k) => k + 1);
   }, [loadMatches, reload]);
 
+  /**
+   * Mount, then every five minutes while the tab stays open: everything at
+   * once (chain reads, slate, log), so the pipeline column and the state
+   * column can never disagree about the same fixture between refreshes.
+   */
   useEffect(() => {
     const t = setTimeout(refreshAll, 0);
-    return () => clearTimeout(t);
+    const every = setInterval(refreshAll, REFRESH_EVERY_MS);
+    return () => {
+      clearTimeout(t);
+      clearInterval(every);
+    };
   }, [refreshAll]);
 
   async function act(label: string, fn: () => Promise<unknown>) {
