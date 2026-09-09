@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { hexToString, parseAbiItem, stringToHex } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import { compareRows, type StandingRow } from "@/lib/predictor/standings";
 import { MULTICALL_BATCH } from "@/lib/predictor/chains";
 import { packPrediction } from "@/lib/predictor/packed";
-import { stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
+import { freezeBlocker, freezeCallable, lockHint, stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
 import { matchPipelines } from "@/lib/admin/pipeline";
 import { HealthStrip } from "./HealthStrip";
 import { PipelineCell } from "./PipelineCell";
@@ -106,7 +106,20 @@ export function AdminPanel() {
   }, [client, matchCount.data]);
 
   const { reload } = log;
+  /**
+   * Refresh EVERYTHING the console reasons about, in one go. The solvency
+   * verdict compares a live balance against the stage structs; refetching one
+   * without the other produced a false SOLVENCY_BREACH right after
+   * lockStage(0) on 9 Sep 2026 — the balance had dropped by the forwarded
+   * fees while the cached league struct still carried them as escrow.
+   */
+  const reads = [paused, oracle, sourceRef, league, knockout, leagueFrozen, knockoutFrozen, matchCount];
+  const readsRef = useRef(reads);
+  useEffect(() => {
+    readsRef.current = reads;
+  });
   const refreshAll = useCallback(() => {
+    for (const r of readsRef.current) void r.refetch();
     void loadMatches();
     void reload();
     setRefreshKey((k) => k + 1);
@@ -127,14 +140,11 @@ export function AdminPanel() {
       setMessage(`${label} failed: ${err instanceof Error ? err.message.slice(0, 160) : String(err)}`);
     }
     setBusy(false);
-    setTimeout(() => {
-      refreshAll();
-      void paused.refetch();
-      void oracle.refetch();
-      void sourceRef.refetch();
-      void leagueFrozen.refetch();
-      void knockoutFrozen.refetch();
-    }, 6000);
+    // Socios.com Wallet relays: the receipt may land well after the 6s mark,
+    // so refresh twice — chain state is the confirmation (CLAUDE.md), and a
+    // stale struct next to a fresh balance is exactly the false alarm above.
+    setTimeout(refreshAll, 6000);
+    setTimeout(refreshAll, 20000);
   }
 
   /** Compute the §5.3-ordered top-N for a stage from chain state (freeze input). */
@@ -224,6 +234,13 @@ export function AdminPanel() {
   const stageCard = (label: string, stage: number, data: StageTuple | undefined, frozen: boolean) => {
     const p = play(stage, frozen);
     const needsFreeze = stageNeedsFreeze(p);
+    // Wall clock from the last refresh (client-side only) — the same instant
+    // the rest of the console reasons about, never Date.now() in render.
+    const nowSec = log.loadedAt ? Math.floor(log.loadedAt / 1000) : 0;
+    const lifecycle = data ? { closeAt: data[1], status: data[2], entryCount: data[3], feeEscrow: data[5] } : null;
+    const hint = lifecycle && nowSec ? lockHint(lifecycle, nowSec) : null;
+    const canFreeze = data ? freezeCallable(data[2], p) : false;
+    const freezeWhy = freezeBlocker(data?.[2], frozen);
     return (
       <div className={`rounded-2xl border p-4 ${needsFreeze ? "border-star/40 bg-star/5" : "border-line bg-night-2/60"}`}>
         <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{label}</p>
@@ -240,6 +257,7 @@ export function AdminPanel() {
             : `${p.completed}/${p.total - p.voided} played${p.voided ? ` · ${p.voided} voided` : ""}`}{" "}
           · {frozen ? "🧊 frozen" : "not frozen"}
         </p>
+        {hint && <p className="mt-1 font-mono text-xs text-star">{hint}</p>}
         {needsFreeze && (
           <p className="mt-1 font-mono text-xs text-star">
             Fully played — freeze so winners can claim (the bot is nagging about this too).
@@ -256,7 +274,8 @@ export function AdminPanel() {
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !canFreeze}
+            title={canFreeze ? "compute the top-20 from chain state and freeze the payout" : freezeWhy}
             onClick={() =>
               act(`freezeStage(${stage})`, async () => {
                 const ranked = await computeRanked(stage);
