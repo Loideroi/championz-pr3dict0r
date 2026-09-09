@@ -6,7 +6,7 @@
  * Tests exercise the real CLI contract (argv + exit codes) via child_process.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -246,6 +246,13 @@ describe('generate-matches.mjs — bytes3 team codes', () => {
 
 describe('relay.mjs --runner allowlist', () => {
   const RELAY = resolve(relayerRoot, 'scripts/relay.mjs');
+  // relay.mjs imports the compiled dist/; CI runs the tests without a build
+  // step, so compile on demand (a no-op locally after `npm run build`).
+  beforeAll(() => {
+    if (!existsSync(resolve(relayerRoot, 'dist/src/source.js'))) {
+      execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { cwd: relayerRoot, stdio: 'pipe' });
+    }
+  }, 120_000);
   // A valid-looking key and address: the check must fail BEFORE any network
   // or signing work, so nothing here ever reaches an RPC.
   const env = {
