@@ -51,7 +51,9 @@ export function StageCard({ label, data, play: p, nowSec, busy, onLock, onFreeze
       {hint && <p className="mt-1 font-mono text-xs text-star">{hint}</p>}
       {needsFreeze && (
         <p className="mt-1 font-mono text-xs text-star">
-          Fully played — freeze so winners can claim (the bot is nagging about this too).
+          {p.provisional > 0
+            ? `Fully played — ${p.provisional} result(s) still inside the 24h provisional window; freeze opens when it closes.`
+            : "Fully played — freeze so winners can claim (the bot is nagging about this too)."}
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
