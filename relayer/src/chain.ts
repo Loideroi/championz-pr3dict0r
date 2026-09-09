@@ -184,7 +184,11 @@ export function viemWriter(opts: {
     return out;
   }
 
-  async function write(fn: 'pushResult' | 'correctResult', matchId: number, packed: bigint) {
+  async function write(
+    fn: 'pushResult' | 'correctResult',
+    matchId: number,
+    packed: bigint,
+  ): Promise<`0x${string}`> {
     const hash = await wallet.writeContract({
       address: opts.contract,
       abi: ABI,
@@ -193,6 +197,7 @@ export function viemWriter(opts: {
       gasPrice: GAS_PRICE,
     });
     await publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
+    return hash;
   }
 
   return {

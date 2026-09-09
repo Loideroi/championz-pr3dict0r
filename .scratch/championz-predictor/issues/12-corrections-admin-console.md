@@ -69,3 +69,17 @@ with no unwind ceremony.
   (Spicy sentinel rows used to show up in the mainnet console).
 - Still open: per-match pipeline columns (needs `tx_hash` from the relay) and the
   matchday-watch coverage window — second PR.
+
+**2026-09-09 — per-match pipeline + matchday coverage (PR: feat/admin-match-pipeline).**
+- Relay now reports the tx hash of every push / correction (`ChainWriter` may return it,
+  `RelaySummary.txHashes`) and writes it to the `result_push` / `correction` log rows;
+  the run row carries `runner` (cron / watcher / dispatch) and the watcher's `tick`.
+  `oracle-bot.yml` and `matchday-watch.yml` pass the tags.
+- `/admin` table gains a **pipeline** column (pushed at + minutes after kickoff with an
+  explorer link, corrections, reminders sent, "overdue" on the watchdog's 2h clock) and
+  the health strip shows the matchday-watch coverage window computed from on-chain
+  kickoffs (port of `relayer/src/matchday.ts` in `lib/admin/pipeline.ts`) with whether a
+  fresh watcher-tagged run exists.
+- Console split into `HealthStrip`, `PipelineCell`, `useOracleLog` + `AdminPanel`.
+- Acceptance criterion "dashboard shows oracle health and per-match pipeline state" is
+  now met. Manual: MD2 pushes should show tx links; MD1 rows predate the hash column.

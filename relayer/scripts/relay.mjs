@@ -10,6 +10,10 @@
  *     [--manual results.json]      degraded-mode fallback: push operator-
  *                                  supplied results instead of the feed
  *                                  (same oracle key, same idempotency rules)
+ *     [--runner cron|watcher|dispatch] [--tick N]
+ *                                  who is running this: tags the 'run' log
+ *                                  row so /admin can tell a matchday-watch
+ *                                  tick from a scheduled cron run
  *
  * Exit 0 on a clean run; exit 1 when any match errored (Actions e-mail is the
  * second alert wire — Telegram is the first).
@@ -98,6 +102,9 @@ function manualSource(path) {
 }
 
 const manualPath = argVal('--manual');
+const runner = argVal('--runner') ?? (manualPath ? 'dispatch' : 'cron');
+const tickArg = Number(argVal('--tick'));
+const tick = Number.isInteger(tickArg) && tickArg > 0 ? tickArg : undefined;
 const source = manualPath ? manualSource(manualPath) : new UefaApiSource();
 const writer = viemWriter({
   rpcUrl: RPC_URL ?? 'https://spicy-rpc.chiliz.com',
@@ -126,7 +133,8 @@ for (const alert of alerts) {
   await telegram.send(composeAlert(alert));
 }
 
-// read-model: one 'run' row + one row per push/correction/alert
+// read-model: one 'run' row + one row per push/correction/alert. Push and
+// correction rows carry the tx hash so /admin can deep-link the explorer.
 const rows = [
   {
     kind: 'run',
@@ -138,10 +146,22 @@ const rows = [
       skipped: summary.skipped.length,
       errors: summary.errors,
       alerts: alerts.map((a) => a.kind),
+      runner,
+      ...(tick !== undefined ? { tick } : {}),
     },
   },
-  ...summary.pushed.map((id) => ({ kind: 'result_push', chain_id: chainId, match_id: id })),
-  ...summary.corrected.map((id) => ({ kind: 'correction', chain_id: chainId, match_id: id })),
+  ...summary.pushed.map((id) => ({
+    kind: 'result_push',
+    chain_id: chainId,
+    match_id: id,
+    tx_hash: summary.txHashes.get(id),
+  })),
+  ...summary.corrected.map((id) => ({
+    kind: 'correction',
+    chain_id: chainId,
+    match_id: id,
+    tx_hash: summary.txHashes.get(id),
+  })),
   ...alerts.map((a) => ({ kind: 'alert', chain_id: chainId, detail: { kind: a.kind, summary: a.summary } })),
 ];
 await logger.insert(rows);

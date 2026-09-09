@@ -38,6 +38,7 @@ const emptySummary = (): RelaySummary => ({
   skipped: [],
   errors: [],
   states: new Map<number, ChainState>(),
+  txHashes: new Map(),
 });
 
 describe('alert composition', () => {

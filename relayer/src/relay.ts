@@ -42,8 +42,9 @@ export interface ChainWriter {
    * prefetches through this when available and falls back to read().
    */
   readMany?(ids: number[]): Promise<Map<number, ChainState>>;
-  pushResult(matchId: number, packed: bigint): Promise<void>;
-  correctResult(matchId: number, packed: bigint): Promise<void>;
+  /** Resolves once mined; may return the tx hash so the log can link it. */
+  pushResult(matchId: number, packed: bigint): Promise<`0x${string}` | void>;
+  correctResult(matchId: number, packed: bigint): Promise<`0x${string}` | void>;
 }
 
 export interface RelaySummary {
@@ -53,6 +54,8 @@ export interface RelaySummary {
   errors: { matchId: number; error: string }[];
   /** chain state per mapped match, as read this run (reused by the watchdog) */
   states: Map<number, ChainState>;
+  /** tx hash per pushed / corrected match, when the writer reports one */
+  txHashes: Map<number, `0x${string}`>;
 }
 
 const FLAG_SUBMITTED = 1n << 20n;
@@ -85,7 +88,14 @@ export async function relayOnce(
   map: MapEntry[],
   nowSeconds: number = Math.floor(Date.now() / 1000),
 ): Promise<RelaySummary> {
-  const summary: RelaySummary = { pushed: [], corrected: [], skipped: [], errors: [], states: new Map() };
+  const summary: RelaySummary = {
+    pushed: [],
+    corrected: [],
+    skipped: [],
+    errors: [],
+    states: new Map(),
+    txHashes: new Map(),
+  };
   let prefetched: Map<number, ChainState> | null = null;
   if (writer.readMany && map.length > 0) {
     try {
@@ -113,10 +123,12 @@ export async function relayOnce(
       }
       const packed = packResult(result, entry);
       if (!state.completed) {
-        await writer.pushResult(entry.matchId, packed);
+        const hash = await writer.pushResult(entry.matchId, packed);
+        if (hash) summary.txHashes.set(entry.matchId, hash);
         summary.pushed.push(entry.matchId);
       } else if (state.packed !== packed) {
-        await writer.correctResult(entry.matchId, packed);
+        const hash = await writer.correctResult(entry.matchId, packed);
+        if (hash) summary.txHashes.set(entry.matchId, hash);
         summary.corrected.push(entry.matchId);
       } else {
         summary.skipped.push(entry.matchId);

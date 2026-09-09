@@ -56,9 +56,10 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          EXTRA=""
+          # tag the run row so /admin can tell cron from watcher from operator
+          EXTRA="--runner ${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'cron' }}"
           # daily 07:07 UTC schedule → heartbeat DM
-          if [ "${{ github.event.schedule }}" = "7 7 * * *" ]; then EXTRA="--heartbeat"; fi
+          if [ "${{ github.event.schedule }}" = "7 7 * * *" ]; then EXTRA="$EXTRA --heartbeat"; fi
           # operator-dispatched manual results → degraded-mode fallback
           if [ -n "${{ github.event.inputs.manual_results }}" ]; then
             printf '%s' '${{ github.event.inputs.manual_results }}' > /tmp/manual-results.json
