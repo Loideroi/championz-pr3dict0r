@@ -56,3 +56,16 @@ with no unwind ceremony.
 - **Remaining (human):** eyeball /admin with the owner wallet on Spicy; the pause →
   forceCorrect → unpause drill can be rehearsed after the 7–8 Jul cron settles the
   staging matches.
+
+**2026-09-09 — health strip mirrors the Telegram wires (PR: feat/admin-ops-health).**
+- New `lib/admin/health.ts` (pure, tested): the bot's verdicts recomputed in the browser
+  with the bot's thresholds — oracle gas vs the 20 CHZ floor, solvency (balance ≥ unfrozen
+  pools + fee escrow), governance drift (expected oracle + EIP-1967 impl per chain),
+  fully-played-but-unfrozen stage, last-run / heartbeat staleness, and alert grouping
+  over the bot's 24h dedupe window (normalises the two `detail` shapes the scripts write).
+- `/admin` now shows four tiles (oracle gas, solvency, last run, heartbeat), a governance
+  line with drift marks, the grouped alert list, fee escrow + played/frozen state on the
+  stage cards, and a collapsible raw log tail. The log query is filtered on `chain_id`
+  (Spicy sentinel rows used to show up in the mainnet console).
+- Still open: per-match pipeline columns (needs `tx_hash` from the relay) and the
+  matchday-watch coverage window — second PR.

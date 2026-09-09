@@ -1,12 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAccount, useChainId, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { hexToString, parseAbiItem, stringToHex } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import { compareRows, type StandingRow } from "@/lib/predictor/standings";
 import { MULTICALL_BATCH } from "@/lib/predictor/chains";
 import { packPrediction } from "@/lib/predictor/packed";
+import {
+  EIP1967_IMPL_SLOT,
+  EXPECTED_GOVERNANCE,
+  formatAge,
+  formatChz,
+  formatUtc,
+  gasStatus,
+  governanceCheck,
+  groupAlerts,
+  HEARTBEAT_STALE_AFTER_MS,
+  implementationFromSlot,
+  solvencyStatus,
+  stageNeedsFreeze,
+  summarizeRun,
+  type AlertSeverity,
+  type OracleLogRow,
+} from "@/lib/admin/health";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 const ENTERED_EVENT = parseAbiItem(
@@ -15,27 +32,58 @@ const ENTERED_EVENT = parseAbiItem(
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
+/** Enough for a week of cron runs + a matchday of pushes and reminders. */
+const LOG_LOOKBACK_MS = 7 * 24 * 3600 * 1000;
+const LOG_LIMIT = 400;
+
 type MatchRow = {
   id: number;
   teamA: string;
   teamB: string;
   kickoff: number;
   status: number;
+  stage: number;
   scoreA: number;
   scoreB: number;
   provisional: boolean;
 };
 
-type LogRow = { kind: string; match_id: number | null; created_at: string; detail: unknown };
+type ChainHealth = {
+  oracleWei: bigint | null;
+  contractWei: bigint | null;
+  implementation: `0x${string}` | null;
+};
+
+const shorten = (a: string) => `${a.slice(0, 8)}…${a.slice(-4)}`;
+
+const toneClass: Record<"ok" | "warn" | "bad" | "muted", string> = {
+  ok: "text-ok",
+  warn: "text-star",
+  bad: "text-chz-2",
+  muted: "text-muted",
+};
+
+const severityTone: Record<AlertSeverity, "bad" | "warn" | "muted"> = {
+  critical: "bad",
+  warn: "warn",
+  info: "muted",
+};
 
 /**
  * Admin console (slice 12, PRD §9) — the exceptions surface. Owner-gated
  * client-side (every action is owner-gated ON-CHAIN regardless; this UI just
  * refuses to render the guns for the wrong wallet). Routine per-match work
  * stays zero: everything here is corrections, lifecycle or emergencies.
+ *
+ * The health strip mirrors what the oracle-bot DMs the owner on Telegram
+ * (gas floor, solvency, governance drift, last run, heartbeat, alert history)
+ * so the console answers "is the bot fine?" without opening the phone. Chain
+ * verdicts are recomputed from live reads with the bot's own thresholds
+ * (lib/admin/health.ts); the rest comes from clp_oracle_log.
  */
 export function AdminPanel() {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const client = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
@@ -46,9 +94,14 @@ export function AdminPanel() {
   const matchCount = useReadContract({ ...contract, functionName: "matchCount" });
   const league = useReadContract({ ...contract, functionName: "stages", args: [BigInt(STAGE_LEAGUE)] });
   const knockout = useReadContract({ ...contract, functionName: "stages", args: [BigInt(STAGE_KNOCKOUT)] });
+  const leagueFrozen = useReadContract({ ...contract, functionName: "stageFrozen", args: [STAGE_LEAGUE] });
+  const knockoutFrozen = useReadContract({ ...contract, functionName: "stageFrozen", args: [STAGE_KNOCKOUT] });
 
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
-  const [logs, setLogs] = useState<LogRow[] | null>(null);
+  const [logs, setLogs] = useState<OracleLogRow[] | null>(null);
+  const [chainHealth, setChainHealth] = useState<ChainHealth | null>(null);
+  /** Wall clock at the last refresh — set client-side only (SSR safety). */
+  const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -84,6 +137,7 @@ export function AdminPanel() {
         status: Number(m[1]),
         teamA: hexToString(m[2] as `0x${string}`, { size: 3 }),
         teamB: hexToString(m[3] as `0x${string}`, { size: 3 }),
+        stage: Number(m[4]),
         scoreA: Number(r[0]),
         scoreB: Number(r[1]),
         provisional: Boolean(r[6]),
@@ -92,26 +146,58 @@ export function AdminPanel() {
     setMatches(rows);
   }, [client, matchCount.data]);
 
+  /** Oracle gas + contract balance + implementation slot: the bot's chain tripwires. */
+  const loadChainHealth = useCallback(async () => {
+    if (!client) return;
+    const oracleAddr = oracle.data as `0x${string}` | undefined;
+    const [oracleWei, contractWei, slot] = await Promise.all([
+      oracleAddr ? client.getBalance({ address: oracleAddr }).catch(() => null) : Promise.resolve(null),
+      client.getBalance({ address: PREDICTOR_ADDRESS }).catch(() => null),
+      client.getStorageAt({ address: PREDICTOR_ADDRESS, slot: EIP1967_IMPL_SLOT }).catch(() => null),
+    ]);
+    setChainHealth({ oracleWei, contractWei, implementation: implementationFromSlot(slot) });
+  }, [client, oracle.data]);
+
+  /**
+   * A week of this chain's log rows. Filtering on chain_id matters: the
+   * Spicy sentinel writes to the same table and its alerts must not read as
+   * mainnet incidents.
+   */
   const loadLogs = useCallback(async () => {
     if (!SUPABASE_URL || !ANON_KEY) return;
+    const now = Date.now();
+    const since = new Date(now - LOG_LOOKBACK_MS).toISOString();
+    const params = new URLSearchParams({
+      select: "kind,chain_id,match_id,tx_hash,created_at,detail",
+      chain_id: `eq.${chainId}`,
+      created_at: `gte.${since}`,
+      order: "created_at.desc",
+      limit: String(LOG_LIMIT),
+    });
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/clp_oracle_log?order=created_at.desc&limit=12&select=kind,match_id,created_at,detail`,
-        { headers: { apikey: ANON_KEY } },
-      );
-      if (res.ok) setLogs(await res.json());
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/clp_oracle_log?${params}`, {
+        headers: { apikey: ANON_KEY },
+      });
+      if (res.ok) {
+        setLogs((await res.json()) as OracleLogRow[]);
+        setLoadedAt(now);
+      }
     } catch {
       /* dashboard is best-effort */
     }
-  }, []);
+  }, [chainId]);
+
+  const refreshAll = useCallback(() => {
+    void loadMatches();
+    void loadLogs();
+    void loadChainHealth();
+    setLoadedAt(Date.now());
+  }, [loadMatches, loadLogs, loadChainHealth]);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      void loadMatches();
-      void loadLogs();
-    }, 0);
+    const t = setTimeout(refreshAll, 0);
     return () => clearTimeout(t);
-  }, [loadMatches, loadLogs]);
+  }, [refreshAll]);
 
   async function act(label: string, fn: () => Promise<unknown>) {
     setBusy(true);
@@ -124,10 +210,12 @@ export function AdminPanel() {
     }
     setBusy(false);
     setTimeout(() => {
-      void loadMatches();
+      refreshAll();
       void paused.refetch();
       void oracle.refetch();
       void sourceRef.refetch();
+      void leagueFrozen.refetch();
+      void knockoutFrozen.refetch();
     }, 6000);
   }
 
@@ -178,6 +266,39 @@ export function AdminPanel() {
     return rows.slice(0, Math.min(20, rows.length)).map((r) => r.address);
   }
 
+  /* ---------------- derived health (pure helpers, memoised) ---------------- */
+
+  const now = loadedAt ?? 0;
+  const latestRun = useMemo(() => {
+    const row = logs?.find((l) => l.kind === "run");
+    return row && loadedAt ? summarizeRun(row, loadedAt) : null;
+  }, [logs, loadedAt]);
+  const latestHeartbeat = useMemo(() => logs?.find((l) => l.kind === "heartbeat") ?? null, [logs]);
+  const alertGroups = useMemo(() => (logs && loadedAt ? groupAlerts(logs, loadedAt) : []), [logs, loadedAt]);
+  const gas = chainHealth?.oracleWei != null ? gasStatus(chainHealth.oracleWei) : null;
+  const solvency =
+    chainHealth?.contractWei != null && league.data && knockout.data
+      ? solvencyStatus(chainHealth.contractWei, [
+          { pool: league.data[4], feeEscrow: league.data[5], frozen: Boolean(leagueFrozen.data) },
+          { pool: knockout.data[4], feeEscrow: knockout.data[5], frozen: Boolean(knockoutFrozen.data) },
+        ])
+      : null;
+  const governance = governanceCheck(chainId, {
+    oracle: oracle.data ?? null,
+    implementation: chainHealth?.implementation ?? null,
+  });
+  const play = (stage: number, frozen: boolean) => {
+    const rows = (matches ?? []).filter((m) => m.stage === stage);
+    return {
+      frozen,
+      total: rows.length,
+      completed: rows.filter((m) => m.status === 1).length,
+      voided: rows.filter((m) => m.status === 2).length,
+    };
+  };
+
+  /* ---------------- gates ---------------- */
+
   if (!PREDICTOR_ADDRESS) return <p className="font-mono text-sm text-muted">Contract not configured.</p>;
   if (!isConnected) return <p className="font-mono text-sm text-muted">Connect the owner wallet.</p>;
   if (owner.data && address && owner.data.toLowerCase() !== address.toLowerCase()) {
@@ -189,72 +310,196 @@ export function AdminPanel() {
     );
   }
 
-  const stageCard = (label: string, stage: number, data?: readonly [number, number, number, number, bigint, bigint]) => (
+  /* ---------------- render helpers ---------------- */
+
+  const tile = (label: string, value: string, sub: string | null, tone: keyof typeof toneClass) => (
     <div className="rounded-2xl border border-line bg-night-2/60 p-4">
-      <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{label}</p>
-      {data && (
-        <p className="mt-1 font-mono text-xs text-muted">
-          {["SELLING", "LOCKED", "VOID"][data[2]]} · {data[3]} entrants ·{" "}
-          {Number(data[4] / 10n ** 18n).toLocaleString("en-US")} CHZ pool
-        </p>
-      )}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => act(`lockStage(${stage})`, () => writeContractAsync({ ...contract, functionName: "lockStage", args: [stage] }))}
-          className="rounded-lg border border-line px-3 py-1.5 font-mono text-xs disabled:opacity-40"
-        >
-          lockStage
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() =>
-            act(`freezeStage(${stage})`, async () => {
-              const ranked = await computeRanked(stage);
-              if (ranked.length < 20) throw new Error(`only ${ranked.length} ranked wallets — floor is 20`);
-              return writeContractAsync({ ...contract, functionName: "freezeStage", args: [stage, ranked] });
-            })
-          }
-          className="rounded-lg border border-star/40 px-3 py-1.5 font-mono text-xs text-star disabled:opacity-40"
-        >
-          freezeStage (auto-ranked)
-        </button>
-      </div>
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted">{label}</p>
+      <p className={`mt-1 font-mono text-sm font-bold ${toneClass[tone]}`}>{value}</p>
+      {sub && <p className="mt-0.5 font-mono text-[11px] text-muted">{sub}</p>}
     </div>
   );
 
+  const gasTile = () => {
+    if (!gas) return tile("Oracle gas", "…", "reading balance", "muted");
+    return tile(
+      "Oracle gas",
+      `${gas.low ? "🪫" : "🔋"} ${gas.chz.toLocaleString("en-US", { maximumFractionDigits: 3 })} CHZ`,
+      gas.low ? `below the ${gas.floorChz} CHZ floor — top up from the owner key` : `≈ ${gas.pushesLeft} pushes · floor ${gas.floorChz} CHZ`,
+      gas.low ? "bad" : "ok",
+    );
+  };
+
+  const solvencyTile = () => {
+    if (!solvency) return tile("Contract solvency", "…", "reading balance", "muted");
+    return tile(
+      "Contract solvency",
+      solvency.ok ? "✓ covered" : "🚨 BREACH",
+      `${formatChz(solvency.balanceWei)} held · ${formatChz(solvency.owedWei)} owed${
+        solvency.ok ? ` · +${formatChz(solvency.surplusWei)}` : " — pause() and investigate"
+      }`,
+      solvency.ok ? "ok" : "bad",
+    );
+  };
+
+  const runTile = () => {
+    if (logs === null) return tile("Last run", "unavailable", "Supabase env missing?", "muted");
+    if (!latestRun) return tile("Last run", "none in 7 days", "oracle-bot has not logged a run", "bad");
+    const counts = `pushed ${latestRun.pushed} · corrected ${latestRun.corrected} · skipped ${latestRun.skipped} · errors ${latestRun.errors.length}`;
+    const who = latestRun.runner ? ` · ${latestRun.runner}${latestRun.tick ? ` #${latestRun.tick}` : ""}` : "";
+    return tile(
+      "Last run",
+      `${latestRun.stale ? "⏰ " : ""}${formatAge(latestRun.ageMs)}${who}`,
+      `${formatUtc(latestRun.at)} UTC · ${latestRun.source} · ${counts}${
+        latestRun.alerts.length ? ` · alerts: ${latestRun.alerts.join(", ")}` : ""
+      }`,
+      latestRun.troubled ? "bad" : latestRun.stale ? "warn" : "ok",
+    );
+  };
+
+  const heartbeatTile = () => {
+    if (logs === null) return tile("Heartbeat", "unavailable", null, "muted");
+    if (!latestHeartbeat) return tile("Heartbeat", "none in 7 days", "daily 07:07 UTC DM is missing", "bad");
+    const ageMs = now - Date.parse(latestHeartbeat.created_at);
+    const stale = ageMs > HEARTBEAT_STALE_AFTER_MS;
+    const tracked = (latestHeartbeat.detail as { trackedMatches?: number } | null)?.trackedMatches;
+    return tile(
+      "Heartbeat",
+      `${stale ? "⏰ " : "✅ "}${formatAge(ageMs)}`,
+      `${formatUtc(latestHeartbeat.created_at)} UTC${tracked !== undefined ? ` · ${tracked} matches tracked` : ""}`,
+      stale ? "warn" : "ok",
+    );
+  };
+
+  const mark = (ok: boolean | null) => (ok === null ? "" : ok ? " ✓" : " ⚠ DRIFT");
+
+  const stageCard = (
+    label: string,
+    stage: number,
+    data: readonly [number, number, number, number, bigint, bigint] | undefined,
+    frozen: boolean,
+  ) => {
+    const p = play(stage, frozen);
+    const needsFreeze = stageNeedsFreeze(p);
+    return (
+      <div className={`rounded-2xl border p-4 ${needsFreeze ? "border-star/40 bg-star/5" : "border-line bg-night-2/60"}`}>
+        <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{label}</p>
+        {data && (
+          <p className="mt-1 font-mono text-xs text-muted">
+            {["SELLING", "LOCKED", "VOID"][data[2]]} · {data[3]} entrants ·{" "}
+            {Number(data[4] / 10n ** 18n).toLocaleString("en-US")} CHZ pool ·{" "}
+            {Number(data[5] / 10n ** 18n).toLocaleString("en-US")} CHZ fee escrow
+          </p>
+        )}
+        <p className="mt-1 font-mono text-xs text-muted">
+          {p.total === 0
+            ? "no matches on-chain"
+            : `${p.completed}/${p.total - p.voided} played${p.voided ? ` · ${p.voided} voided` : ""}`}{" "}
+          · {frozen ? "🧊 frozen" : "not frozen"}
+        </p>
+        {needsFreeze && (
+          <p className="mt-1 font-mono text-xs text-star">
+            Fully played — freeze so winners can claim (the bot is nagging about this too).
+          </p>
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act(`lockStage(${stage})`, () => writeContractAsync({ ...contract, functionName: "lockStage", args: [stage] }))}
+            className="rounded-lg border border-line px-3 py-1.5 font-mono text-xs disabled:opacity-40"
+          >
+            lockStage
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              act(`freezeStage(${stage})`, async () => {
+                const ranked = await computeRanked(stage);
+                if (ranked.length < 20) throw new Error(`only ${ranked.length} ranked wallets — floor is 20`);
+                return writeContractAsync({ ...contract, functionName: "freezeStage", args: [stage, ranked] });
+              })
+            }
+            className="rounded-lg border border-star/40 px-3 py-1.5 font-mono text-xs text-star disabled:opacity-40"
+          >
+            freezeStage (auto-ranked)
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const expected = EXPECTED_GOVERNANCE[chainId];
+
   return (
     <div className="flex w-full max-w-3xl flex-col gap-5">
-      {/* health */}
+      {/* health tiles — the Telegram wires, on a page */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {gasTile()}
+        {solvencyTile()}
+        {runTile()}
+        {heartbeatTile()}
+      </div>
+
+      {/* governance */}
       <div className="rounded-2xl border border-line bg-night-2/60 p-4">
-        <div className="flex flex-wrap items-center gap-3 font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs">
           <span className={paused.data ? "text-chz-2" : "text-ok"}>
             {paused.data ? "⏸ PAUSED" : "● running"}
           </span>
-          <span className="text-muted">oracle {String(oracle.data ?? "…").slice(0, 8)}…</span>
+          <span className={governance.oracleOk === false ? "text-chz-2" : "text-muted"}>
+            oracle {oracle.data ? shorten(oracle.data) : "…"}
+            {mark(governance.oracleOk)}
+          </span>
+          <span className={governance.implementationOk === false ? "text-chz-2" : "text-muted"}>
+            impl {chainHealth?.implementation ? shorten(chainHealth.implementation) : "…"}
+            {mark(governance.implementationOk)}
+          </span>
           <span className="text-muted">source: {sourceRef.data || "unset"}</span>
+          <button
+            type="button"
+            onClick={refreshAll}
+            className="ml-auto rounded border border-line px-2 py-0.5 text-[11px] text-muted"
+          >
+            refresh
+          </button>
         </div>
-        <div className="mt-3 max-h-44 overflow-y-auto font-mono text-[11px] text-muted">
-          {logs === null ? (
-            <p>oracle log unavailable (Supabase env missing?)</p>
-          ) : (
-            logs.map((l, i) => (
-              <p key={i}>
-                {l.created_at.slice(0, 19).replace("T", " ")} · {l.kind}
-                {l.match_id ? ` · match ${l.match_id}` : ""}{" "}
-                {l.kind === "alert" ? `· ${JSON.stringify(l.detail).slice(0, 60)}` : ""}
-              </p>
-            ))
-          )}
-        </div>
+        {(governance.oracleOk === false || governance.implementationOk === false) && (
+          <p className="mt-2 font-mono text-[11px] text-chz-2">
+            On-chain control differs from the expected values ({expected ? `impl ${shorten(expected.implementation)}` : "none"}
+            ). If this was your upgrade or rotation, update EXPECTED_GOVERNANCE in lib/admin/health.ts and
+            EXPECTED_* in oracle-bot.yml. Otherwise treat the owner key as compromised: pause and investigate.
+          </p>
+        )}
+      </div>
+
+      {/* alerts, last 24h, grouped like the bot dedupes */}
+      <div className="rounded-2xl border border-line bg-night-2/60 p-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted">Alerts · last 24h</p>
+        {logs === null ? (
+          <p className="mt-2 font-mono text-[11px] text-muted">oracle log unavailable (Supabase env missing?)</p>
+        ) : alertGroups.length === 0 ? (
+          <p className="mt-2 font-mono text-[11px] text-ok">✓ nothing fired — the bot has been quiet</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1 font-mono text-[11px]">
+            {alertGroups.map((g) => (
+              <li key={g.type} className={toneClass[severityTone[g.severity]]}>
+                <span className="font-bold">{g.type}</span> ×{g.count} · {formatAge(now - Date.parse(g.latestAt))}
+                {g.matchIds.length > 0 && (
+                  <span className="text-muted"> · matches {g.matchIds.slice(0, 12).join(", ")}{g.matchIds.length > 12 ? "…" : ""}</span>
+                )}
+                {g.latestText && <span className="text-muted"> · {g.latestText.slice(0, 90)}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* stages */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {stageCard("Stage 1 · League", STAGE_LEAGUE, league.data)}
-        {stageCard("Stage 2 · Knockout", STAGE_KNOCKOUT, knockout.data)}
+        {stageCard("Stage 1 · League", STAGE_LEAGUE, league.data, Boolean(leagueFrozen.data))}
+        {stageCard("Stage 2 · Knockout", STAGE_KNOCKOUT, knockout.data, Boolean(knockoutFrozen.data))}
       </div>
 
       {/* matches + corrections */}
@@ -399,6 +644,25 @@ export function AdminPanel() {
           same idempotency rules, no owner-key ceremony.
         </p>
       </div>
+
+      {/* raw tail of the oracle log, for when the tiles are not enough */}
+      {logs && logs.length > 0 && (
+        <details className="rounded-2xl border border-line bg-night-2/60 p-4">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted">
+            Oracle log · latest {Math.min(logs.length, 40)} rows
+          </summary>
+          <div className="mt-2 max-h-64 overflow-y-auto font-mono text-[11px] text-muted">
+            {logs.slice(0, 40).map((l, i) => (
+              <p key={i}>
+                {formatUtc(l.created_at)} · {l.kind}
+                {l.match_id ? ` · match ${l.match_id}` : ""}
+                {l.kind === "alert" ? ` · ${JSON.stringify(l.detail).slice(0, 80)}` : ""}
+                {l.kind === "run" ? ` · ${JSON.stringify(l.detail).slice(0, 80)}` : ""}
+              </p>
+            ))}
+          </div>
+        </details>
+      )}
 
       {message && <p className="font-mono text-xs text-muted">{message}</p>}
     </div>
