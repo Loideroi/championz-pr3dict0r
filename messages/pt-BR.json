@@ -182,6 +182,7 @@
     "noEntrants": "Ainda sem participantes — seja o primeiro.",
     "unavailable": "Não foi possível ler a classificação agora — tente novamente em instantes.",
     "koPass": "Passe KO",
+    "you": "Você",
     "footnote": "Os pontos são calculados ao vivo do estado da chain — não existem transações de liquidação. Cada fase paga sua própria premiação ao seu próprio top 20; a coluna de prêmio mostra o que cada posição levaria se a tabela congelasse agora. A Visão da temporada não tem premiação — ela coroa o ₵h@mpi0n supremo.",
     "pool": {
       "league": "Premiação da liga",

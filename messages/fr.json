@@ -182,6 +182,7 @@
     "noEntrants": "Encore aucun participant — soyez le premier.",
     "unavailable": "Le classement n’a pas pu être lu pour le moment — réessayez dans un instant.",
     "koPass": "Pass KO",
+    "you": "Vous",
     "footnote": "Les points se calculent en direct depuis l’état de la chaîne — aucune transaction de règlement n’existe. Chaque phase paie sa propre cagnotte à son propre top 20 ; la colonne gain indique ce que chaque rang toucherait si le classement était figé maintenant. La Vue saison n’a pas de cagnotte — elle couronne l’Ultime ₵h@mpi0n.",
     "pool": {
       "league": "Cagnotte ligue",

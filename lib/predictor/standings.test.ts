@@ -3,6 +3,7 @@ import {
   compareRows,
   exactFor,
   flagEmoji,
+  isSelfRow,
   pointsFor,
   rowsForView,
   type StandingRow,
@@ -96,5 +97,22 @@ describe("flagEmoji", () => {
     expect(flagEmoji("nl")).toBe("🇳🇱");
     expect(flagEmoji("XYZ")).toBe("");
     expect(flagEmoji(undefined)).toBe("");
+  });
+});
+
+describe("isSelfRow", () => {
+  const lower = "0x742c6957f3a1b2c4d5e6f708192a3b4c5d6e7f80";
+  const checksummed = "0x742C6957f3A1B2c4d5E6F708192a3B4c5d6e7F80";
+
+  it("matches the board's lowercase address against a checksummed wallet", () => {
+    expect(isSelfRow(lower, checksummed)).toBe(true);
+    expect(isSelfRow(lower, lower)).toBe(true);
+    expect(isSelfRow(checksummed, lower)).toBe(true);
+  });
+
+  it("is false for another wallet, and whenever none is connected", () => {
+    expect(isSelfRow(lower, "0x0000000000000000000000000000000000000001")).toBe(false);
+    expect(isSelfRow(lower, undefined)).toBe(false);
+    expect(isSelfRow(lower, "")).toBe(false);
   });
 });

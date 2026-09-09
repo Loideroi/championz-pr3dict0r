@@ -182,6 +182,7 @@
     "noEntrants": "Aún no hay participantes — sé el primero.",
     "unavailable": "No se pudo leer la clasificación ahora mismo — inténtalo de nuevo en un momento.",
     "koPass": "Pase KO",
+    "you": "Tú",
     "footnote": "Los puntos se calculan en vivo desde el estado de la cadena — no existen transacciones de liquidación. Cada fase paga su propio bote a su propio top 20; la columna de premio es lo que cada puesto se llevaría si la tabla se congelara ahora. La Vista de temporada no tiene bote — corona al ₵h@mpi0n definitivo.",
     "pool": {
       "league": "Bote de liga",
