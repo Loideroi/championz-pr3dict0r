@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { fromRowJson, parseStandingsPayload, toRowJson } from "./standingsPayload";
-import { rowsForView, type StandingRow } from "./standings";
+import {
+  fromRowJson,
+  fromStageJson,
+  parseStandingsPayload,
+  toRowJson,
+  toStageJson,
+  type StageInfo,
+} from "./standingsPayload";
+import { rowsForView, stageFor, type StandingRow } from "./standings";
 
 const row = (over: Partial<StandingRow> = {}): StandingRow => ({
   address: "0x1111111111111111111111111111111111111111",
@@ -62,6 +69,64 @@ describe("standings wire format", () => {
   it("degrades to an empty board for a body that is not a payload", () => {
     expect(parseStandingsPayload(null).rows).toEqual([]);
     expect(parseStandingsPayload({ error: "502" }).hasProvisional).toBe(false);
+  });
+
+  describe("per-stage pot", () => {
+    const stage = (over: Partial<StageInfo> = {}): StageInfo => ({
+      status: 0,
+      entryCount: 51,
+      pool: 25_500n * 10n ** 18n,
+      frozen: false,
+      frozenAt: 0n,
+      poolAtFreeze: null,
+      ...over,
+    });
+
+    it("round-trips a pool larger than MAX_SAFE_INTEGER and a freeze snapshot", () => {
+      const original = stage({
+        status: 1,
+        frozen: true,
+        frozenAt: 1_780_000_000n,
+        poolAtFreeze: 25_500n * 10n ** 18n + 7n,
+        pool: 12_345n * 10n ** 18n,
+      });
+      const back = fromStageJson(JSON.parse(JSON.stringify(toStageJson(original))));
+      expect(back).toEqual(original);
+    });
+
+    it.each([
+      ["an unknown status", { ...toStageJson(stage()), status: 3 }],
+      ["a negative entrant count", { ...toStageJson(stage()), entryCount: -1 }],
+      ["a fractional entrant count", { ...toStageJson(stage()), entryCount: 1.5 }],
+      ["a float pool", { ...toStageJson(stage()), pool: "1.5" }],
+      ["a non-boolean frozen flag", { ...toStageJson(stage()), frozen: "yes" }],
+      ["a bad freeze snapshot", { ...toStageJson(stage()), poolAtFreeze: "abc" }],
+      ["a non-object", "0x1234"],
+    ])("rejects %s", (_label, bad) => {
+      expect(fromStageJson(bad)).toBeNull();
+    });
+
+    it("parses both stages and leaves a malformed one null without touching the rows", () => {
+      const parsed = parseStandingsPayload({
+        rows: [toRowJson(row())],
+        stages: { league: toStageJson(stage()), knockout: { status: 9 } },
+      });
+      expect(parsed.rows).toHaveLength(1);
+      expect(parsed.stages.league?.entryCount).toBe(51);
+      expect(parsed.stages.knockout).toBeNull();
+    });
+
+    it("degrades to no pots for a body from an API build that predates them", () => {
+      const parsed = parseStandingsPayload({ rows: [toRowJson(row())], hasProvisional: false });
+      expect(parsed.stages).toEqual({ league: null, knockout: null });
+    });
+
+    it("maps a view to its pot — and Season View to none", () => {
+      const stages = { league: stage({ entryCount: 40 }), knockout: stage({ entryCount: 51 }) };
+      expect(stageFor(stages, "league")?.entryCount).toBe(40);
+      expect(stageFor(stages, "knockout")?.entryCount).toBe(51);
+      expect(stageFor(stages, "season")).toBeNull();
+    });
   });
 
   it("survives the §5.3 sort after a round trip (the ordering the board renders)", () => {

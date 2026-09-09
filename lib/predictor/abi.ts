@@ -160,6 +160,14 @@ export const PREDICTOR_ABI = [
     inputs: [{ name: "", type: "uint8" }],
     outputs: [{ type: "bool" }],
   },
+  {
+    // freeze timestamp — claim() reverts until CLAIM_CHALLENGE_WINDOW (24h) after it
+    type: "function",
+    name: "stageFrozenAt",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint8" }],
+    outputs: [{ type: "uint40" }],
+  },
   // ---- admin console (slice 12) ----
   { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   { type: "function", name: "oracle", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },

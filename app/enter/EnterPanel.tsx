@@ -13,7 +13,7 @@ import {
   STAGE_KNOCKOUT,
   STAGE_LEAGUE,
 } from "@/lib/predictor/abi";
-import { ENTRY, PREDICTION_LOCKOUT_SECONDS, STAGE_FLOOR, formatChz } from "@/lib/economics";
+import { ENTRY, PREDICTION_LOCKOUT_SECONDS, STAGE_FLOOR, formatChz, formatChzWei } from "@/lib/economics";
 import { teamCrest, teamName } from "@/lib/fixtures";
 import { TeamCrest } from "@/components/predict/TeamCrest";
 
@@ -153,6 +153,7 @@ export function EnterPanel() {
     ts !== undefined
       ? new Date(Number(ts) * 1000).toLocaleString("en-GB", { timeZone: "UTC", hour12: false }) + " UTC"
       : "…";
+  const chz = (wei?: bigint) => (wei === undefined ? "…" : formatChzWei(wei));
 
   return (
     <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
@@ -165,12 +166,17 @@ export function EnterPanel() {
         <ul className="flex flex-col gap-1 font-mono text-xs text-muted">
           <li>{t("fullSeason.split")}</li>
           <li>{t("fullSeason.bothStages")}</li>
+          {/* two pots, shown as two numbers — nothing crosses between them */}
+          <li className="text-chz">
+            {t("fullSeason.poolsNow", { league: chz(league.data?.[4]), knockout: chz(knockout.data?.[4]) })}
+          </li>
           <li>{t("fullSeason.salesClose", { date: fmtDate(league.data?.[1]) })}</li>
           <li>
             {t(floorSecured ? "fullSeason.entrantsNoFloor" : "fullSeason.entrants", {
               count: league.data?.[3]?.toString() ?? "…",
             })}
           </li>
+          <li className="text-muted-2">{t("nonRefundable")}</li>
         </ul>
         {enteredLeague.data ? (
           <p className="font-mono text-sm text-ok">{t("fullSeason.holdsPass")}</p>
@@ -199,12 +205,14 @@ export function EnterPanel() {
         <ul className="flex flex-col gap-1 font-mono text-xs text-muted">
           <li>{t("knockout.split")}</li>
           <li>{t("knockout.stage2Only")}</li>
+          <li className="text-chz">{t("knockout.poolNow", { amount: chz(knockout.data?.[4]) })}</li>
           <li>{t("knockout.onSale", { from: fmtDate(knockout.data?.[0]), to: fmtDate(knockout.data?.[1]) })}</li>
           <li>
             {t(floorSecured ? "knockout.entrantsNoFloor" : "knockout.entrants", {
               count: knockout.data?.[3]?.toString() ?? "…",
             })}
           </li>
+          <li className="text-muted-2">{t("nonRefundable")}</li>
         </ul>
 
         {needsDisclosure && !enteredKnockout.data && (

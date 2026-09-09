@@ -29,6 +29,46 @@ export interface StandingsRowJson {
   enteredAt: string;
 }
 
+/** Contract StageStatus: SELLING → LOCKED (quorum met) | VOID (under the floor). */
+export type StageStatus = 0 | 1 | 2;
+export const STAGE_STATUS = { SELLING: 0, LOCKED: 1, VOID: 2 } as const;
+
+/** Per-stage pot facts the board needs to price each rank (wire form). */
+export interface StageJson {
+  status: StageStatus;
+  entryCount: number;
+  /** wei, live — decreases as winners claim once frozen */
+  pool: string;
+  frozen: boolean;
+  /** unix seconds of freezeStage, "0" until frozen */
+  frozenAt: string;
+  /**
+   * wei at the moment of the freeze (from the StageFrozen log) — the amount
+   * the split was computed on. null = frozen but the log could not be read;
+   * the UI then shows no amounts rather than wrong ones.
+   */
+  poolAtFreeze: string | null;
+}
+
+export interface StageInfo {
+  status: StageStatus;
+  entryCount: number;
+  pool: bigint;
+  frozen: boolean;
+  frozenAt: bigint;
+  poolAtFreeze: bigint | null;
+}
+
+export interface StagesJson {
+  league: StageJson;
+  knockout: StageJson;
+}
+
+export interface StagesInfo {
+  league: StageInfo | null;
+  knockout: StageInfo | null;
+}
+
 export interface StandingsPayload {
   chainId: number;
   matchCount: number;
@@ -37,12 +77,45 @@ export interface StandingsPayload {
   /** ISO-8601, server clock — never rendered unpinned (SSR hydration rule). */
   updatedAt: string;
   rows: StandingsRowJson[];
+  /** Absent from pre-pot API builds; the parser degrades to nulls. */
+  stages?: StagesJson;
 }
 
 const isAddress = (v: unknown): v is `0x${string}` =>
   typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
 
 const isUint = (v: unknown): v is string => typeof v === "string" && /^\d+$/.test(v);
+
+const isStageStatus = (v: unknown): v is StageStatus => v === 0 || v === 1 || v === 2;
+
+export function toStageJson(info: StageInfo): StageJson {
+  return {
+    status: info.status,
+    entryCount: info.entryCount,
+    pool: info.pool.toString(),
+    frozen: info.frozen,
+    frozenAt: info.frozenAt.toString(),
+    poolAtFreeze: info.poolAtFreeze === null ? null : info.poolAtFreeze.toString(),
+  };
+}
+
+/** Revive one stage; null for anything malformed (the pot line simply stays hidden). */
+export function fromStageJson(raw: unknown): StageInfo | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const s = raw as Record<string, unknown>;
+  if (!isStageStatus(s.status)) return null;
+  if (typeof s.entryCount !== "number" || !Number.isInteger(s.entryCount) || s.entryCount < 0) return null;
+  if (!isUint(s.pool) || !isUint(s.frozenAt) || typeof s.frozen !== "boolean") return null;
+  if (s.poolAtFreeze !== null && !isUint(s.poolAtFreeze)) return null;
+  return {
+    status: s.status,
+    entryCount: s.entryCount,
+    pool: BigInt(s.pool),
+    frozen: s.frozen,
+    frozenAt: BigInt(s.frozenAt),
+    poolAtFreeze: s.poolAtFreeze === null ? null : BigInt(s.poolAtFreeze as string),
+  };
+}
 
 export function toRowJson(row: StandingRow): StandingsRowJson {
   return {
@@ -89,7 +162,10 @@ export interface ParsedStandings {
   hasProvisional: boolean;
   matchCount: number;
   updatedAt: string | null;
+  stages: StagesInfo;
 }
+
+export const NO_STAGES: StagesInfo = { league: null, knockout: null };
 
 /** Parse a whole /api/standings body; unusable bodies yield an empty board. */
 export function parseStandingsPayload(raw: unknown): ParsedStandings {
@@ -97,10 +173,18 @@ export function parseStandingsPayload(raw: unknown): ParsedStandings {
   const rows = Array.isArray(body.rows)
     ? body.rows.map(fromRowJson).filter((r): r is StandingRow => r !== null)
     : [];
+  const stagesRaw = (typeof body.stages === "object" && body.stages !== null ? body.stages : {}) as Record<
+    string,
+    unknown
+  >;
   return {
     rows,
     hasProvisional: body.hasProvisional === true,
     matchCount: typeof body.matchCount === "number" ? body.matchCount : 0,
     updatedAt: typeof body.updatedAt === "string" ? body.updatedAt : null,
+    stages: {
+      league: fromStageJson(stagesRaw.league),
+      knockout: fromStageJson(stagesRaw.knockout),
+    },
   };
 }
