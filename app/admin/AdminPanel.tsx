@@ -7,7 +7,7 @@ import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "
 import { compareRows, type StandingRow } from "@/lib/predictor/standings";
 import { MULTICALL_BATCH } from "@/lib/predictor/chains";
 import { packPrediction } from "@/lib/predictor/packed";
-import { stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
+import { freezeBlocker, freezeCallable, lockHint, stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
 import { matchPipelines } from "@/lib/admin/pipeline";
 import { HealthStrip } from "./HealthStrip";
 import { PipelineCell } from "./PipelineCell";
@@ -224,6 +224,13 @@ export function AdminPanel() {
   const stageCard = (label: string, stage: number, data: StageTuple | undefined, frozen: boolean) => {
     const p = play(stage, frozen);
     const needsFreeze = stageNeedsFreeze(p);
+    // Wall clock from the last refresh (client-side only) — the same instant
+    // the rest of the console reasons about, never Date.now() in render.
+    const nowSec = log.loadedAt ? Math.floor(log.loadedAt / 1000) : 0;
+    const lifecycle = data ? { closeAt: data[1], status: data[2], entryCount: data[3], feeEscrow: data[5] } : null;
+    const hint = lifecycle && nowSec ? lockHint(lifecycle, nowSec) : null;
+    const canFreeze = data ? freezeCallable(data[2], p) : false;
+    const freezeWhy = freezeBlocker(data?.[2], frozen);
     return (
       <div className={`rounded-2xl border p-4 ${needsFreeze ? "border-star/40 bg-star/5" : "border-line bg-night-2/60"}`}>
         <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{label}</p>
@@ -240,6 +247,7 @@ export function AdminPanel() {
             : `${p.completed}/${p.total - p.voided} played${p.voided ? ` · ${p.voided} voided` : ""}`}{" "}
           · {frozen ? "🧊 frozen" : "not frozen"}
         </p>
+        {hint && <p className="mt-1 font-mono text-xs text-star">{hint}</p>}
         {needsFreeze && (
           <p className="mt-1 font-mono text-xs text-star">
             Fully played — freeze so winners can claim (the bot is nagging about this too).
@@ -256,7 +264,8 @@ export function AdminPanel() {
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !canFreeze}
+            title={canFreeze ? "compute the top-20 from chain state and freeze the payout" : freezeWhy}
             onClick={() =>
               act(`freezeStage(${stage})`, async () => {
                 const ranked = await computeRanked(stage);

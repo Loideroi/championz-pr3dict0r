@@ -4,13 +4,18 @@ import {
   alertType,
   formatAge,
   formatUtc,
+  freezeBlocker,
+  freezeCallable,
   gasStatus,
   governanceCheck,
   groupAlerts,
   implementationFromSlot,
+  lockCallable,
+  lockHint,
   ORACLE_GAS_FLOOR_CHZ,
   RUN_STALE_AFTER_MS,
   solvencyStatus,
+  STAGE_STATUS,
   stageNeedsFreeze,
   summarizeRun,
   type OracleLogRow,
@@ -182,5 +187,46 @@ describe("formatting", () => {
   it("pins timestamps to UTC", () => {
     expect(formatUtc("2026-09-09T20:14:00Z")).toBe("09 Sep 20:14");
     expect(formatUtc("garbage")).toBe("garbage");
+  });
+});
+
+describe("stage lifecycle — mirrors lockStage / freezeStage guards", () => {
+  const CHZ = 10n ** 18n;
+  const closeAt = Math.floor(Date.parse("2026-09-08T16:45:00Z") / 1000);
+  const selling = { closeAt, status: STAGE_STATUS.SELLING, entryCount: 90, feeEscrow: 4_500n * CHZ };
+
+  it("lockStage is callable only once the window closed and the stage still sells", () => {
+    expect(lockCallable(selling, closeAt - 1)).toBe(false);
+    expect(lockCallable(selling, closeAt)).toBe(true);
+    expect(lockCallable({ ...selling, status: STAGE_STATUS.LOCKED }, closeAt + 1)).toBe(false);
+    expect(lockCallable({ ...selling, status: STAGE_STATUS.VOID }, closeAt + 1)).toBe(false);
+  });
+
+  it("spells out the fee forward above the floor", () => {
+    expect(lockHint(selling, closeAt + 60)).toBe(
+      "Window closed, 90 entrants: lockStage forwards 4,500 CHZ fees to the fee recipient",
+    );
+    expect(lockHint(selling, closeAt - 60)).toBeNull();
+  });
+
+  it("warns that the same call voids the stage below the floor", () => {
+    const hint = lockHint({ ...selling, entryCount: 19, feeEscrow: 950n * CHZ }, closeAt + 60);
+    expect(hint).toContain("19 entrants");
+    expect(hint).toContain("VOIDS");
+  });
+
+  it("freezeStage needs LOCKED plus every playable match completed", () => {
+    const played = { frozen: false, total: 144, completed: 144, voided: 0 };
+    expect(freezeCallable(STAGE_STATUS.LOCKED, played)).toBe(true);
+    expect(freezeCallable(STAGE_STATUS.SELLING, played)).toBe(false);
+    expect(freezeCallable(STAGE_STATUS.LOCKED, { ...played, completed: 143 })).toBe(false);
+    expect(freezeCallable(STAGE_STATUS.LOCKED, { ...played, frozen: true })).toBe(false);
+  });
+
+  it("explains why freeze is greyed out", () => {
+    expect(freezeBlocker(undefined, false)).toBe("reading stage");
+    expect(freezeBlocker(STAGE_STATUS.SELLING, false)).toContain("LOCKED first");
+    expect(freezeBlocker(STAGE_STATUS.LOCKED, true)).toBe("already frozen");
+    expect(freezeBlocker(STAGE_STATUS.LOCKED, false)).toContain("COMPLETED");
   });
 });

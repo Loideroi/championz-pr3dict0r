@@ -120,6 +120,65 @@ export function stageNeedsFreeze(s: StagePlay): boolean {
 }
 
 /* ------------------------------------------------------------------ */
+/* Stage lifecycle (mirrors lockStage / freezeStage guards)            */
+/* ------------------------------------------------------------------ */
+
+/** StageStatus enum in ChampionzPredictor.sol. */
+export const STAGE_STATUS = { SELLING: 0, LOCKED: 1, VOID: 2 } as const;
+
+/** STAGE_FLOOR in the contract (ADR-0002) — lib/economics.ts keeps the same number. */
+export const STAGE_FLOOR = 20;
+
+export type StageLifecycle = {
+  closeAt: number;
+  status: number;
+  entryCount: number;
+  feeEscrow: bigint;
+};
+
+/**
+ * True exactly when lockStage(stage) would not revert: the window has closed
+ * and the stage is still SELLING. What it then does depends on the floor —
+ * see {@link lockHint}.
+ */
+export function lockCallable(s: StageLifecycle, nowSec: number): boolean {
+  return s.status === STAGE_STATUS.SELLING && nowSec >= s.closeAt;
+}
+
+/**
+ * The one line the card shows while lockStage is callable. Above the floor
+ * it forwards the escrowed fees to the fee recipient; below it, it VOIDS the
+ * stage and opens D2 refunds — the same call, opposite outcomes, so say so.
+ */
+export function lockHint(s: StageLifecycle, nowSec: number): string | null {
+  if (!lockCallable(s, nowSec)) return null;
+  const entrants = `${s.entryCount.toLocaleString("en-US")} entrants`;
+  if (s.entryCount < STAGE_FLOOR) {
+    return `Window closed, ${entrants}: below the ${STAGE_FLOOR} floor — lockStage VOIDS the stage and opens refunds (D2)`;
+  }
+  return `Window closed, ${entrants}: lockStage forwards ${formatChz(s.feeEscrow)} fees to the fee recipient`;
+}
+
+/**
+ * True when freezeStage(stage) has a chance of succeeding: LOCKED, not yet
+ * frozen, every playable match COMPLETED. The contract additionally requires
+ * each result to be past its 24h provisional window; the console cannot see
+ * that cheaply, so a freeze attempted within a day of the last whistle can
+ * still revert.
+ */
+export function freezeCallable(status: number, play: StagePlay): boolean {
+  return status === STAGE_STATUS.LOCKED && stageNeedsFreeze(play);
+}
+
+/** Why the freeze button is greyed out — the tooltip text. */
+export function freezeBlocker(status: number | undefined, frozen: boolean): string {
+  if (status === undefined) return "reading stage";
+  if (status !== STAGE_STATUS.LOCKED) return "stage must be LOCKED first (lockStage)";
+  if (frozen) return "already frozen";
+  return "every match of the stage must be COMPLETED (and past its 24h provisional window)";
+}
+
+/* ------------------------------------------------------------------ */
 /* Oracle-log read model                                               */
 /* ------------------------------------------------------------------ */
 
