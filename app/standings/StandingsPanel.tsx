@@ -8,10 +8,27 @@ import {
   flagEmoji,
   pointsFor,
   rowsForView,
+  stageFor,
   type StandingRow,
   type StageView,
 } from "@/lib/predictor/standings";
-import { parseStandingsPayload } from "@/lib/predictor/standingsPayload";
+import {
+  NO_STAGES,
+  STAGE_STATUS,
+  parseStandingsPayload,
+  type StageInfo,
+  type StagesInfo,
+} from "@/lib/predictor/standingsPayload";
+import { formatCountdown } from "@/lib/predictor/slate";
+import {
+  CLAIM_CHALLENGE_SECONDS,
+  STAGE_FLOOR,
+  formatChzWei,
+  projectedPayouts,
+} from "@/lib/economics";
+import { useNow } from "@/hooks/useNow";
+import { InfoPopover } from "@/components/ui/InfoPopover";
+import { PoolStrip } from "./PoolStrip";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 
@@ -32,7 +49,7 @@ async function pollUntil(check: () => Promise<boolean>): Promise<boolean> {
   return false;
 }
 
-function ClaimBanner() {
+function ClaimBanner({ now }: { now: number | null }) {
   const t = useTranslations("standings");
   const { address } = useAccount();
   const client = usePublicClient();
@@ -51,6 +68,20 @@ function ClaimBanner() {
     functionName: "claimable",
     args: address ? [STAGE_KNOCKOUT, address] : undefined,
     query: { enabled: !!address },
+  });
+  // claim() reverts for CLAIM_CHALLENGE_WINDOW after the freeze (H-2b) — read
+  // the freeze time so the button waits instead of failing in the wallet.
+  const frozenAtLeague = useReadContract({
+    ...contract,
+    functionName: "stageFrozenAt",
+    args: [STAGE_LEAGUE],
+    query: { enabled: (claimableLeague.data ?? 0n) > 0n },
+  });
+  const frozenAtKO = useReadContract({
+    ...contract,
+    functionName: "stageFrozenAt",
+    args: [STAGE_KNOCKOUT],
+    query: { enabled: (claimableKO.data ?? 0n) > 0n },
   });
 
   async function handleClaim(stage: number, refetch: () => Promise<unknown>) {
@@ -78,52 +109,93 @@ function ClaimBanner() {
   }
 
   const banners = [
-    { stage: STAGE_LEAGUE, label: t("viewLeague"), data: claimableLeague },
-    { stage: STAGE_KNOCKOUT, label: t("viewKnockout"), data: claimableKO },
+    { stage: STAGE_LEAGUE, label: t("viewLeague"), data: claimableLeague, frozenAt: frozenAtLeague.data },
+    { stage: STAGE_KNOCKOUT, label: t("viewKnockout"), data: claimableKO, frozenAt: frozenAtKO.data },
   ].filter((b) => (b.data.data ?? 0n) > 0n);
 
   if (banners.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      {banners.map((b) => (
-        <div
-          key={b.stage}
-          className="flex items-center justify-between rounded-2xl border border-ok/40 bg-ok/10 px-5 py-4"
-        >
-          <p className="font-mono text-sm text-ok">
-            {t("claim.banner", {
-              stage: b.label,
-              amount: (Number(b.data.data! / 10n ** 15n) / 1000).toLocaleString("en-US"),
-            })}
-          </p>
-          <button
-            type="button"
-            disabled={busy !== null}
-            onClick={() => handleClaim(b.stage, b.data.refetch)}
-            className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-2 font-semibold text-white disabled:opacity-50"
+      {banners.map((b) => {
+        const opensAt = b.frozenAt === undefined ? null : Number(b.frozenAt) + CLAIM_CHALLENGE_SECONDS;
+        const waiting = opensAt !== null && now !== null && now < opensAt;
+        return (
+          <div
+            key={b.stage}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ok/40 bg-ok/10 px-5 py-4"
           >
-            {busy === b.stage ? t("claim.claiming") : t("claim.cta")}
-          </button>
-        </div>
-      ))}
+            <p className="font-mono text-sm text-ok">
+              {t("claim.banner", { stage: b.label, amount: formatChzWei(b.data.data!) })}
+            </p>
+            <button
+              type="button"
+              disabled={busy !== null || waiting}
+              onClick={() => handleClaim(b.stage, b.data.refetch)}
+              className="rounded-xl bg-gradient-to-b from-chz-2 to-chz px-5 py-2 font-semibold text-white disabled:opacity-50"
+            >
+              {waiting
+                ? t("claim.opensIn", { countdown: formatCountdown(opensAt! - now!) })
+                : busy === b.stage
+                  ? t("claim.claiming")
+                  : t("claim.cta")}
+            </button>
+          </div>
+        );
+      })}
       {message && <p className="font-mono text-xs text-muted">{message}</p>}
     </div>
   );
 }
 
+function ScoringInfo() {
+  const t = useTranslations("standings");
+  const rows: { pts: string; key: "scoringInfo.exact" | "scoringInfo.outcomeGd" | "scoringInfo.outcome" }[] = [
+    { pts: "5", key: "scoringInfo.exact" },
+    { pts: "3", key: "scoringInfo.outcomeGd" },
+    { pts: "1", key: "scoringInfo.outcome" },
+  ];
+  return (
+    <InfoPopover
+      label={t("scoringInfo.label")}
+      title={t("scoringInfo.title")}
+      closeLabel={t("info.close")}
+      moreHref="/terms#scoring"
+      moreLabel={t("info.fullRules")}
+      align="end"
+    >
+      <ul className="flex flex-col gap-1.5">
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-baseline gap-3">
+            <span className="w-6 shrink-0 text-right font-mono font-bold text-star">{r.pts}</span>
+            <span>{t(r.key)}</span>
+          </li>
+        ))}
+      </ul>
+      <ul className="mt-3 flex flex-col gap-1.5 border-t border-line-soft pt-3 text-xs text-muted">
+        <li>{t("scoringInfo.deciders")}</li>
+        <li>{t("scoringInfo.ninety")}</li>
+        <li>{t("scoringInfo.ties")}</li>
+        <li>{t("scoringInfo.provisional")}</li>
+      </ul>
+    </InfoPopover>
+  );
+}
+
 export function StandingsPanel() {
   const t = useTranslations("standings");
+  const now = useNow();
   const [view, setView] = useState<StageView>("season");
   const [rows, setRows] = useState<StandingRow[] | null>(null);
+  const [stages, setStages] = useState<StagesInfo>(NO_STAGES);
   const [hasProvisional, setHasProvisional] = useState(false);
   const [error, setError] = useState("");
 
   /**
    * One request. The whole board — entrants, points, exact counts, entry
-   * times, usernames, flags and the provisional badge — is derived server-side
-   * in /api/standings and cached at the edge. The browser used to derive it
-   * itself: ~450 serial eth_calls plus one /api/profile round trip per
-   * entrant, which is tens of seconds before the first row appears.
+   * times, usernames, flags, the provisional badge and both pots — is derived
+   * server-side in /api/standings and cached at the edge. The browser used to
+   * derive it itself: ~450 serial eth_calls plus one /api/profile round trip
+   * per entrant, which is tens of seconds before the first row appears.
    */
   const load = useCallback(async () => {
     if (!PREDICTOR_ADDRESS) return;
@@ -136,6 +208,7 @@ export function StandingsPanel() {
       }
       const parsed = parseStandingsPayload(await res.json());
       setRows(parsed.rows);
+      setStages(parsed.stages);
       setHasProvisional(parsed.hasProvisional);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -153,10 +226,14 @@ export function StandingsPanel() {
   }
 
   const sorted = rows ? rowsForView(rows, view) : null;
+  const stage = stageFor(stages, view);
+  const payouts = prizeColumn(stage);
+  const showPrize = payouts !== null;
+  const columnCount = view === "season" ? 5 : showPrize ? 4 : 3;
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4">
-      <ClaimBanner />
+      <ClaimBanner now={now} />
       <div className="flex flex-wrap items-center gap-2">
         {VIEWS.map((v) => (
           <button
@@ -171,12 +248,17 @@ export function StandingsPanel() {
             {t(v.labelKey)}
           </button>
         ))}
-        {hasProvisional && (
-          <span className="ml-auto rounded-full border border-star/40 px-3 py-1 font-mono text-xs text-star">
-            {t("provisional")}
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {hasProvisional && (
+            <span className="rounded-full border border-star/40 px-3 py-1 font-mono text-xs text-star">
+              {t("provisional")}
+            </span>
+          )}
+          <ScoringInfo />
+        </div>
       </div>
+
+      <PoolStrip view={view} stage={stage} now={now} />
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-night-2/60">
         <table className="w-full text-sm">
@@ -198,18 +280,24 @@ export function StandingsPanel() {
                 </th>
               )}
               <th className="px-2 py-2.5 text-right sm:px-4 sm:py-3">{t("colPoints")}</th>
+              {showPrize && (
+                <th className="px-2 py-2.5 text-right sm:px-4 sm:py-3">
+                  {/* phones get the unit as the header so the cells stay bare numbers */}
+                  <ColHead full={t(stage?.frozen ? "colWon" : "colPrize")} short={t("colPrizeShort")} />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {sorted === null ? (
               <tr>
-                <td colSpan={5} className="px-2 py-6 text-center font-mono text-xs text-muted sm:px-4">
+                <td colSpan={columnCount} className="px-2 py-6 text-center font-mono text-xs text-muted sm:px-4">
                   {t("reading")}
                 </td>
               </tr>
             ) : sorted.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-2 py-6 text-center font-mono text-xs text-muted sm:px-4">
+                <td colSpan={columnCount} className="px-2 py-6 text-center font-mono text-xs text-muted sm:px-4">
                   {/* an empty board after a failed read is a read failure, not an empty pool */}
                   {error ? t("unavailable") : t("noEntrants")}
                 </td>
@@ -252,6 +340,15 @@ export function StandingsPanel() {
                   <td className="px-2 py-2.5 text-right font-mono font-bold text-star sm:px-4 sm:py-3">
                     {(pointsFor(r, view) ?? 0n).toString()}
                   </td>
+                  {payouts && (
+                    <td
+                      className={`whitespace-nowrap px-2 py-2.5 text-right font-mono sm:px-4 sm:py-3 ${
+                        i < payouts.length ? (i === 0 ? "font-bold text-chz" : "text-chz") : "text-muted-2"
+                      }`}
+                    >
+                      {i < payouts.length ? formatChzWei(payouts[i]!) : "—"}
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -263,6 +360,19 @@ export function StandingsPanel() {
       {error && <p className="font-mono text-xs text-chz-2">{error}</p>}
     </div>
   );
+}
+
+/**
+ * What each rank would be credited if the stage froze on its pool now — the
+ * contract's own split (lib/economics mirrors _shareFor). null = no prize
+ * column: Season View (no pot), an unknown pot, a VOID stage, a stage still
+ * under the floor (it would void, not pay), or a frozen stage whose freeze
+ * snapshot could not be read (better no amounts than wrong ones).
+ */
+function prizeColumn(stage: StageInfo | null): bigint[] | null {
+  if (!stage || stage.status === STAGE_STATUS.VOID || stage.entryCount < STAGE_FLOOR) return null;
+  const pool = stage.frozen ? stage.poolAtFreeze : stage.pool;
+  return pool === null ? null : projectedPayouts(pool, stage.entryCount);
 }
 
 /**

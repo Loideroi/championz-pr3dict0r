@@ -59,6 +59,16 @@ export function rowsForView(rows: StandingRow[], view: StageView): StandingRow[]
   return [...filtered].sort(compareRows(view));
 }
 
+/**
+ * The pot a view pays from. Season View has none: it ranks combined points for
+ * the crown only — "no points and no funds ever cross between the two pools".
+ */
+export function stageFor<T>(stages: { league: T; knockout: T }, view: StageView): T | null {
+  if (view === "league") return stages.league;
+  if (view === "knockout") return stages.knockout;
+  return null;
+}
+
 /** Regional-indicator flag from an ISO-3166 alpha-2 code; empty if unknown. */
 export function flagEmoji(countryCode?: string): string {
   if (!countryCode || !/^[A-Za-z]{2}$/.test(countryCode)) return "";

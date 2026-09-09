@@ -27,7 +27,13 @@ import {
   readBatch,
   rpcCandidatesFor,
 } from "@/lib/predictor/chains";
-import { toRowJson, type StandingsPayload } from "@/lib/predictor/standingsPayload";
+import {
+  toRowJson,
+  toStageJson,
+  type StageInfo,
+  type StageStatus,
+  type StandingsPayload,
+} from "@/lib/predictor/standingsPayload";
 import type { StandingRow } from "@/lib/predictor/standings";
 import { PROFILES_TABLE } from "@/lib/profile/service";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -37,6 +43,11 @@ export const dynamic = "force-dynamic";
 
 const ENTERED_EVENT = parseAbiItem(
   "event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass)",
+);
+
+/** Emitted by freezeStage/refreezeStage with the pool the split was computed on. */
+const STAGE_FROZEN_EVENT = parseAbiItem(
+  "event StageFrozen(uint8 indexed stage, address indexed first, uint256 payCount, uint256 pool)",
 );
 
 /** Edge TTL. Results land minutes after a whistle; 30s is well inside the noise. */
@@ -118,6 +129,42 @@ async function scanEntrants(
 
 const big = (v: unknown): bigint => (typeof v === "bigint" ? v : BigInt(Number(v ?? 0)));
 
+/**
+ * The pot a frozen stage was split on. claim() decrements `stages[stage].pool`
+ * as winners collect, so the live figure understates every rank's share from
+ * the first claim onward; the StageFrozen log carries the number the contract
+ * actually divided. Last log wins (refreeze re-emits). null on any read failure
+ * — the board then hides amounts for that stage rather than showing wrong ones.
+ */
+async function poolAtFreeze(client: PublicClient, chainId: number, stage: number): Promise<bigint | null> {
+  try {
+    const logs = await client.getLogs({
+      address: PREDICTOR_ADDRESS,
+      event: STAGE_FROZEN_EVENT,
+      args: { stage },
+      fromBlock: deployBlockFor(chainId),
+      toBlock: "latest",
+    });
+    const last = logs.at(-1);
+    return last?.args.pool === undefined ? null : last.args.pool;
+  } catch {
+    return null;
+  }
+}
+
+function stageInfo(tuple: unknown, frozen: unknown, frozenAt: unknown, snapshot: bigint | null): StageInfo {
+  const s = (Array.isArray(tuple) ? tuple : []) as readonly unknown[];
+  const status = Number(s[2] ?? 0);
+  return {
+    status: (status === 1 || status === 2 ? status : 0) as StageStatus,
+    entryCount: Number(s[3] ?? 0),
+    pool: big(s[4]),
+    frozen: Boolean(frozen),
+    frozenAt: big(frozenAt),
+    poolAtFreeze: snapshot,
+  };
+}
+
 async function buildPayload(chainId: number): Promise<StandingsPayload> {
   const { client, wallets } = await scanEntrants(chainId);
   const matchCount = Number(
@@ -142,6 +189,17 @@ async function buildPayload(chainId: number): Promise<StandingsPayload> {
   for (let id = 1; id <= matchCount; id++) {
     calls.push({ ...contract, functionName: "resultOf", args: [id] });
   }
+  // The two pots, read in the same sweep so the pool and the rows it prices
+  // come from one block and one cache entry.
+  const stageCalls = calls.length;
+  calls.push(
+    { ...contract, functionName: "stages", args: [BigInt(STAGE_LEAGUE)] },
+    { ...contract, functionName: "stages", args: [BigInt(STAGE_KNOCKOUT)] },
+    { ...contract, functionName: "stageFrozen", args: [STAGE_LEAGUE] },
+    { ...contract, functionName: "stageFrozen", args: [STAGE_KNOCKOUT] },
+    { ...contract, functionName: "stageFrozenAt", args: [STAGE_LEAGUE] },
+    { ...contract, functionName: "stageFrozenAt", args: [STAGE_KNOCKOUT] },
+  );
 
   const [results, profiles] = await Promise.all([
     readBatch(client, calls as never),
@@ -172,10 +230,17 @@ async function buildPayload(chainId: number): Promise<StandingsPayload> {
   });
 
   // D9 provisional badge: any completed result still flagged provisional.
-  const hasProvisional = results.slice(walletCalls).some((r) => {
+  const hasProvisional = results.slice(walletCalls, stageCalls).some((r) => {
     const tuple = r as readonly unknown[] | null;
     return Array.isArray(tuple) && Boolean(tuple[5]) && Boolean(tuple[6]);
   });
+
+  const [leagueTuple, knockoutTuple, leagueFrozen, knockoutFrozen, leagueFrozenAt, knockoutFrozenAt] =
+    results.slice(stageCalls);
+  const [leagueSnapshot, knockoutSnapshot] = await Promise.all([
+    leagueFrozen ? poolAtFreeze(client, chainId, STAGE_LEAGUE) : null,
+    knockoutFrozen ? poolAtFreeze(client, chainId, STAGE_KNOCKOUT) : null,
+  ]);
 
   return {
     chainId,
@@ -183,6 +248,10 @@ async function buildPayload(chainId: number): Promise<StandingsPayload> {
     hasProvisional,
     updatedAt: new Date().toISOString(),
     rows: rows.map(toRowJson),
+    stages: {
+      league: toStageJson(stageInfo(leagueTuple, leagueFrozen, leagueFrozenAt, leagueSnapshot)),
+      knockout: toStageJson(stageInfo(knockoutTuple, knockoutFrozen, knockoutFrozenAt, knockoutSnapshot)),
+    },
   };
 }
 
