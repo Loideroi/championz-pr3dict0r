@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  HEADS_UP_WINDOW_SECONDS,
+  LAST_CALL_WINDOW_SECONDS,
   composeReminder,
   composeResultsDigest,
+  formatLead,
   matchesNeedingReminder,
   minutesToLock,
 } from '../src/channel.js';
@@ -52,8 +55,8 @@ describe('last-call reminders (pre-lock window → lock at T-60)', () => {
     const map = [entry(1, 'RMA–MCI')];
     const lockAt = kickoff - 3600;
     const states = new Map([[1, state({})]]);
-    expect(matchesNeedingReminder(map, states, lockAt - 31 * 60)).toEqual([]); // too early
-    expect(matchesNeedingReminder(map, states, lockAt - 29 * 60)).toEqual([1]); // in window
+    expect(matchesNeedingReminder(map, states, lockAt - 91 * 60)).toEqual([]); // too early
+    expect(matchesNeedingReminder(map, states, lockAt - 89 * 60)).toEqual([1]); // in window
     expect(matchesNeedingReminder(map, states, lockAt - 14 * 60)).toEqual([1]); // still in window
     expect(matchesNeedingReminder(map, states, lockAt)).toEqual([]); // locked — too late
   });
@@ -75,10 +78,11 @@ describe('last-call reminders (pre-lock window → lock at T-60)', () => {
   });
 });
 
-describe('MD1 reality check — the earliest UEFA slot', () => {
-  // 2026-09-08 16:45 UTC, the first kickoff of the season. Its T-60 lock is
-  // 15:45, so the reminder window opens at 15:15. The matchday cron used to
-  // start at 16:00 and missed it entirely; oracle-bot.yml now starts at 15:00.
+describe('MD1 reality check — the runs GitHub actually delivered on 8 Sep 2026', () => {
+  // The 5-minute matchday cron asked for ~108 runs that day and got 8. Around
+  // the first kickoff of the season (16:45 UTC, so a 15:45 lock) the only runs
+  // were 12:05, 14:35 and 18:23: the 30-minute window was never sampled and no
+  // reminder went out at all. Both tiers are sized against those timestamps.
   const kickoff = Math.floor(Date.parse('2026-09-08T16:45:00Z') / 1000);
   const map = [entry(1, 'BRU–AVL')];
   const states = new Map<number, ChainState>([
@@ -86,19 +90,44 @@ describe('MD1 reality check — the earliest UEFA slot', () => {
   ]);
   const at = (hhmm: string) => Math.floor(Date.parse(`2026-09-08T${hhmm}:00Z`) / 1000);
 
-  it('is reachable by a cron tick once the window starts at 15:00', () => {
-    expect(matchesNeedingReminder(map, states, at('15:10'))).toEqual([]); // before the window
-    for (const tick of ['15:15', '15:20', '15:30', '15:40']) {
-      expect(matchesNeedingReminder(map, states, at(tick)), tick).toEqual([1]);
+  it('the old 30-minute window missed every run that day', () => {
+    for (const tick of ['12:05', '14:35', '18:23']) {
+      expect(matchesNeedingReminder(map, states, at(tick), 30 * 60), tick).toEqual([]);
     }
-    expect(matchesNeedingReminder(map, states, at('15:45'))).toEqual([]); // locked
-    expect(matchesNeedingReminder(map, states, at('16:00'))).toEqual([]); // the old first tick
+  });
+
+  it('last call reaches the 14:35 run', () => {
+    expect(matchesNeedingReminder(map, states, at('14:35'), LAST_CALL_WINDOW_SECONDS)).toEqual([1]);
+  });
+
+  it('heads-up catches 12:05, which is too early to be a last call', () => {
+    expect(matchesNeedingReminder(map, states, at('12:05'), LAST_CALL_WINDOW_SECONDS)).toEqual([]);
+    expect(matchesNeedingReminder(map, states, at('12:05'), HEADS_UP_WINDOW_SECONDS)).toEqual([1]);
+  });
+
+  it('neither tier fires once the match has locked', () => {
+    expect(matchesNeedingReminder(map, states, at('18:23'), HEADS_UP_WINDOW_SECONDS)).toEqual([]);
   });
 
   it('quotes the real countdown, not a constant', () => {
-    expect(minutesToLock(kickoff, at('15:15'))).toBe(30);
+    expect(minutesToLock(kickoff, at('14:35'))).toBe(70);
     expect(minutesToLock(kickoff, at('15:40'))).toBe(5);
     expect(minutesToLock(kickoff, at('15:45'))).toBe(1); // floored, never 0 or negative
-    expect(composeReminder([{ matchId: 1, label: 'BRU–AVL' }], 30)).toContain('~30 minutes');
+  });
+
+  it('says "Last call" only when it is one', () => {
+    const near = composeReminder([{ matchId: 1, label: 'BRU–AVL' }], 70);
+    expect(near).toContain('Last call');
+    expect(near).toContain('~1h 10m');
+    const far = composeReminder([{ matchId: 1, label: 'BRU–AVL' }], 220);
+    expect(far).not.toContain('Last call');
+    expect(far).toContain('~3h 40m');
+  });
+
+  it('formats lead times at both tiers', () => {
+    expect(formatLead(5)).toBe('~5 minutes');
+    expect(formatLead(59)).toBe('~59 minutes');
+    expect(formatLead(120)).toBe('~2h');
+    expect(formatLead(205)).toBe('~3h 25m');
   });
 });
