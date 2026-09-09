@@ -243,3 +243,32 @@ describe('generate-matches.mjs — bytes3 team codes', () => {
     expect(res.stdout).toContain('3 ASCII');
   });
 });
+
+describe('relay.mjs --runner allowlist', () => {
+  const RELAY = resolve(relayerRoot, 'scripts/relay.mjs');
+  // A valid-looking key and address: the check must fail BEFORE any network
+  // or signing work, so nothing here ever reaches an RPC.
+  const env = {
+    ...process.env,
+    ORACLE_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+    PREDICTOR_ADDRESS: '0x0000000000000000000000000000000000000001',
+    SUPABASE_URL: '',
+    TELEGRAM_BOT_TOKEN: '',
+  };
+
+  it('exits 1 with a clear message on a runner tag /admin would not recognise', () => {
+    let status = 0;
+    let stderr = '';
+    try {
+      execFileSync('node', [RELAY, '--map', resolve(relayerRoot, 'config/mainnet-map.json'), '--runner', 'watch'], {
+        env,
+        stdio: 'pipe',
+      });
+    } catch (err) {
+      status = (err as { status: number }).status;
+      stderr = String((err as { stderr: Buffer }).stderr);
+    }
+    expect(status).toBe(1);
+    expect(stderr).toContain('--runner must be one of cron|watcher|dispatch');
+  });
+});
