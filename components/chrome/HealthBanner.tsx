@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { summarizeRun, type OracleLogRow } from "@/lib/admin/health";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -26,15 +27,11 @@ export function HealthBanner() {
           { headers: { apikey: ANON_KEY } },
         );
         if (!res.ok) return;
-        const [row] = (await res.json()) as Array<{
-          created_at: string;
-          detail?: { errors?: unknown[]; alerts?: string[] };
-        }>;
+        const [row] = (await res.json()) as OracleLogRow[];
         if (!row) return;
-        const ageMs = Date.now() - new Date(row.created_at).getTime();
-        const isTroubled =
-          (row.detail?.errors?.length ?? 0) > 0 || (row.detail?.alerts?.length ?? 0) > 0;
-        if (isTroubled && ageMs < 6 * 3600 * 1000) setTroubled(true);
+        // One verdict for the banner and the admin console (lib/admin/health.ts).
+        const run = summarizeRun(row, Date.now());
+        if (run.troubled && !run.stale) setTroubled(true);
       } catch {
         /* health read is best-effort */
       }

@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAccount, useChainId, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { hexToString, parseAbiItem, stringToHex } from "viem";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import { compareRows, type StandingRow } from "@/lib/predictor/standings";
 import { MULTICALL_BATCH } from "@/lib/predictor/chains";
 import { packPrediction } from "@/lib/predictor/packed";
-import { freezeBlocker, freezeCallable, lockHint, stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
+import { DEPLOYED_CHAIN_ID, freezeBlocker, freezeCallable, lockHint, stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
 import { matchPipelines } from "@/lib/admin/pipeline";
 import { HealthStrip } from "./HealthStrip";
 import { PipelineCell } from "./PipelineCell";
@@ -44,7 +44,8 @@ type StageTuple = readonly [number, number, number, number, bigint, bigint];
  */
 export function AdminPanel() {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  // The deployment's chain, never the wallet's: see DEPLOYED_CHAIN_ID.
+  const chainId = DEPLOYED_CHAIN_ID;
   const client = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
@@ -113,7 +114,7 @@ export function AdminPanel() {
    * lockStage(0) on 9 Sep 2026 — the balance had dropped by the forwarded
    * fees while the cached league struct still carried them as escrow.
    */
-  const reads = [paused, oracle, sourceRef, league, knockout, leagueFrozen, knockoutFrozen, matchCount];
+  const reads = [owner, paused, oracle, sourceRef, league, knockout, leagueFrozen, knockoutFrozen, matchCount];
   const readsRef = useRef(reads);
   useEffect(() => {
     readsRef.current = reads;
@@ -215,6 +216,7 @@ export function AdminPanel() {
       total: rows.length,
       completed: rows.filter((m) => m.status === 1).length,
       voided: rows.filter((m) => m.status === 2).length,
+      provisional: rows.filter((m) => m.status === 1 && m.provisional).length,
     };
   };
 
@@ -236,11 +238,11 @@ export function AdminPanel() {
     const needsFreeze = stageNeedsFreeze(p);
     // Wall clock from the last refresh (client-side only) — the same instant
     // the rest of the console reasons about, never Date.now() in render.
-    const nowSec = log.loadedAt ? Math.floor(log.loadedAt / 1000) : 0;
+    const nowSec = log.now ? Math.floor(log.now / 1000) : 0;
     const lifecycle = data ? { closeAt: data[1], status: data[2], entryCount: data[3], feeEscrow: data[5] } : null;
     const hint = lifecycle && nowSec ? lockHint(lifecycle, nowSec) : null;
     const canFreeze = data ? freezeCallable(data[2], p) : false;
-    const freezeWhy = freezeBlocker(data?.[2], frozen);
+    const freezeWhy = freezeBlocker(data?.[2], p);
     return (
       <div className={`rounded-2xl border p-4 ${needsFreeze ? "border-star/40 bg-star/5" : "border-line bg-night-2/60"}`}>
         <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{label}</p>
@@ -296,6 +298,7 @@ export function AdminPanel() {
     <div className="flex w-full max-w-3xl flex-col gap-5">
       <HealthStrip
         chainId={chainId}
+        owner={owner.data}
         oracle={oracle.data}
         paused={paused.data}
         sourceRef={sourceRef.data}
@@ -303,7 +306,7 @@ export function AdminPanel() {
         kickoffs={kickoffs}
         logs={log.logs}
         logAvailable={log.available}
-        loadedAt={log.loadedAt}
+        now={log.now}
         refreshKey={refreshKey}
         onRefresh={refreshAll}
       />
@@ -338,7 +341,7 @@ export function AdminPanel() {
                   {m.status === 1 && ` ${m.scoreA}-${m.scoreB}${m.provisional ? " ◌" : ""}`}
                 </td>
                 <td className="px-3 py-2 text-[11px]">
-                  <PipelineCell match={m} pipeline={pipelines.get(m.id)} chainId={chainId} nowMs={log.loadedAt ?? 0} />
+                  <PipelineCell match={m} pipeline={pipelines.get(m.id)} chainId={chainId} nowMs={log.now ?? 0} />
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1.5">
