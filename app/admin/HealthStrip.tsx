@@ -11,6 +11,7 @@ import {
   formatUtc,
   gasStatus,
   governanceCheck,
+  governanceDrifted,
   groupAlerts,
   HEARTBEAT_STALE_AFTER_MS,
   implementationFromSlot,
@@ -183,7 +184,7 @@ function AlertList({ groups, log }: { groups: AlertGroup[]; log: LogView }) {
 }
 
 function DriftNotice({ chainId, check }: { chainId: number; check: GovernanceCheck }) {
-  if (check.oracleOk !== false && check.implementationOk !== false) return null;
+  if (!governanceDrifted(check)) return null;
   const expected = EXPECTED_GOVERNANCE[chainId];
   return (
     <p className="mt-2 font-mono text-[11px] text-chz-2">
@@ -219,6 +220,7 @@ function LogTail({ rows }: { rows: OracleLogRow[] }) {
 
 type Props = {
   chainId: number;
+  owner: string | undefined;
   oracle: string | undefined;
   paused: boolean | undefined;
   sourceRef: string | undefined;
@@ -242,7 +244,7 @@ type Props = {
  * (lib/admin/health.ts); the rest comes from clp_oracle_log.
  */
 export function HealthStrip(props: Props) {
-  const { chainId, oracle, paused, sourceRef, stages, kickoffs, logs, logAvailable, now, refreshKey, onRefresh } = props;
+  const { chainId, owner, oracle, paused, sourceRef, stages, kickoffs, logs, logAvailable, now, refreshKey, onRefresh } = props;
   const client = usePublicClient();
   const [chain, setChain] = useState<ChainHealth | null>(null);
 
@@ -277,7 +279,11 @@ export function HealthStrip(props: Props) {
     () => (kickoffs && now ? coverageStatus(kickoffs, Math.floor(now / 1000)) : null),
     [kickoffs, now],
   );
-  const governance = governanceCheck(chainId, { oracle: oracle ?? null, implementation: chain?.implementation ?? null });
+  const governance = governanceCheck(chainId, {
+    owner: owner ?? null,
+    oracle: oracle ?? null,
+    implementation: chain?.implementation ?? null,
+  });
   const mark = (ok: boolean | null) => (ok === null ? "" : ok ? " ✓" : " ⚠ DRIFT");
 
   return (
@@ -298,6 +304,10 @@ export function HealthStrip(props: Props) {
         )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs">
           <span className={paused ? "text-chz-2" : "text-ok"}>{paused ? "⏸ PAUSED" : "● running"}</span>
+          <span className={governance.ownerOk === false ? "text-chz-2" : "text-muted"}>
+            owner {owner ? shorten(owner) : "…"}
+            {mark(governance.ownerOk)}
+          </span>
           <span className={governance.oracleOk === false ? "text-chz-2" : "text-muted"}>
             oracle {oracle ? shorten(oracle) : "…"}
             {mark(governance.oracleOk)}

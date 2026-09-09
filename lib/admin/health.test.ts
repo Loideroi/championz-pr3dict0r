@@ -8,6 +8,7 @@ import {
   freezeCallable,
   gasStatus,
   governanceCheck,
+  governanceDrifted,
   groupAlerts,
   implementationFromSlot,
   lockCallable,
@@ -86,16 +87,21 @@ describe("governance", () => {
 
   it("compares case-insensitively against the sentinel's expected values", () => {
     const ok = governanceCheck(88888, {
+      owner: "0x47103b0fc04c91ac388eae3c4f91d038cbfd9cf8",
       oracle: "0xb57cb421e3b707d0970ec758d40a4366db317b15",
       implementation: "0x09fec2ea6f5a1eea5171cb0ffbc65dcf76ed72f6",
     });
-    expect(ok).toEqual({ oracleOk: true, implementationOk: true });
+    expect(ok).toEqual({ ownerOk: true, oracleOk: true, implementationOk: true });
+    expect(governanceDrifted(ok)).toBe(false);
     const drift = governanceCheck(88888, { oracle: "0x0000000000000000000000000000000000000001", implementation: null });
-    expect(drift).toEqual({ oracleOk: false, implementationOk: null });
+    expect(drift).toEqual({ ownerOk: null, oracleOk: false, implementationOk: null });
+    expect(governanceDrifted(drift)).toBe(true);
+    // the bot checks owner() too — a silent owner rotation must mark the line
+    expect(governanceDrifted(governanceCheck(88888, { owner: "0x0000000000000000000000000000000000000002" }))).toBe(true);
   });
 
   it("has no opinion on an unknown chain", () => {
-    expect(governanceCheck(1, { oracle: "0x1" })).toEqual({ oracleOk: null, implementationOk: null });
+    expect(governanceCheck(1, { oracle: "0x1" })).toEqual({ ownerOk: null, oracleOk: null, implementationOk: null });
   });
 });
 

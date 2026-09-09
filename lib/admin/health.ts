@@ -39,12 +39,14 @@ export const CHZ_PER_PUSH = 0.25;
  * a mismatch here after a legitimate change is the same false alarm the bot
  * would raise, and just as easy to clear.
  */
-export const EXPECTED_GOVERNANCE: Record<number, { oracle: string; implementation: string }> = {
+export const EXPECTED_GOVERNANCE: Record<number, { owner: string; oracle: string; implementation: string }> = {
   88888: {
+    owner: "0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8",
     oracle: "0xB57Cb421E3B707d0970Ec758D40a4366DB317B15",
     implementation: "0x09FeC2eA6f5a1EeA5171cb0ffBC65Dcf76ed72f6",
   },
   88882: {
+    owner: "0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8",
     oracle: "0xB57Cb421E3B707d0970Ec758D40a4366DB317B15",
     implementation: "0x888e98fC6ecEe5C8A086003956Cf7DAb7493bBd7",
   },
@@ -104,22 +106,31 @@ export function implementationFromSlot(slotValue: string | null | undefined): `0
 }
 
 export type GovernanceCheck = {
+  ownerOk: boolean | null;
   oracleOk: boolean | null;
   implementationOk: boolean | null;
 };
 
-/** null = nothing expected for this chain (or the value is not readable yet). */
+/**
+ * Same three comparisons as relayer/src/sentinels.ts checkGovernance().
+ * null = nothing expected for this chain (or the value is not readable yet).
+ */
 export function governanceCheck(
   chainId: number,
-  actual: { oracle?: string | null; implementation?: string | null },
+  actual: { owner?: string | null; oracle?: string | null; implementation?: string | null },
 ): GovernanceCheck {
   const expected = EXPECTED_GOVERNANCE[chainId];
-  if (!expected) return { oracleOk: null, implementationOk: null };
+  if (!expected) return { ownerOk: null, oracleOk: null, implementationOk: null };
   const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
   return {
+    ownerOk: actual.owner ? eq(actual.owner, expected.owner) : null,
     oracleOk: actual.oracle ? eq(actual.oracle, expected.oracle) : null,
     implementationOk: actual.implementation ? eq(actual.implementation, expected.implementation) : null,
   };
+}
+
+export function governanceDrifted(c: GovernanceCheck): boolean {
+  return c.ownerOk === false || c.oracleOk === false || c.implementationOk === false;
 }
 
 export type StagePlay = {
@@ -131,7 +142,12 @@ export type StagePlay = {
   provisional: number;
 };
 
-/** Same trigger as relayer/src/sentinels.ts checkUnfrozenStage(). */
+/**
+ * The contract's own precondition (_requireStageFinalized skips VOIDED
+ * matches: "never scores, never blocks"). Deliberately stricter than the
+ * bot's checkUnfrozenStage(), which counts voided matches as unplayed and so
+ * never nags about a stage that contains one.
+ */
 export function stageNeedsFreeze(s: StagePlay): boolean {
   const playable = s.total - s.voided;
   return !s.frozen && playable > 0 && s.completed === playable;

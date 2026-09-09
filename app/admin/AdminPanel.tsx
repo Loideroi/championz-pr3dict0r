@@ -298,6 +298,7 @@ export function AdminPanel() {
     <div className="flex w-full max-w-3xl flex-col gap-5">
       <HealthStrip
         chainId={chainId}
+        owner={owner.data}
         oracle={oracle.data}
         paused={paused.data}
         sourceRef={sourceRef.data}
