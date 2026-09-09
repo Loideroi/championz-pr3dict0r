@@ -183,6 +183,42 @@ function AlertList({ groups, log }: { groups: AlertGroup[]; log: LogView }) {
   );
 }
 
+const mark = (ok: boolean | null) => (ok === null ? "" : ok ? " ✓" : " ⚠ DRIFT");
+
+function GovernanceLine(props: {
+  paused: boolean | undefined;
+  owner: string | undefined;
+  oracle: string | undefined;
+  implementation: string | null;
+  sourceRef: string | undefined;
+  check: GovernanceCheck;
+  onRefresh: () => void;
+}) {
+  const { paused, owner, oracle, implementation, sourceRef, check, onRefresh } = props;
+  const cls = (ok: boolean | null) => (ok === false ? "text-chz-2" : "text-muted");
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs">
+      <span className={paused ? "text-chz-2" : "text-ok"}>{paused ? "⏸ PAUSED" : "● running"}</span>
+      <span className={cls(check.ownerOk)}>
+        owner {owner ? shorten(owner) : "…"}
+        {mark(check.ownerOk)}
+      </span>
+      <span className={cls(check.oracleOk)}>
+        oracle {oracle ? shorten(oracle) : "…"}
+        {mark(check.oracleOk)}
+      </span>
+      <span className={cls(check.implementationOk)}>
+        impl {implementation ? shorten(implementation) : "…"}
+        {mark(check.implementationOk)}
+      </span>
+      <span className="text-muted">source: {sourceRef || "unset"}</span>
+      <button type="button" onClick={onRefresh} className="ml-auto rounded border border-line px-2 py-0.5 text-[11px] text-muted">
+        refresh
+      </button>
+    </div>
+  );
+}
+
 function DriftNotice({ chainId, check }: { chainId: number; check: GovernanceCheck }) {
   if (!governanceDrifted(check)) return null;
   const expected = EXPECTED_GOVERNANCE[chainId];
@@ -270,22 +306,23 @@ export function HealthStrip(props: Props) {
     const row = logs?.find((l) => l.kind === "run");
     return row && now ? summarizeRun(row, now) : null;
   }, [logs, now]);
-  const watcher = useMemo(
-    () => (logs && now ? watcherAlive(logs, now) : { run: null, alive: false }),
-    [logs, now],
-  );
   const alertGroups = useMemo(() => (logs && now ? groupAlerts(logs, now) : []), [logs, now]);
   const coverage = useMemo(
     () => (kickoffs && now ? coverageStatus(kickoffs, Math.floor(now / 1000)) : null),
     [kickoffs, now],
+  );
+  // Scoped to the current window: a run from yesterday's watcher is "no
+  // watcher yet", not "runner gone".
+  const windowStartMs = coverage && coverage.state !== "none" ? coverage.span.start * 1000 : 0;
+  const watcher = useMemo(
+    () => (logs && now ? watcherAlive(logs, now, windowStartMs) : { run: null, alive: false }),
+    [logs, now, windowStartMs],
   );
   const governance = governanceCheck(chainId, {
     owner: owner ?? null,
     oracle: oracle ?? null,
     implementation: chain?.implementation ?? null,
   });
-  const mark = (ok: boolean | null) => (ok === null ? "" : ok ? " ✓" : " ⚠ DRIFT");
-
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -302,25 +339,15 @@ export function HealthStrip(props: Props) {
             <CoverageLine coverage={coverage} watcher={watcher} />
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs">
-          <span className={paused ? "text-chz-2" : "text-ok"}>{paused ? "⏸ PAUSED" : "● running"}</span>
-          <span className={governance.ownerOk === false ? "text-chz-2" : "text-muted"}>
-            owner {owner ? shorten(owner) : "…"}
-            {mark(governance.ownerOk)}
-          </span>
-          <span className={governance.oracleOk === false ? "text-chz-2" : "text-muted"}>
-            oracle {oracle ? shorten(oracle) : "…"}
-            {mark(governance.oracleOk)}
-          </span>
-          <span className={governance.implementationOk === false ? "text-chz-2" : "text-muted"}>
-            impl {chain?.implementation ? shorten(chain.implementation) : "…"}
-            {mark(governance.implementationOk)}
-          </span>
-          <span className="text-muted">source: {sourceRef || "unset"}</span>
-          <button type="button" onClick={onRefresh} className="ml-auto rounded border border-line px-2 py-0.5 text-[11px] text-muted">
-            refresh
-          </button>
-        </div>
+        <GovernanceLine
+          paused={paused}
+          owner={owner}
+          oracle={oracle}
+          implementation={chain?.implementation ?? null}
+          sourceRef={sourceRef}
+          check={governance}
+          onRefresh={onRefresh}
+        />
         <DriftNotice chainId={chainId} check={governance} />
       </div>
 

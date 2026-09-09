@@ -253,15 +253,30 @@ export const WATCHER_STALE_AFTER_MS = 15 * 60 * 1000;
 export type Runner = "cron" | "watcher" | "dispatch";
 export const RUNNERS: readonly Runner[] = ["cron", "watcher", "dispatch"];
 
-/** Newest run row tagged with `runner`, summarized; null when none in the rows. */
-export function latestRunBy(rows: OracleLogRow[], runner: Runner, nowMs: number): RunSummary | null {
-  const row = rows.find((r) => r.kind === "run" && (r.detail as { runner?: unknown } | null)?.runner === runner);
+/**
+ * Newest run row tagged with `runner` (rows in any order), summarized; null
+ * when none. `sinceMs` scopes the search, e.g. to the current coverage
+ * window, so yesterday's watcher is not mistaken for today's.
+ */
+export function latestRunBy(rows: OracleLogRow[], runner: Runner, nowMs: number, sinceMs = 0): RunSummary | null {
+  const row = rows
+    .filter(
+      (r) =>
+        r.kind === "run" &&
+        (r.detail as { runner?: unknown } | null)?.runner === runner &&
+        Date.parse(r.created_at) >= sinceMs,
+    )
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
   return row ? summarizeRun(row, nowMs) : null;
 }
 
 /** Is a watcher holding the relay right now, on the tick-scale clock? */
-export function watcherAlive(rows: OracleLogRow[], nowMs: number): { run: RunSummary | null; alive: boolean } {
-  const run = latestRunBy(rows, "watcher", nowMs);
+export function watcherAlive(
+  rows: OracleLogRow[],
+  nowMs: number,
+  sinceMs = 0,
+): { run: RunSummary | null; alive: boolean } {
+  const run = latestRunBy(rows, "watcher", nowMs, sinceMs);
   return { run, alive: run !== null && run.ageMs <= WATCHER_STALE_AFTER_MS };
 }
 

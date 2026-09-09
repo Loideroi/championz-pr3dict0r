@@ -7,13 +7,16 @@ import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "
 import { compareRows, type StandingRow } from "@/lib/predictor/standings";
 import { MULTICALL_BATCH } from "@/lib/predictor/chains";
 import { packPrediction } from "@/lib/predictor/packed";
-import { DEPLOYED_CHAIN_ID, freezeBlocker, freezeCallable, lockHint, stageNeedsFreeze, type StageFunds } from "@/lib/admin/health";
+import { DEPLOYED_CHAIN_ID, type StageFunds } from "@/lib/admin/health";
 import { matchPipelines } from "@/lib/admin/pipeline";
 import { HealthStrip } from "./HealthStrip";
 import { PipelineCell } from "./PipelineCell";
+import { StageCard, type StageTuple } from "./StageCard";
 import { useOracleLog } from "./useOracleLog";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
+/** A watcher ticks every 5 min; the console re-reads on the same cadence. */
+const REFRESH_EVERY_MS = 5 * 60_000;
 const ENTERED_EVENT = parseAbiItem(
   "event Entered(address indexed wallet, uint8 indexed stage, bool fullSeasonPass)",
 );
@@ -29,8 +32,6 @@ type MatchRow = {
   scoreB: number;
   provisional: boolean;
 };
-
-type StageTuple = readonly [number, number, number, number, bigint, bigint];
 
 /**
  * Admin console (slice 12, PRD §9) — the exceptions surface. Owner-gated
@@ -126,9 +127,18 @@ export function AdminPanel() {
     setRefreshKey((k) => k + 1);
   }, [loadMatches, reload]);
 
+  /**
+   * Mount, then every five minutes while the tab stays open: everything at
+   * once (chain reads, slate, log), so the pipeline column and the state
+   * column can never disagree about the same fixture between refreshes.
+   */
   useEffect(() => {
     const t = setTimeout(refreshAll, 0);
-    return () => clearTimeout(t);
+    const every = setInterval(refreshAll, REFRESH_EVERY_MS);
+    return () => {
+      clearTimeout(t);
+      clearInterval(every);
+    };
   }, [refreshAll]);
 
   async function act(label: string, fn: () => Promise<unknown>) {
@@ -233,66 +243,23 @@ export function AdminPanel() {
     );
   }
 
-  const stageCard = (label: string, stage: number, data: StageTuple | undefined, frozen: boolean) => {
-    const p = play(stage, frozen);
-    const needsFreeze = stageNeedsFreeze(p);
-    // Wall clock from the last refresh (client-side only) — the same instant
-    // the rest of the console reasons about, never Date.now() in render.
-    const nowSec = log.now ? Math.floor(log.now / 1000) : 0;
-    const lifecycle = data ? { closeAt: data[1], status: data[2], entryCount: data[3], feeEscrow: data[5] } : null;
-    const hint = lifecycle && nowSec ? lockHint(lifecycle, nowSec) : null;
-    const canFreeze = data ? freezeCallable(data[2], p) : false;
-    const freezeWhy = freezeBlocker(data?.[2], p);
-    return (
-      <div className={`rounded-2xl border p-4 ${needsFreeze ? "border-star/40 bg-star/5" : "border-line bg-night-2/60"}`}>
-        <p className="font-mono text-xs uppercase tracking-widest text-glow-2">{label}</p>
-        {data && (
-          <p className="mt-1 font-mono text-xs text-muted">
-            {["SELLING", "LOCKED", "VOID"][data[2]]} · {data[3]} entrants ·{" "}
-            {Number(data[4] / 10n ** 18n).toLocaleString("en-US")} CHZ pool ·{" "}
-            {Number(data[5] / 10n ** 18n).toLocaleString("en-US")} CHZ fee escrow
-          </p>
-        )}
-        <p className="mt-1 font-mono text-xs text-muted">
-          {p.total === 0
-            ? "no matches on-chain"
-            : `${p.completed}/${p.total - p.voided} played${p.voided ? ` · ${p.voided} voided` : ""}`}{" "}
-          · {frozen ? "🧊 frozen" : "not frozen"}
-        </p>
-        {hint && <p className="mt-1 font-mono text-xs text-star">{hint}</p>}
-        {needsFreeze && (
-          <p className="mt-1 font-mono text-xs text-star">
-            Fully played — freeze so winners can claim (the bot is nagging about this too).
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => act(`lockStage(${stage})`, () => writeContractAsync({ ...contract, functionName: "lockStage", args: [stage] }))}
-            className="rounded-lg border border-line px-3 py-1.5 font-mono text-xs disabled:opacity-40"
-          >
-            lockStage
-          </button>
-          <button
-            type="button"
-            disabled={busy || !canFreeze}
-            title={canFreeze ? "compute the top-20 from chain state and freeze the payout" : freezeWhy}
-            onClick={() =>
-              act(`freezeStage(${stage})`, async () => {
-                const ranked = await computeRanked(stage);
-                if (ranked.length < 20) throw new Error(`only ${ranked.length} ranked wallets — floor is 20`);
-                return writeContractAsync({ ...contract, functionName: "freezeStage", args: [stage, ranked] });
-              })
-            }
-            className="rounded-lg border border-star/40 px-3 py-1.5 font-mono text-xs text-star disabled:opacity-40"
-          >
-            freezeStage (auto-ranked)
-          </button>
-        </div>
-      </div>
-    );
-  };
+  const stageCard = (label: string, stage: number, data: StageTuple | undefined, frozen: boolean) => (
+    <StageCard
+      label={label}
+      data={data}
+      play={play(stage, frozen)}
+      nowSec={log.now ? Math.floor(log.now / 1000) : 0}
+      busy={busy}
+      onLock={() => act(`lockStage(${stage})`, () => writeContractAsync({ ...contract, functionName: "lockStage", args: [stage] }))}
+      onFreeze={() =>
+        act(`freezeStage(${stage})`, async () => {
+          const ranked = await computeRanked(stage);
+          if (ranked.length < 20) throw new Error(`only ${ranked.length} ranked wallets — floor is 20`);
+          return writeContractAsync({ ...contract, functionName: "freezeStage", args: [stage, ranked] });
+        })
+      }
+    />
+  );
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-5">

@@ -268,4 +268,11 @@ describe("watcherAlive — newest watcher-tagged run on the tick-scale clock", (
   it("reports no watcher at all when none is tagged", () => {
     expect(watcherAlive([run("cron", 1000)], NOW)).toEqual({ run: null, alive: false });
   });
+
+  it("does not mistake yesterday's watcher for today's, and tolerates unsorted rows", () => {
+    const rows = [run("watcher", 20 * 3600_000, 64), run("watcher", 22 * 3600_000, 63)];
+    expect(watcherAlive(rows, NOW).run?.tick).toBe(64);
+    expect(watcherAlive(rows, NOW, NOW - 3600_000)).toEqual({ run: null, alive: false });
+    expect(watcherAlive([...rows].reverse(), NOW).run?.tick).toBe(64);
+  });
 });
