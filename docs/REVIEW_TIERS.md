@@ -28,13 +28,13 @@ boundaries belong to the human.
 Review depth per tier, reviewer independence, PR size caps, and merge gates:
 see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
 
-## Gate Baselines (measured 2026-08-27, ratchet — may shrink, never grow)
+## Gate Baselines (measured 2026-08-27; jscpd row re-measured 2026-09-10 — ratchet: may shrink, never grow)
 
 | Gate | Baseline | Budget |
 |---|---|---|
 | ESLint `complexity` (warn ≥ 15) | 6 warnings | Warn-only ratchet; new code stays under 15 |
 | ESLint `max-lines` (warn > 400; tests exempt) | 0 warnings | Warn-only ratchet — keep it at zero |
-| jscpd (`npm run dup`: app, components, hooks, lib, middleware.ts, relayer/src; tests excluded, min-tokens 50) | 9 exact clones, 0.87% duplicated lines (re-measured 2026-09-10; the 2026-08-27 figure of 8 / 1.20% had drifted — the 9th was accepted in the #88/#89 entry) | CI threshold 2% — ratchet down as clones consolidate |
+| jscpd (`npm run dup`: app, components, hooks, lib, middleware.ts, relayer/src; tests excluded, min-tokens 50) | 9 exact clones, 0.86% duplicated lines (re-measured 2026-09-10). The 9th clone was **raised and accepted** in the #88/#89 review, not drift; the 2026-08-27 row recorded 8 / 1.20% and was never carried forward. The gated metric shrank (1.20% → 0.86%) | CI threshold 2% — ratchet down as clones consolidate |
 | squawk (Supabase migrations) | 25 warning-level findings in the 1 historical (already-applied) migration — squawk exits non-zero on ANY finding | CI lints changed migration files only; history is not retro-gated. A new migration must be squawk-clean; deliberate exceptions land as commented, justified `.squawk.toml` exclusions in the same PR. Note: `npm run migrations:lint` is the full-history debt view — expect exit 1 with the 25 baseline findings until history is cleaned; for PR verification run `npx squawk` on the new files only |
 
 ## Named Follow-Ups (gaps known at wiring time, 2026-08-27 — not silently accepted)
