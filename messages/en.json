@@ -182,6 +182,7 @@
     "noEntrants": "No entrants yet — be the first.",
     "unavailable": "The board could not be read just now — try again in a moment.",
     "koPass": "KO pass",
+    "you": "You",
     "footnote": "Points compute live from chain state — no settlement transactions exist. Each stage pays its own pool to its own top 20; the prize column is what each rank would take if the board froze now. Season View has no pool — it crowns the Ultimate ₵h@mpi0n.",
     "pool": {
       "league": "League pool",

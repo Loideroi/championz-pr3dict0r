@@ -5,8 +5,7 @@ import { useTranslations } from "next-intl";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { PREDICTOR_ABI, PREDICTOR_ADDRESS, STAGE_KNOCKOUT, STAGE_LEAGUE } from "@/lib/predictor/abi";
 import {
-  flagEmoji,
-  pointsFor,
+  isSelfRow,
   rowsForView,
   stageFor,
   type StandingRow,
@@ -28,6 +27,7 @@ import {
 } from "@/lib/economics";
 import { useNow } from "@/hooks/useNow";
 import { InfoPopover } from "@/components/ui/InfoPopover";
+import { BoardRow } from "./BoardRow";
 import { PoolStrip } from "./PoolStrip";
 
 const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
@@ -184,6 +184,7 @@ function ScoringInfo() {
 export function StandingsPanel() {
   const t = useTranslations("standings");
   const now = useNow();
+  const { address } = useAccount();
   const [view, setView] = useState<StageView>("season");
   const [rows, setRows] = useState<StandingRow[] | null>(null);
   const [stages, setStages] = useState<StagesInfo>(NO_STAGES);
@@ -304,52 +305,15 @@ export function StandingsPanel() {
               </tr>
             ) : (
               sorted.map((r, i) => (
-                <tr key={r.address} className="border-b border-line-soft last:border-0">
-                  <td className="px-2 py-2.5 font-mono text-muted sm:px-4 sm:py-3">
-                    {view === "season" && i === 0 ? "👑" : i + 1}
-                  </td>
-                  {/* the widest cell — it absorbs the squeeze so the rest keep their words intact */}
-                  <td className="wrap-anywhere px-2 py-2.5 sm:wrap-normal sm:px-4 sm:py-3">
-                    <span aria-hidden>{flagEmoji(r.countryCode) || "🌐"}</span>{" "}
-                    {r.username ? (
-                      <span className="font-semibold">{r.username}</span>
-                    ) : (
-                      <span className="text-muted">{t("anonymous")}</span>
-                    )}
-                    {/* the address is the width hog next to the name — phones drop it */}
-                    <span className="hidden font-mono text-xs text-muted-2 sm:inline">
-                      {" "}
-                      {r.address.slice(0, 6)}…{r.address.slice(-4)}
-                    </span>
-                    {!r.fullSeason && (
-                      <span className="ml-1 whitespace-nowrap rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted sm:ml-2">
-                        {t("koPass")}
-                      </span>
-                    )}
-                  </td>
-                  {view === "season" && (
-                    <td className="px-2 py-2.5 text-right font-mono text-glow-2 sm:px-4 sm:py-3">
-                      {r.leaguePoints === null ? "—" : r.leaguePoints.toString()}
-                    </td>
-                  )}
-                  {view === "season" && (
-                    <td className="px-2 py-2.5 text-right font-mono text-glow-2 sm:px-4 sm:py-3">
-                      {r.knockoutPoints.toString()}
-                    </td>
-                  )}
-                  <td className="px-2 py-2.5 text-right font-mono font-bold text-star sm:px-4 sm:py-3">
-                    {(pointsFor(r, view) ?? 0n).toString()}
-                  </td>
-                  {payouts && (
-                    <td
-                      className={`whitespace-nowrap px-2 py-2.5 text-right font-mono sm:px-4 sm:py-3 ${
-                        i < payouts.length ? (i === 0 ? "font-bold text-chz" : "text-chz") : "text-muted-2"
-                      }`}
-                    >
-                      {i < payouts.length ? formatChzWei(payouts[i]!) : "—"}
-                    </td>
-                  )}
-                </tr>
+                <BoardRow
+                  key={r.address}
+                  row={r}
+                  rank={i + 1}
+                  view={view}
+                  isSelf={isSelfRow(r.address, address)}
+                  payout={payouts && i < payouts.length ? payouts[i]! : null}
+                  showPrize={showPrize}
+                />
               ))
             )}
           </tbody>

@@ -182,6 +182,7 @@
     "noEntrants": "Ancora nessun iscritto — sii il primo.",
     "unavailable": "Non è stato possibile leggere la classifica in questo momento — riprova tra poco.",
     "koPass": "Pass KO",
+    "you": "Tu",
     "footnote": "I punti si calcolano in tempo reale dallo stato della chain — non esistono transazioni di regolamento. Ogni fase paga il proprio montepremi alla propria top 20; la colonna premio mostra quanto prenderebbe ogni posizione se la classifica si congelasse adesso. La Vista stagione non ha montepremi — incorona l’Ultimate ₵h@mpi0n.",
     "pool": {
       "league": "Montepremi campionato",

@@ -75,3 +75,14 @@ export function flagEmoji(countryCode?: string): string {
   const [a, b] = countryCode.toUpperCase();
   return String.fromCodePoint(0x1f1e6 + a!.charCodeAt(0) - 65, 0x1f1e6 + b!.charCodeAt(0) - 65);
 }
+
+/**
+ * Is this board row the connected wallet? /api/standings lowercases every
+ * address (it keys entrants off the Entered logs), while wagmi hands back a
+ * checksummed one — so a case-sensitive compare silently never matches and the
+ * "you" highlight would simply never appear.
+ */
+export function isSelfRow(rowAddress: string, connected: string | undefined): boolean {
+  if (!connected) return false;
+  return rowAddress.toLowerCase() === connected.toLowerCase();
+}
