@@ -56,8 +56,8 @@ jobs:
         run: npm test
       - name: Code duplication (jscpd)
         run: npm run dup
-        # Ratchet gate: fails above 2% duplicated lines (baseline 1.20% /
-        # 8 exact clones, 2026-08-27, tests excluded — docs/REVIEW_TIERS.md).
+        # Ratchet gate: fails above 2% duplicated lines (baseline 0.86% /
+        # 9 exact clones, 2026-09-10, tests excluded — docs/REVIEW_TIERS.md).
         # Tighten the threshold as clones are consolidated; never raise it.
       - name: Build
         run: npm run build
