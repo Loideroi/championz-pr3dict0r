@@ -18,8 +18,11 @@ import { formatChzWei } from "@/lib/economics";
  * globals.css radials paint this same blue over the body gradient, so what sits
  * under a row shifts with scroll position. Across that range a tinted row puts
  * `muted-2` at 4.39–4.49:1, under the 4.5 AA floor everywhere, so the address
- * and the "—" placeholder step up to `muted` (6.12–6.25). `chz` holds at
- * 4.55–4.64. Re-measure by compositing in sRGB, not by lerping in oklab.
+ * and the "—" placeholder step up to `muted` (5.76–6.30 across the sweep).
+ * `chz` runs 4.28–4.68 and is the one token still tight at the deep end — but
+ * it measures 5.00 on an untinted row and dips with the same radial, so that
+ * is pre-existing palette, and a brand colour is not ours to promote.
+ * Re-measure by compositing in sRGB, not by lerping in oklab.
  *
  * `isSelf` marks the connected wallet. The tint alone would be invisible to
  * anyone who can't separate the two blues, so the row is marked three ways:
