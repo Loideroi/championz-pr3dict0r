@@ -2,6 +2,41 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
+
+**Scope.** `app/standings/StandingsPanel.tsx` (row extracted, `useAccount` read), NEW `app/standings/BoardRow.tsx` (`BoardRow` + `PredictorCell`), `lib/predictor/standings.ts` (+`isSelfRow`), `lib/predictor/standings.test.ts` (+4 assertions), `messages/*.json` ×6 (+`standings.you`). ~200 changed lines. Presentation-only: no contract call, no signed payload, no server route.
+
+**Tier.** 3 — confirmed independently by both reviewers. Not the `app/**` Tier 2 default: `StandingsPanel.tsx` hosts `ClaimBanner`, which calls `writeContractAsync({ functionName: "claim" })`, so the floor map's path-independent catch-all ("any module that constructs, signs, or submits chain transactions") applies. Everything else in the diff floors at 2; highest wins.
+
+**Roles and models.** Author: Claude Code interactive session, `claude-opus-5`. Reviewer 1 (cross-vendor): OpenAI Codex CLI 0.144.1, invoked `-m gpt-5.6-sol`, read-only sandbox (could not run Vitest there). Reviewer 2 (fresh-context, given only the diff and duties, no author reasoning, no R1 findings): Claude Code subagent, `claude-opus-5`.
+
+**Verdicts.** R1 **pass** (0 findings at all severities), first and only pass. R2 first pass **pass-with-minors** (0 Major, 1 Minor, 6 Nit); after fix round 1 **pass-with-minors** (1 Minor surviving, 1 new Nit — both raised against the author's own fix reasoning); after fix round 2 **pass** (0 Major, 0 Minor). Three fix rounds, each re-checked by the raising reviewer.
+
+**Findings and dispositions.**
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Minor | R2 | `bg-glow/12` dropped `muted-2` (truncated address, `"—"` prize placeholder) and `chz` (prize figure) below the 4.5:1 AA floor **on the highlighted row** — an a11y regression introduced by an a11y-motivated feature. R2's model self-validated by reproducing the 4.96 figure the `globals.css:17` palette comment records | Author reproduced and confirmed, capped the wash at `bg-glow/8` (round 1). R2 re-check found the fix insufficient — see next row |
+| Minor | R2 (re-check) | The round-1 fix modelled the wrong step, and the author's own oklab extension was wrong: `color-mix(in oklab, C 8%, transparent)` is **premultiplied**, so it resolves to plain `--glow` at α.08 and the oklab space cancels out — the operative step is sRGB source-over. Further, the backdrop is **not flat**: `globals.css:49` paints radials of this same blue over the body gradient, so `muted-2` on a tinted row measures 4.39–4.49 across scroll positions — under AA *everywhere*, not merely near it. Capping the wash never secured AA | Author verified both claims independently (premultiplication confirmed algebraically; backdrop swept). Fixed by promoting `muted-2` → `muted` on `isSelf` rows (round 2), measured 5.76–6.30 across the full sweep — removes the constraint rather than shaving it. Deeper tint cuts rejected: the wash is only ~1.1:1 against the panel, so it would spend the signal to buy contrast. R2 re-checked: **resolved** |
+| Nit | R2 | Accent used a real `border-l-2`, shifting the rank digit 2px on the highlighted row and able to widen the column | Replaced with `shadow-[inset_2px_0_0_var(--glow-2)]`; R2 verified it takes no layout space (spec-guaranteed) and resolves to `--glow-2` in the emitted CSS |
+| Nit | R2 | Test fixture named `checksummed` was arbitrary mixed case, not EIP-55 — it passed for the right reason but asserted a property it did not have | Replaced with the real `getAddress` form, verified round-tripping |
+| Nit | R2 | Trailing space in the non-self row `className` | Space moved inside the conditional |
+| Nit | R2 (re-check) | Doc comment attributed the measurement to "oklab (the space `color-mix` composites in)" — a wrong *method*, which outlives a wrong number | Comment rewritten to record the correct recipe (composite in sRGB, do not lerp in oklab) plus the non-flat backdrop |
+
+**Accepted without change** (R2 raised, author dispositioned, R2 agreed): per-row `useTranslations` (idiomatic, ~51 rows); discoverability on a long board and KO-only wallets showing no badge in League View (product follow-ups, `rowsForView` filtering is correct); stale jscpd baseline in `docs/REVIEW_TIERS.md` (pre-existing — that file is itself Tier 3 and must not ride a feature PR). R2 also examined and explicitly declined to raise: `chz` tightness at the deep end of the radial (pre-existing palette; brand colour, not promotable) and the tonal flattening between `anonymous` and the address on a nameless self row (benign, arguably correct).
+
+**Author self-caught before review.** The first draft of the extraction tied the top-prize bold to `crown` (`season && rank === 1`); since the prize column never renders in Season View, first place would have silently lost its bold in every paying view. Split into `crown` vs `topPrize` pre-PR.
+
+**Notable verification.** The load-bearing correctness point is that `/api/standings` lowercases every address (route.ts:97, rows built from `[...wallets.keys()]`) while wagmi returns EIP-55 checksummed — a `===` compare would have compiled, read fine, and matched **never**. Both reviewers traced this independently rather than trusting `isSelfRow`'s name or doc comment. R2 additionally enumerated all 11 rendering branches of the extracted row against the original and re-verified the table after each fix commit; the round-2 prize-cell ternary changes exactly 2 of 8 cells, neither a payout nor a rank branch.
+
+**Disputes.** None. One asymmetry worth recording: R1 returned a clean pass with zero findings at every severity on a change where R2 found a substantiated AA regression and four correct nits, and then caught two further errors in the author's fix reasoning. R1 ran typecheck and lint but could not run Vitest in its read-only sandbox.
+
+**Gates** (author, re-verified by R2 on the fix commits): `typecheck` clean · `npm test` 205/205 · `lint` 5 warnings, byte-identical to `origin/main` · `check:i18n` 272 keys × 6 · `build` OK · jscpd 9 clones / 0.86% vs main's 9 / 0.87% · `snyk_code_scan` on `app/standings` 0 issues. Note: `docs/REVIEW_TIERS.md` records a jscpd baseline of 8 clones / 1.20% from 2026-08-27; `origin/main` now measures 9 / 0.87%, so that recorded figure has drifted independently of this PR.
+
+**Not exercised in a browser.** The session's sandbox denied starting a server, so no pixel was observed for either the highlight or the inset accent; both reviewers reasoned from the emitted CSS instead, and R2 stated that caveat explicitly. Author verified all new Tailwind utilities emit real CSS in the production bundle (Tailwind silently emits nothing for an unrecognised class). **The Vercel preview is the outstanding manual check**: connect an entrant wallet, confirm the row is marked and column alignment holds in all three views.
+
+**Gate.** Awaiting owner. Per the 2026-09-09 decision the merge click is the human's; no agent merged or attempted to merge this PR.
+
 ## 2026-08-27 — chore/review-wiring-and-gates (review wiring: floor map, PR template, gates, `.npmrc` baseline, CodeQL, Dependabot)
 
 **Scope.** First review wiring for this repo: `docs/REVIEW_TIERS.md` (floor map + measured baselines), this log, `.github/PULL_REQUEST_TEMPLATE.md`; `.npmrc` ×3 (root/contracts/relayer — none existed; install scripts previously ran on every `npm ci`); ESLint `complexity(15)`/`max-lines(400)` warn budgets (baseline 6/0); jscpd 2% ratchet (baseline 8 clones/1.20%); lockfile-lint pre-install in all three CI jobs (all lockfiles verified alias-free); first-ever CI Lint step; squawk migrations job (hardened selector: `--no-renames`, NUL-safe, base-sha via env) + `.squawk.toml` exception channel; `.github/dependabot.yml` (4 entries, cooldown 2d/7d); NEW `.github/workflows/codeql.yml` (JS/TS security scan — free public-repo CodeQL); workflow-level `permissions: contents: read`. devDeps `jscpd@5.0.16`, `squawk-cli@2.63.0` (owner-approved, vetted). ~290 hand-written lines excl. lockfile.
