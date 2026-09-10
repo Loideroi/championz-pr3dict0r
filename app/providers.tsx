@@ -19,11 +19,16 @@ createAppKit({
   networks,
   projectId: projectId || "MISSING_PROJECT_ID",
   featuredWalletIds: [SOCIOS_WALLET_ID],
+  // Sent to the WalletConnect relay in the session proposal, and rendered by the
+  // wallet on its approval sheet — an external payload, so CLAUDE.md's ASCII rule
+  // applies and the ₵ stays in UI copy only. "Ch@mpi0nz" is the same ASCII form
+  // the Telegram link message already signs with. An empty icons array leaves a
+  // blank card next to the name on that sheet, which reads as a spoofed dapp.
   metadata: {
-    name: "₵h@mpi0nz Pr3dict0r",
+    name: "Ch@mpi0nz Pr3dict0r",
     description: "UEFA Champions League 2026/27 prediction pool on Chiliz Chain",
     url: "https://pr3dict0r.com",
-    icons: [],
+    icons: ["https://pr3dict0r.com/icon-512.png"],
   },
   features: { analytics: false, email: false, socials: false },
 });
