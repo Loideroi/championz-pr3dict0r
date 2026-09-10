@@ -9,11 +9,17 @@ import { formatChzWei } from "@/lib/economics";
  * the 400-line ceiling and this row's own branching stays under the complexity
  * one — the map callback it used to live in was doing both jobs at once.
  *
- * The wash is capped at 8%: measured against this palette in oklab (the space
- * `color-mix` actually composites in), 8% leaves `muted-2` at 4.56:1 and `chz`
- * at 4.73:1, while 10% drops both under the 4.5:1 AA floor — and `muted-2` is
- * the truncated address, `chz` the prize figure, i.e. the two things you most
- * want to read on your own row. Do not deepen it without re-measuring.
+ * The wash is capped at 8% AND the row's dimmest text is promoted a step while
+ * it is on, because the tint eats contrast on exactly the row you most want to
+ * read. Measuring it correctly takes two corrections that are easy to miss:
+ * `color-mix(in oklab, C 8%, transparent)` is premultiplied, so it resolves to
+ * plain `--glow` at alpha .08 and the oklab space cancels out — the step that
+ * decides the pixel is ordinary sRGB source-over. And the backdrop is not flat:
+ * globals.css radials paint this same blue over the body gradient, so what sits
+ * under a row shifts with scroll position. Across that range a tinted row puts
+ * `muted-2` at 4.39–4.49:1, under the 4.5 AA floor everywhere, so the address
+ * and the "—" placeholder step up to `muted` (6.12–6.25). `chz` holds at
+ * 4.55–4.64. Re-measure by compositing in sRGB, not by lerping in oklab.
  *
  * `isSelf` marks the connected wallet. The tint alone would be invisible to
  * anyone who can't separate the two blues, so the row is marked three ways:
@@ -71,7 +77,13 @@ export function BoardRow({
       {showPrize && (
         <td
           className={`whitespace-nowrap px-2 py-2.5 text-right font-mono sm:px-4 sm:py-3 ${
-            payout === null ? "text-muted-2" : topPrize ? "font-bold text-chz" : "text-chz"
+            payout === null
+              ? isSelf
+                ? "text-muted"
+                : "text-muted-2"
+              : topPrize
+                ? "font-bold text-chz"
+                : "text-chz"
           }`}
         >
           {payout === null ? "—" : formatChzWei(payout)}
@@ -93,7 +105,9 @@ function PredictorCell({ row, isSelf }: { row: StandingRow; isSelf: boolean }) {
         <span className="text-muted">{t("anonymous")}</span>
       )}
       {/* the address is the width hog next to the name — phones drop it */}
-      <span className="hidden font-mono text-xs text-muted-2 sm:inline">
+      <span
+        className={`hidden font-mono text-xs sm:inline ${isSelf ? "text-muted" : "text-muted-2"}`}
+      >
         {" "}
         {row.address.slice(0, 6)}…{row.address.slice(-4)}
       </span>
