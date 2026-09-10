@@ -9,6 +9,12 @@ import { formatChzWei } from "@/lib/economics";
  * the 400-line ceiling and this row's own branching stays under the complexity
  * one — the map callback it used to live in was doing both jobs at once.
  *
+ * The wash is capped at 8%: measured against this palette in oklab (the space
+ * `color-mix` actually composites in), 8% leaves `muted-2` at 4.56:1 and `chz`
+ * at 4.73:1, while 10% drops both under the 4.5:1 AA floor — and `muted-2` is
+ * the truncated address, `chz` the prize figure, i.e. the two things you most
+ * want to read on your own row. Do not deepen it without re-measuring.
+ *
  * `isSelf` marks the connected wallet. The tint alone would be invisible to
  * anyone who can't separate the two blues, so the row is marked three ways:
  * a background wash, an accent bar on the rank cell, and a literal "you" badge
@@ -35,11 +41,12 @@ export function BoardRow({
   const topPrize = rank === 1;
 
   return (
-    <tr className={`border-b border-line-soft last:border-0 ${isSelf ? "bg-glow/12" : ""}`}>
-      {/* the accent rides the rank cell: a border on <tr> collapses away in table layout */}
+    <tr className={`border-b border-line-soft last:border-0${isSelf ? " bg-glow/8" : ""}`}>
+      {/* the accent rides the rank cell (a border on <tr> collapses away in table
+          layout) as an inset shadow, which paints no box and so shifts no digit */}
       <td
         className={`px-2 py-2.5 font-mono sm:px-4 sm:py-3 ${
-          isSelf ? "border-l-2 border-l-glow-2 font-bold text-glow-2" : "text-muted"
+          isSelf ? "shadow-[inset_2px_0_0_var(--glow-2)] font-bold text-glow-2" : "text-muted"
         }`}
       >
         {crown ? "👑" : rank}

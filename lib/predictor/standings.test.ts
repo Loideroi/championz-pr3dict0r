@@ -102,7 +102,7 @@ describe("flagEmoji", () => {
 
 describe("isSelfRow", () => {
   const lower = "0x742c6957f3a1b2c4d5e6f708192a3b4c5d6e7f80";
-  const checksummed = "0x742C6957f3A1B2c4d5E6F708192a3B4c5d6e7F80";
+  const checksummed = "0x742C6957f3a1b2C4d5e6f708192A3b4c5D6e7f80";
 
   it("matches the board's lowercase address against a checksummed wallet", () => {
     expect(isSelfRow(lower, checksummed)).toBe(true);
