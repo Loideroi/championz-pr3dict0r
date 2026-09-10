@@ -19,11 +19,16 @@ createAppKit({
   networks,
   projectId: projectId || "MISSING_PROJECT_ID",
   featuredWalletIds: [SOCIOS_WALLET_ID],
-  // Sent to the WalletConnect relay in the session proposal, and rendered by the
-  // wallet on its approval sheet — an external payload, so CLAUDE.md's ASCII rule
-  // applies and the ₵ stays in UI copy only. "Ch@mpi0nz" is the same ASCII form
-  // the Telegram link message already signs with. An empty icons array leaves a
-  // blank card next to the name on that sheet, which reads as a spoofed dapp.
+  // This does leave the device: sign-client puts it in wc_sessionPropose and in
+  // the stored session, and the wallet renders it on its approval sheet. Being
+  // precise about why it changed, though — it is NOT one of the three things
+  // CLAUDE.md's ASCII rule enumerates (signed personal_sign strings, on-chain
+  // string args, API payload identifiers), and nothing is known to mishandle ₵
+  // here. Metadata never reaches signing bytes, so this is not the PR #23
+  // isValidSignature case either. It is consistency with that rule's intent, on
+  // the ASCII form the Telegram link message already uses — not a fix for an
+  // observed break. Empty icons left a blank card beside the name on the one
+  // screen where a user judges whether a dapp is genuine.
   metadata: {
     name: "Ch@mpi0nz Pr3dict0r",
     description: "UEFA Champions League 2026/27 prediction pool on Chiliz Chain",
