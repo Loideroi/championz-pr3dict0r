@@ -43,6 +43,41 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Wiki context.** Plan of record: Loideroi LLM Wiki `wiki/guide/development-lifecycle.md` guardrail-stack section (specified → installed → enforced; guardrail-complete target) and `wiki/guide/new-project.md` step 4b. After merge, championz's app tree is the first Loideroi tree with every applicable Layer 3 gate *enforced* behind a required check; the relayer and contracts workspaces follow as the next two single-concern PRs.
 
+## 2026-09-10 — PRs #94 and #95 (WalletConnect metadata; stale-fact corrections)
+
+**Scope.** #94: `app/providers.tsx` — AppKit `metadata.name` `"₵h@mpi0nz Pr3dict0r"` → `"Ch@mpi0nz Pr3dict0r"`, and `icons: []` → the existing `/icon-512.png`. Two string literals plus a comment. #95: `CLAUDE.md` (wagmi v2 → v3), `PRD.md` (same), `docs/REVIEW_TIERS.md` (jscpd baseline row), `.github/workflows/ci.yml` (the same baseline duplicated in a comment at the gate). +5/−5, all prose or comment.
+
+**Tier.** 3 for both, uncontested. #94: `app/providers.tsx` is named in the floor map's Reown/AppKit wallet row (signing surface). #95: `CLAUDE.md` and `docs/REVIEW_TIERS.md` are "agent instruction files and the review process itself"; `.github/workflows/**` is Tier 3 independently.
+
+**Roles and models** (roster `last_reviewed` 2026-08-27, inside the 90-day clock). Author: Claude Code interactive session, `claude-opus-5` — **a deviation from the roster's Tier 3 author row, which assigns Fable 5**; recorded rather than waived, the session model was not the author's to choose. Reviewer 1 (cross-vendor): OpenAI Codex CLI 0.144.1, `-m gpt-5.6-sol`, read-only sandbox. Reviewer 2 (fresh-context, given only the diffs and duties): Claude Code subagent pinned to `claude-fable-5`, per the roster's Tier 3 reviewer-2 row.
+
+**Verdicts.** #94 — first pass: R1 **fail** (1 Major), R2 **fail** (1 Major, 3 Minor, 2 Nit), independently reaching the same Major. After fix round 1: R2 **pass**, R1 **pass-with-minors** (one new Minor, in the opposite direction from R2's). After fix round 2: reconciled, comment-only. #95 — first pass: R1 **pass-with-minors** (2 Minor), R2 **pass-with-minors** (1 Minor, 3 Nit). After the fix round: R1 **pass**, R2 **pass**.
+
+**Majors and dispositions.**
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Major | R1 and R2 independently | #94 shipped a comment in `lib/wagmi/config.ts` asserting that wiring `NEXT_PUBLIC_RPC_URL` via `customRpcUrls` would fail `AdminPanel.computeRanked` with `-32062` and break the freeze ranking. False: `extendCaipNetwork` folds custom URLs into `rpcUrls.default.http`, `getViemTransport` wraps them in viem `fallback`, and `shouldThrow` stops only for tx/user rejection, execution-reverted and code 5000 — a range error falls through to `rpc.chiliz.com`. **R2 went further and showed the comment was inverted**: the hazard is the unmentioned `transports` prop, which `extendWagmiTransports` returns as-is for non-WC chains with no fallback. Proven with a runnable viem test. A comment written to protect a payout path would have steered a future engineer away from the safe change and left the dangerous one unflagged | Comment removed entirely rather than rewritten; `lib/wagmi/config.ts` restored byte-identical to `main` (both reviewers verified mechanically). The true half is carried into the follow-up below rather than lost |
+
+**Minors of note.**
+
+- **R2 (#94): the metadata comment over-claimed the ASCII rule** — the rule's three-item list does not name dapp metadata, and nothing is known to mishandle `₵` there. Author corrected. **R1's re-check then found the correction had swung too far into under-claiming**, since the rule's headline reads "anything signed or sent to chain/external APIs" and closes "never in a payload". *Resolution, no adjudicator needed:* both are right about different clauses. The rule **does** mandate the rename (headline + payload clause; the three items are examples under it), and it is **not** the PR #23 `isValidSignature` case (metadata never reaches signing bytes — verified by both reviewers in sign-client). Final comment states both.
+- **R1 (#95): `.github/workflows/ci.yml` carried the identical stale baseline** at the gate the corrected row describes. Fixed in the same PR; R2 confirmed comment-only, `--threshold 2` untouched, and that single-concern holds.
+- **R2 (#95): "had drifted" was the wrong verb.** The 9th jscpd clone was *raised and accepted* in the #88/#89 review, a decision under the owner's gate — recording it as drift would launder a reviewed decision into an accident. Row rewritten to say raised-and-accepted, and to state that the gated metric shrank 1.20% → 0.86% so "may shrink, never grow" still reads true.
+- Both reviewers independently measured **0.86%**, not the 0.87% first written — itself a stale figure carried from the #88/#89 entry before #91 and #93 changed the denominator. A row correcting a stale measurement had shipped a stale measurement.
+
+**Owner sign-off requested on one reading (R2's framing).** Merging #95 confirms that the jscpd clone-count baseline moving 8 → 9 *records* the acceptance already made in #88/#89, rather than granting a new relaxation; that the enforced gate (`--threshold 2`) is unchanged and its metric went down; and that "never grow" continues to bind the gated percentage while the clone count is informational. The row states this explicitly so it is a visible choice.
+
+**Follow-up carried out of #94, not lost.** `AdminPanel.computeRanked` scans `Entered` from block `0` to `latest` in the browser although `deployBlockFor`/`PREDICTOR_DEPLOY_BLOCK` already exist for exactly this scan. R2's ranking: not freeze-blocking today, because the adapter's default transport for Chiliz is `rpc.chiliz.com`, which answers the genesis scan in ~230ms; it becomes freeze-breaking only if the browser transport changes or that endpoint starts capping ranges. Land it before the League-stage freeze, with a mainnet dry-run of `computeRanked` as the actual pre-freeze gate — and document the `transports`-prop hazard alongside it, since that true half of the deleted comment is now recorded nowhere in the repo.
+
+**Disputes.** None requiring adjudication. The one divergence (over- vs under-claiming the ASCII rule) was resolved by reading the rule's own text; both reviewers' concerns are satisfied simultaneously.
+
+**Gates.** typecheck clean · 205 tests · lint 5 warnings (= `main`) · check:i18n 272×6 · build OK · jscpd 9 clones / 0.86% (= `main`) · `snyk_code_scan` on `app/providers.tsx` 0 issues · lockfile-lint clean ×3.
+
+**Not exercised in a browser.** The sandbox denies starting a server. #94's entire visible effect is what a wallet renders on its approval sheet, which no automated gate can show. Per the contract's Tier 3 requirement, the human behavioral verification is: connect the Socios.com wallet on the preview, confirm the approval sheet shows "Ch@mpi0nz Pr3dict0r" with the icon, and that connection completes.
+
+**Gate.** Awaiting owner. Merge authority per the wiki contract §Resolution And Merge — the human clicks at every tier until the ladder is amended per repo; no amendment exists for this repo. **Correction recorded for audit:** earlier the same day, PRs #91, #92 and #93 were merged by the agent on the owner's explicit typed instruction. That was outside this contract and outside the 2026-09-09 owner decision; it is logged here as a deviation, not a precedent.
+
 ## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
 
 **Scope.** `app/standings/StandingsPanel.tsx` (row extracted, `useAccount` read), NEW `app/standings/BoardRow.tsx` (`BoardRow` + `PredictorCell`), `lib/predictor/standings.ts` (+`isSelfRow`), `lib/predictor/standings.test.ts` (+4 assertions), `messages/*.json` ×6 (+`standings.you`). ~200 changed lines. Presentation-only: no contract call, no signed payload, no server route.
