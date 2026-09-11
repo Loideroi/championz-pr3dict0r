@@ -18,7 +18,7 @@ boundaries belong to the human.
 | Any module that constructs, signs, or submits chain transactions, and Reown/AppKit wallet configuration (`lib/wagmi/**`, `app/providers.tsx`) | 3 | Signing surface — path-independent catch-all |
 | `lib/supabase/**`, `lib/telegram/**`, `lib/profile/verify.ts`, `lib/profile/rate-limit.ts` — and any module handling secrets, privileged service clients, or authentication/signature verification | 3 | Auth/secrets kernel (reviewer finding 2026-08-27): the service-role Supabase client, ERC-1271/EOA wallet verification, and account linking are the contract's "auth, permissions, secrets handling" — path-independent catch-all applies to new modules of this kind |
 | `scripts/**` | 3 | `check-i18n-parity.mjs` is gate tooling; catch-all: any script that signs, deploys, or mutates production data is Tier 3 regardless of name |
-| `.github/**` (non-workflows), `.npmrc` (all three roots), `eslint.config.mjs`, `.squawk.toml`, `next.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `postcss.config.mjs` | 3 | Guardrail / build / deploy config — editing these can silence a gate |
+| `.github/**` (non-workflows), `.npmrc` (all three roots), `.gitattributes`, `eslint.config.mjs`, `.squawk.toml`, `next.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `postcss.config.mjs` | 3 | Guardrail / build / deploy config — editing these can silence a gate; `.gitattributes` decides which paths the review-gate size cap ignores as generated |
 | `package.json`, `contracts/package.json`, `relayer/package.json` | 3 | Own the gate scripts; editing them can silence every gate |
 | `package-lock.json`, `contracts/package-lock.json`, `relayer/package-lock.json` | 3 | Precedent: chilitize adjudication 2026-08-25, mirrored on Fanbet with explicit owner confirmation 2026-08-27 (supply chain feeding CI; no reviewer credibly reads a lockfile blob — detection is mechanical or nothing). Deliberately stricter than the contract's Tier 1 dependency-patch row; owner confirmation for this repo recorded at the 2026-08-27 wiring gate |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/**`, `docs/REVIEW_TIERS.md`, `docs/REVIEW_LOG.md` | 3 | Agent instruction files and the review process itself |
@@ -26,7 +26,22 @@ boundaries belong to the human.
 | **Anything not listed above** (incl. `app/**` pages, `components/**`, `hooks/**`, `lib/**`, `messages/**`, `content/**`) | 2 | Default floor until mapped — an unlisted path is never Tier 1 by omission; add a row when a new surface appears |
 
 Review depth per tier, reviewer independence, PR size caps, and merge gates:
-see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
+see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md` — **inside the
+PR it reviews**, not in a trailing docs PR.
+
+## Review Gate (`.github/workflows/review-gate.yml`, added 2026-09-11)
+
+A required status check on every PR (owner click to enroll it in branch protection,
+see Named Follow-Ups). `scripts/review-gate.mjs` fails a PR whose body has no
+`Declared tier: N` line, whose counted changed lines (excl. lockfiles and
+`linguist-generated` paths from `.gitattributes`) exceed 500 without the
+`size-waiver` label, or whose diff adds no `docs/REVIEW_LOG.md` entry naming the PR.
+`scripts/lint-review-log.mjs` then checks the entry's fields, and
+`scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
+`size-waiver` label is only valid with the human waiver recorded in the log entry;
+the gate cannot verify that, nor that the reviews ran — the monthly escape audit does.
+Dependabot PRs hit this gate too: an agent adds the tier line and the log entry after
+reviewing the lockfile change (Tier 3 by this map), which is the intended cost.
 
 ## Gate Baselines (measured 2026-08-27, ratchet — may shrink, never grow)
 
@@ -41,4 +56,5 @@ see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
 
 - **Relayer ESLint coverage**: the relayer (Tier 3, value-moving oracle data) has typecheck + tests but no lint tooling at all, so the complexity/max-lines budgets don't reach it. Adding ESLint there needs a dependency decision (owner).
 - **Contracts security scanning**: CodeQL covers JS/TS only; the contracts workspace has no slither step (Fanbet's does). Mirror Fanbet's slither job when the contracts suite is next touched (owner decision — adds Python toolchain to CI).
+- **Enroll `review-gate` as a required status check** on `main` (owner click or `gh api` on owner instruction, as with the 2026-08-28 checks). Until then the check runs but does not block.
 - **Dependabot alerts + automated security fixes**: repo Settings → Security & analysis (owner click; the CodeQL workflow covers scanning, this covers advisories).

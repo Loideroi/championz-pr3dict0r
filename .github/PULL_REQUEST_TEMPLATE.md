@@ -1,10 +1,10 @@
 # What
 
-<!-- One logical change. ≤500 changed lines (excl. lockfiles/generated); Tier 3 aims ≤300. -->
+<!-- One logical change. ≤500 changed lines (excl. lockfiles and linguist-generated paths); Tier 3 aims ≤300. Over the cap → split, or label `size-waiver` and record the human waiver in this PR's review-log entry. -->
 
 ## Tier declaration
 
-- Declared tier: <!-- 1 | 2 | 3 -->
+- Declared tier: <!-- 1 | 2 | 3 — replace this comment with the digit; the review-gate check reads it -->
 - Floor-map paths touched: <!-- from docs/REVIEW_TIERS.md; the floor beats the declaration -->
 
 ## Author verification (before requesting review)
@@ -23,4 +23,10 @@
 
 <!-- Tier 1: 1 reviewer. Tier 2: 2 independent reviewers (reviewer 1 = different
 vendor than author). Tier 3: 2 reviewers + human gate, reviewer-written risk
-brief. Record verdicts + exact model IDs in docs/REVIEW_LOG.md. -->
+brief. -->
+
+- [ ] The tier's reviewers ran; every Blocker/Major fixed or rebutted and re-checked by the raising reviewer
+- [ ] **This PR's entry is appended to `docs/REVIEW_LOG.md` in this PR** (tier, exact model ids, verdicts, findings table, `Checked:`, `Dismissed:`; Tier 2/3 also `verification-gap`, `named-set`, `Missing:`) — `node scripts/lint-review-log.mjs docs/REVIEW_LOG.md` green
+- [ ] Tier 3 → the reviewer-written risk brief and the behavioral verification script are in the log entry for the owner
+
+The merge is the owner's click. Agents do not run `gh pr merge`.
