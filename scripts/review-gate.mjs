@@ -14,9 +14,11 @@
 //      the `size-waiver` label, which stands for the contract's recorded human
 //      waiver (the log entry must name it). Tier 3 above 300 is a warning only
 //      (the contract's aim, not its cap).
-//   3. A same-PR review-log entry: the diff must ADD a new `## ` heading to
-//      docs/REVIEW_LOG.md that names "#<PR number>" — a number dropped into an
-//      old entry or into prose does not count. Field completeness of that
+//   3. A same-PR review-log entry: the head tree's docs/REVIEW_LOG.md must
+//      hold an entry whose `## ` heading names "#<PR number>", the base tree
+//      must not, and every base heading must survive verbatim (the log is
+//      append-only) — so a number dropped into an old entry, into prose, or
+//      onto an existing heading does not count. Field completeness of the
 //      entry is scripts/lint-review-log.mjs's job (next workflow step).
 //   4. When over the cap with the `size-waiver` label, the PR's own log entry
 //      (the one whose heading names it, in the head tree) must carry a
@@ -86,17 +88,24 @@ export function countChangedLines(numstat, isGenerated) {
   return { counted, skipped };
 }
 
-// Only an ADDED "## " heading naming the PR counts: the entry must be new in
-// this PR, so a number slipped into an old entry or into prose is not one.
-export function logEntryAdded(diffText, prNumber) {
-  const re = new RegExp(`^\\+## .*#${prNumber}(?!\\d)`);
-  return diffText.split("\n").some((line) => re.test(line));
-}
-
-// The PR's own entry in the head tree's log: heading names "#<PR>".
+// The PR's own entry in a log: heading names "#<PR>".
 export function prEntry(logText, prNumber) {
   const re = new RegExp(`#${prNumber}(?!\\d)`);
   return splitEntries(logText).find((e) => re.test(e.heading)) ?? null;
+}
+
+// The entry must be NEW in this PR and the log append-only: no entry naming
+// the PR in the base tree, one in the head tree, and every base heading still
+// present verbatim in the head (so renaming an old heading to add the number,
+// or adding the number to prose, does not count).
+export function logEntryIsNew(baseLog, headLog, prNumber) {
+  if (prEntry(baseLog, prNumber)) return { ok: false, reason: `an entry naming #${prNumber} already existed before this PR` };
+  const entry = prEntry(headLog, prNumber);
+  if (!entry) return { ok: false, reason: `no "## ..." entry naming #${prNumber} in the head tree` };
+  const headHeadings = new Set(splitEntries(headLog).map((e) => e.heading));
+  const lost = splitEntries(baseLog).map((e) => e.heading).filter((h) => !headHeadings.has(h));
+  if (lost.length) return { ok: false, reason: `existing heading(s) changed or removed — the log is append-only: ${lost.map((h) => `"${h.slice(0, 50)}"`).join(", ")}` };
+  return { ok: true, entry };
 }
 
 // "Size waiver:" / "**Size waiver.**" field carrying a YYYY-MM-DD date.
@@ -166,15 +175,17 @@ function runSelfTest() {
   check("plain path untouched", destPath("app/page.tsx"), "app/page.tsx");
   check("empty numstat counts zero", countChangedLines("", isGen).counted, 0);
   // 3. log entry
-  const diff = "+++ b/docs/REVIEW_LOG.md\n+## 2026-09-12 — PR #85 (thing)\n-## old #86 line\n context #87\n+Also touches #88 in prose.\n+**Related.** see #89\n";
-  check("added heading naming #85 counts", logEntryAdded(diff, 85), true);
-  check("#85 does not satisfy #8", logEntryAdded(diff, 8), false);
-  check("#85 does not satisfy #850", logEntryAdded(diff, 850), false);
-  check("removed heading does not count", logEntryAdded(diff, 86), false);
-  check("context line does not count", logEntryAdded(diff, 87), false);
-  check("number added into prose (old entry) does not count", logEntryAdded(diff, 88), false);
-  check("number added into a field line does not count", logEntryAdded(diff, 89), false);
-  check("file header line does not count", logEntryAdded("+++ b/docs/REVIEW_LOG.md #1\n", 1), false);
+  const baseLog = "# Review Log\n\n## 2026-09-10 — PR #91 (other)\n\nbody\n";
+  const appended = baseLog + "\n## 2026-09-12 — PR #85 (thing)\n\nbody mentions #86\n";
+  check("appended heading naming #85 is new", logEntryIsNew(baseLog, appended, 85).ok, true);
+  check("#85 does not satisfy #8", logEntryIsNew(baseLog, appended, 8).ok, false);
+  check("#85 does not satisfy #850", logEntryIsNew(baseLog, appended, 850).ok, false);
+  check("number in prose only does not count", logEntryIsNew(baseLog, appended, 86).ok, false);
+  check("entry already in base is not new", logEntryIsNew(baseLog, appended, 91).ok, false);
+  check("old heading renamed to add the number fails (append-only)", logEntryIsNew(baseLog, baseLog.replace("PR #91 (other)", "PR #91 (other) and #97"), 97).ok, false);
+  check("old heading removed fails even with a new entry", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)\n\nbody\n", 85).ok, false);
+  check("new entry inserted above old ones (newest-first log) passes", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)\n\nbody\n" + baseLog.slice("# Review Log\n".length), 85).ok, true);
+  check("empty base log, new entry passes", logEntryIsNew("", "## 2026-09-12 — PR #1 (first)\n\nbody\n", 1).ok, true);
   // 4. waiver binding
   const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner go 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n";
   check("prEntry finds the heading naming #12", prEntry(log, 12)?.heading, "2026-09-12 — PR #12 (big)");
@@ -189,7 +200,7 @@ function runSelfTest() {
     console.error(`review-gate self-test: ${failures.length} case(s) failed`);
     process.exit(1);
   }
-  console.log("review-gate self-test passed (32 cases, judge proven red-capable).");
+  console.log("review-gate self-test passed (33 cases, judge proven red-capable).");
 }
 
 function main() {
@@ -218,12 +229,15 @@ function main() {
   const { counted, skipped } = countChangedLines(numstat, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
   console.log(`review-gate: ${counted} changed lines counted (cap ${LINE_CAP})`);
-  // 3. same-PR log entry: a NEW heading naming this PR, present in the head tree
-  const logDiff = git(["diff", base, HEAD_SHA, "--", LOG_PATH]);
-  const headLog = spawnSync("git", ["show", `${HEAD_SHA}:${LOG_PATH}`], { encoding: "utf8" });
-  const entry = headLog.status === 0 ? prEntry(headLog.stdout, prNumber) : null;
-  if (!logEntryAdded(logDiff, prNumber) || !entry) {
-    failures.push(`log: ${LOG_PATH} gains no new "## ..." entry naming #${prNumber} in this PR (append this PR's review-log entry — a number added to an old entry does not count)`);
+  // 3. same-PR log entry: new in this PR, log append-only
+  const showLog = (sha) => {
+    const r = spawnSync("git", ["show", `${sha}:${LOG_PATH}`], { encoding: "utf8" });
+    return r.status === 0 ? r.stdout : ""; // absent file = empty log
+  };
+  const logCheck = logEntryIsNew(showLog(base), showLog(HEAD_SHA), prNumber);
+  const entry = logCheck.ok ? logCheck.entry : null;
+  if (!logCheck.ok) {
+    failures.push(`log: ${logCheck.reason} (append this PR's own review-log entry to ${LOG_PATH} before asking for the merge)`);
   } else {
     console.log(`review-gate: ${LOG_PATH} entry "${entry.heading.slice(0, 60)}" added for #${prNumber}`);
   }
