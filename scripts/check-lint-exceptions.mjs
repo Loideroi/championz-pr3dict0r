@@ -12,10 +12,23 @@
 // A directive that suppresses nothing never appears here — that case is
 // already an error via linterOptions.reportUnusedDisableDirectives.
 //
+// Two things ESLint's suppression records cannot see are checked lexically on
+// the same set of linted files: inline CONFIG comments (a block comment
+// starting with `eslint <rule>: <setting>` reconfigures the rule, so nothing
+// is ever reported or suppressed — R2 finding on PR #97), which are forbidden
+// outright; and an expiry more than
+// HORIZON_DAYS ahead, which would make "time-bounded" meaningless.
+//
 // Env: LINT_EXCEPTIONS_TODAY=YYYY-MM-DD overrides "today";
 //      LINT_EXCEPTIONS_ROOT=<dir> overrides the lint root (tests).
 import { ESLint } from "eslint";
+import { readFileSync } from "node:fs";
 import { relative } from "node:path";
+
+const HORIZON_DAYS = 180;
+// ESLint honours inline configuration only in block comments that start with
+// `eslint` followed by whitespace (not `eslint-disable…`, `eslint-env`, etc.).
+const inlineConfig = /\/\*\s*eslint\s(?!-)/;
 
 const root = process.env.LINT_EXCEPTIONS_ROOT ?? process.cwd();
 const expires = /expires (\d{4}-\d{2}-\d{2})/;
@@ -42,7 +55,13 @@ const results = await eslint.lintFiles(["."]);
 
 const problems = [];
 const seen = new Set(); // one directive can suppress several messages; count it once
+const horizon = today + HORIZON_DAYS * 86400000;
 for (const result of results) {
+  readFileSync(result.filePath, "utf8").split("\n").forEach((line, i) => {
+    if (inlineConfig.test(line)) {
+      problems.push(`${relative(root, result.filePath)}:${i + 1}: inline ESLint config comment (block comment starting with "eslint <rule>:") is not allowed — rules are configured in eslint.config.mjs; use a dated eslint-disable for known debt`);
+    }
+  });
   for (const msg of result.suppressedMessages) {
     for (const sup of msg.suppressions) {
       if (sup.kind !== "directive") continue;
@@ -58,6 +77,7 @@ for (const result of results) {
       const exp = parseDate(m[1]);
       if (exp === null) problems.push(`${where}: "expires ${m[1]}" is not a real calendar date`);
       else if (exp < today) problems.push(`${where}: exception (${msg.ruleId}) expired ${m[1]} (today ${todayRaw}) — fix the code or re-approve with a new date in review`);
+      else if (exp > horizon) problems.push(`${where}: "expires ${m[1]}" is more than ${HORIZON_DAYS} days out (today ${todayRaw}) — exceptions are short-lived debt, not permanent policy`);
     }
   }
 }

@@ -7,6 +7,9 @@ import { afterEach, describe, expect, it } from "vitest";
 const script = join(process.cwd(), "scripts", "check-lint-exceptions.mjs");
 // Built at runtime so this file never contains the literal directive token.
 const D = ["eslint", "disable"].join("-");
+// Likewise the inline-config opener (block comment + "eslint" + space) is assembled at runtime.
+const C = "/*" + " eslint ";
+const Cn = "/*" + "eslint ";
 const dirs: string[] = [];
 
 // Minimal flat config for fixtures: no-console is an error everywhere except
@@ -103,6 +106,31 @@ describe("check-lint-exceptions (ESLint-driven)", () => {
     expect(r.out).toContain("not a real calendar date");
     expect(run(fixture({ "lib/g.js": "export const g = 1;\n" }), "2026-02-30").code).toBe(2);
     expect(run(fixture({ "lib/h.js": "export const h = 1;\n" }), "2028-02-29").code).toBe(0);
+  });
+
+  it("forbids inline ESLint config comments, which bypass suppression tracking", () => {
+    for (const src of [
+      `${C}no-console: "off" */\nconsole.log(1);\n`,
+      `${C}no-console: ["error", { allow: ["log"] }] */\nconsole.log(1);\n`,
+      `${Cn}no-console:0*/\nconsole.log(1);\n`,
+    ]) {
+      const dir = fixture({ "lib/k.js": src });
+      const r = run(dir);
+      expect(r.code, src).toBe(1);
+      expect(r.out).toContain("inline ESLint config comment");
+    }
+    // a disable directive is not a config comment
+    const ok = fixture({ "lib/k2.js": `/* ${D}-next-line no-console -- expires 2026-10-31 */\nconsole.log(1);\n` });
+    expect(run(ok).code).toBe(0);
+  });
+
+  it("rejects an expiry more than 180 days out", () => {
+    const far = fixture({ "lib/m.js": `// ${D}-next-line no-console -- expires 2099-12-31\nconsole.log(1);\n` });
+    const r = run(far);
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("more than 180 days");
+    expect(run(fixture({ "lib/m2.js": `// ${D}-next-line no-console -- expires 2027-03-10\nconsole.log(1);\n` })).code).toBe(0); // 180 days
+    expect(run(fixture({ "lib/m3.js": `// ${D}-next-line no-console -- expires 2027-03-11\nconsole.log(1);\n` })).code).toBe(1); // 181 days
   });
 
   it("respects ESLint's own ignores exactly", () => {
