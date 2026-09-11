@@ -89,18 +89,37 @@ interface TableRow {
   awayGf: number;
   wins: number;
   awayWins: number;
+  /** Collective points / goal difference / goals of the opponents faced so far. */
+  oppPts: number;
+  oppGd: number;
+  oppGf: number;
 }
 
-const TIEBREAK: ReadonlyArray<keyof TableRow> = ['pts', 'gd', 'gf', 'awayGf', 'wins', 'awayWins'];
+/**
+ * Regulations of the UEFA Champions League, league-phase ranking, criteria
+ * a–h. The two that follow — i. disciplinary points, j. club coefficient —
+ * stop here on purpose: cards are not in the match feed, and applying j
+ * without i would invent an order UEFA might not publish. Clubs still level
+ * after h share the position, which is what UEFA's own standings feed shows
+ * for clubs level on the published criteria (nine shared positions after
+ * matchday 1 of 2026/27).
+ */
+const TIEBREAK: ReadonlyArray<keyof TableRow> = [
+  'pts',
+  'gd',
+  'gf',
+  'awayGf',
+  'wins',
+  'awayWins',
+  'oppPts',
+  'oppGd',
+  'oppGf',
+];
 
 /**
  * League-phase table over the matches played strictly before `beforeKickoff`
- * (default: all of them), ranked the way UEFA ranks it: points, then goal
- * difference, goals scored, away goals scored, wins, away wins. Clubs still
- * level after all six share the position — the regulations go on to
- * disciplinary points and the club coefficient, which the feed cannot see, so
- * the copy shares the rank rather than inventing an order. Points-only
- * ranking put the 18 matchday-1 losers in feed order, 19th to 36th.
+ * (default: all of them), ranked the way UEFA ranks it — see {@link TIEBREAK}.
+ * Points-only ranking put the 18 matchday-1 losers in feed order, 19th to 36th.
  *
  * 90-minute scores, per the 90-minute rule; the league phase has no extra
  * time, so this is also what the table on UEFA's site shows.
@@ -110,11 +129,13 @@ export function tablePositions(
   beforeKickoff: number = Number.MAX_SAFE_INTEGER,
 ): Map<string, number> {
   const rows = new Map<string, TableRow>();
+  const opponents = new Map<string, string[]>();
   const row = (id: string): TableRow => {
     let r = rows.get(id);
     if (!r) {
-      r = { pts: 0, gd: 0, gf: 0, awayGf: 0, wins: 0, awayWins: 0 };
+      r = { pts: 0, gd: 0, gf: 0, awayGf: 0, wins: 0, awayWins: 0, oppPts: 0, oppGd: 0, oppGf: 0 };
       rows.set(id, r);
+      opponents.set(id, []);
     }
     return r;
   };
@@ -122,8 +143,12 @@ export function tablePositions(
     (m) => m.fixture.type === 'GROUP_STAGE' && (m.fixture.kickoffUnix ?? 0) < beforeKickoff,
   );
   for (const m of league) {
-    const home = row(m.fixture.home.uefaTeamId);
-    const away = row(m.fixture.away.uefaTeamId);
+    const homeId = m.fixture.home.uefaTeamId;
+    const awayId = m.fixture.away.uefaTeamId;
+    const home = row(homeId);
+    const away = row(awayId);
+    opponents.get(homeId)!.push(awayId);
+    opponents.get(awayId)!.push(homeId);
     const { scoreA90: hg, scoreB90: ag } = m.result;
     home.gf += hg;
     home.gd += hg - ag;
@@ -140,6 +165,15 @@ export function tablePositions(
     } else {
       home.pts += 1;
       away.pts += 1;
+    }
+  }
+  // criteria f–h need every club's own line first, hence the second pass
+  for (const [id, r] of rows) {
+    for (const oppId of opponents.get(id)!) {
+      const opp = rows.get(oppId)!;
+      r.oppPts += opp.pts;
+      r.oppGd += opp.gd;
+      r.oppGf += opp.gf;
     }
   }
   const compare = (a: TableRow, b: TableRow): number => {
