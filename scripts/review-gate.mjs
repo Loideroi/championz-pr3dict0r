@@ -14,15 +14,22 @@
 //      the `size-waiver` label, which stands for the contract's recorded human
 //      waiver (the log entry must name it). Tier 3 above 300 is a warning only
 //      (the contract's aim, not its cap).
-//   3. A same-PR review-log entry: the diff must ADD lines to
-//      docs/REVIEW_LOG.md that mention "#<PR number>". Field completeness of
-//      that entry is scripts/lint-review-log.mjs's job (next workflow step).
+//   3. A same-PR review-log entry: the diff must ADD a new `## ` heading to
+//      docs/REVIEW_LOG.md that names "#<PR number>" — a number dropped into an
+//      old entry or into prose does not count. Field completeness of that
+//      entry is scripts/lint-review-log.mjs's job (next workflow step).
+//   4. When over the cap with the `size-waiver` label, the PR's own log entry
+//      (the one whose heading names it, in the head tree) must carry a
+//      "Size waiver:" field with a date — the recorded human waiver the
+//      contract requires; the label alone never passes.
 //
 // Coverage boundary — what this judge cannot see: whether the reviews actually
 // ran (the log entry and the monthly escape audit cover that); whether the
 // declared tier matches the floor map (reviewers confirm it; the map is prose);
 // whether a size-waiver label carries a genuine owner waiver; and wrong
-// generated-file marks in .gitattributes (which is why that file is Tier 3).
+// generated-file marks in .gitattributes (which is why that file is Tier 3);
+// and whether the "Size waiver:" field names a real owner decision (the
+// escape audit reads it).
 //
 //   env: PR_NUMBER PR_BODY PR_LABELS (comma-separated) BASE_SHA HEAD_SHA
 //   node scripts/review-gate.mjs            # in CI
@@ -32,6 +39,7 @@
 // merged with no tier line, no review, and no log entry while CI was green.
 
 import { spawnSync } from "node:child_process";
+import { splitEntries } from "./lint-review-log.mjs";
 
 export const LINE_CAP = 500;
 export const TIER3_AIM = 300;
@@ -78,12 +86,23 @@ export function countChangedLines(numstat, isGenerated) {
   return { counted, skipped };
 }
 
-// Only ADDED lines count: an entry for this PR must be new in this PR.
+// Only an ADDED "## " heading naming the PR counts: the entry must be new in
+// this PR, so a number slipped into an old entry or into prose is not one.
 export function logEntryAdded(diffText, prNumber) {
+  const re = new RegExp(`^\\+## .*#${prNumber}(?!\\d)`);
+  return diffText.split("\n").some((line) => re.test(line));
+}
+
+// The PR's own entry in the head tree's log: heading names "#<PR>".
+export function prEntry(logText, prNumber) {
   const re = new RegExp(`#${prNumber}(?!\\d)`);
-  return diffText
-    .split("\n")
-    .some((line) => line.startsWith("+") && !line.startsWith("+++") && re.test(line));
+  return splitEntries(logText).find((e) => re.test(e.heading)) ?? null;
+}
+
+// "Size waiver:" / "**Size waiver.**" field carrying a YYYY-MM-DD date.
+export function hasSizeWaiver(entry) {
+  if (!entry) return false;
+  return /(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:][^\n]*\b\d{4}-\d{2}-\d{2}\b/i.test(entry.body);
 }
 
 function git(args, input) {
@@ -147,19 +166,30 @@ function runSelfTest() {
   check("plain path untouched", destPath("app/page.tsx"), "app/page.tsx");
   check("empty numstat counts zero", countChangedLines("", isGen).counted, 0);
   // 3. log entry
-  const diff = "+++ b/docs/REVIEW_LOG.md\n+## 2026-09-12 — PR #85 (thing)\n-## old #86 line\n context #87\n";
-  check("added line mentioning #85 counts", logEntryAdded(diff, 85), true);
+  const diff = "+++ b/docs/REVIEW_LOG.md\n+## 2026-09-12 — PR #85 (thing)\n-## old #86 line\n context #87\n+Also touches #88 in prose.\n+**Related.** see #89\n";
+  check("added heading naming #85 counts", logEntryAdded(diff, 85), true);
   check("#85 does not satisfy #8", logEntryAdded(diff, 8), false);
   check("#85 does not satisfy #850", logEntryAdded(diff, 850), false);
-  check("removed line does not count", logEntryAdded(diff, 86), false);
+  check("removed heading does not count", logEntryAdded(diff, 86), false);
   check("context line does not count", logEntryAdded(diff, 87), false);
+  check("number added into prose (old entry) does not count", logEntryAdded(diff, 88), false);
+  check("number added into a field line does not count", logEntryAdded(diff, 89), false);
   check("file header line does not count", logEntryAdded("+++ b/docs/REVIEW_LOG.md #1\n", 1), false);
+  // 4. waiver binding
+  const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner go 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n";
+  check("prEntry finds the heading naming #12", prEntry(log, 12)?.heading, "2026-09-12 — PR #12 (big)");
+  check("prEntry ignores #1 vs #12", prEntry(log, 1), null);
+  check("prEntry returns null when absent", prEntry(log, 99), null);
+  check("dated waiver field passes", hasSizeWaiver(prEntry(log, 12)), true);
+  check("'Size waiver: none' (no date) fails", hasSizeWaiver(prEntry(log, 91)), false);
+  check("missing entry fails", hasSizeWaiver(null), false);
+  check("waiver in another entry does not carry over", hasSizeWaiver(prEntry(log + "\n## 2026-09-12 — PR #13\n\nbody\n", 13)), false);
   if (failures.length) {
     for (const f of failures) console.error(`SELF-TEST FAIL: ${f}`);
     console.error(`review-gate self-test: ${failures.length} case(s) failed`);
     process.exit(1);
   }
-  console.log("review-gate self-test passed (23 cases, judge proven red-capable).");
+  console.log("review-gate self-test passed (32 cases, judge proven red-capable).");
 }
 
 function main() {
@@ -188,22 +218,27 @@ function main() {
   const { counted, skipped } = countChangedLines(numstat, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
   console.log(`review-gate: ${counted} changed lines counted (cap ${LINE_CAP})`);
+  // 3. same-PR log entry: a NEW heading naming this PR, present in the head tree
+  const logDiff = git(["diff", base, HEAD_SHA, "--", LOG_PATH]);
+  const headLog = spawnSync("git", ["show", `${HEAD_SHA}:${LOG_PATH}`], { encoding: "utf8" });
+  const entry = headLog.status === 0 ? prEntry(headLog.stdout, prNumber) : null;
+  if (!logEntryAdded(logDiff, prNumber) || !entry) {
+    failures.push(`log: ${LOG_PATH} gains no new "## ..." entry naming #${prNumber} in this PR (append this PR's review-log entry — a number added to an old entry does not count)`);
+  } else {
+    console.log(`review-gate: ${LOG_PATH} entry "${entry.heading.slice(0, 60)}" added for #${prNumber}`);
+  }
+
+  // 4. size cap, with the waiver bound to this PR's own entry
   if (counted > LINE_CAP) {
-    if (labels.includes(WAIVER_LABEL)) {
-      console.log(`review-gate: over the cap but labelled ${WAIVER_LABEL} — the log entry must record the human waiver`);
+    if (!labels.includes(WAIVER_LABEL)) {
+      failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap (excl. lockfiles/generated); split the PR, or label ${WAIVER_LABEL} AND record the human waiver as a dated "Size waiver:" field in this PR's log entry`);
+    } else if (!hasSizeWaiver(entry)) {
+      failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap and the ${WAIVER_LABEL} label has no dated "Size waiver:" field in this PR's ${LOG_PATH} entry — the label alone is not a waiver`);
     } else {
-      failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap (excl. lockfiles/generated); split the PR, or label ${WAIVER_LABEL} with a human waiver recorded in the log entry`);
+      console.log(`review-gate: over the cap; ${WAIVER_LABEL} label backed by the dated Size waiver field in the #${prNumber} entry`);
     }
   } else if (tier === 3 && counted > TIER3_AIM) {
     console.log(`review-gate: WARN Tier 3 aims for <=${TIER3_AIM} hand-written lines (${counted} counted)`);
-  }
-
-  // 3. same-PR log entry
-  const logDiff = git(["diff", base, HEAD_SHA, "--", LOG_PATH]);
-  if (!logEntryAdded(logDiff, prNumber)) {
-    failures.push(`log: ${LOG_PATH} gains no entry mentioning #${prNumber} in this PR (append this PR's review-log entry before asking for the merge)`);
-  } else {
-    console.log(`review-gate: ${LOG_PATH} entry for #${prNumber} present`);
   }
 
   if (failures.length) {
