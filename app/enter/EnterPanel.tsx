@@ -21,6 +21,7 @@ const contract = { address: PREDICTOR_ADDRESS, abi: PREDICTOR_ABI } as const;
 
 type LockedMatch = { id: number; teamA: string; teamB: string; kickoff: number };
 
+// eslint-disable-next-line complexity -- known debt: complexity 51 vs budget 15 (2026-09-11); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export function EnterPanel() {
   const t = useTranslations("enter");
   const { open } = useAppKit();
