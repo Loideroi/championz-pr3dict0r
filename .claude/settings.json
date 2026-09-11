@@ -69,8 +69,6 @@
     "ask": [
       "Bash(gh pr merge*)",
       "Bash(git merge*)",
-      "Bash(git push)",
-      "Bash(git push *)",
       "Bash(gh api*)",
       "Bash(gh pr edit*)",
       "Bash(gh pr close*)",
