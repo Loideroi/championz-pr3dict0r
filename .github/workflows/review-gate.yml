@@ -28,7 +28,7 @@ jobs:
         # Every entry dated 2026-09-12 or later: tier, exact model ids, verdict,
         # tally, Checked, Dismissed; Tier 2/3 also verification-gap, named-set,
         # Missing. Copy of the wiki repo's tools/lint-review-log.mjs.
-        run: node scripts/lint-review-log.mjs docs/REVIEW_LOG.md
+        run: node scripts/lint-review-log.mjs docs/REVIEW_LOG.md --since 2026-09-12
       - name: Instruction-file hygiene (AGENTS.md)
         # Boundaries section present, CLAUDE.md imports it, no restated package
         # scripts, no secret-shaped values, <=150 lines. Copy of the wiki repo's
