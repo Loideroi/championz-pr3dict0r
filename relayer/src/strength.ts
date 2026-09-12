@@ -79,6 +79,7 @@ const WINNER_DEPTH = 7;
  * club knocked out in the third qualifying round never entered the tournament
  * proper — it reads as ABSENT, which is what a predictor cares about.
  */
+// eslint-disable-next-line complexity -- known debt: complexity 17 vs budget 15 (2026-09-12); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export function runsFromMatches(matches: UefaMatch[]): Map<string, PrevRun> {
   const deepest = new Map<string, { depth: number; run: PrevRun }>();
   const record = (teamId: string, entry: { depth: number; run: PrevRun }) => {

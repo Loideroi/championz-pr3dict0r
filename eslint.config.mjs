@@ -12,9 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // separate workspaces with their own toolchains
+    // contracts/ is its own toolchain (Hardhat + Solidity). relayer/ is linted
+    // from here since 2026-09-12 (same budgets, same exception policy) — its
+    // Node ESM TypeScript needs no relayer node_modules for these rules; the
+    // inherited React/Next rules are inert on non-JSX Node code.
     "contracts/**",
-    "relayer/**",
+    // relayer build output (gitignored; `npm --prefix relayer run build`)
+    "relayer/dist/**",
   ]),
   {
     // Complexity budgets (architecture fitness functions). Wired warn-only
@@ -36,6 +40,16 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["**/*.test.*", "**/__tests__/**"],
+    rules: {
+      "max-lines": "off",
+    },
+  },
+  {
+    // relayer/vendor/uefa-api-types.ts is a vendored copy of a third-party
+    // type-definition file (uefa-api v1.0.2, PRD §7.1) kept as our reference
+    // for the UEFA API shapes; it is never refactored, so the file-length
+    // budget does not apply. Every other rule (and the inline-config ban) does.
+    files: ["relayer/vendor/**"],
     rules: {
       "max-lines": "off",
     },
