@@ -104,20 +104,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Compile + test (skips until slice 02 lands the contract)
+      - name: Compile + test
         working-directory: contracts
         run: |
-          if [ -f package.json ] && [ -f hardhat.config.ts ]; then
-            # Lockfile integrity before install — same rule as the app job.
-            npx --yes lockfile-lint@5.0.0 --path package-lock.json --type npm \
-              --allowed-hosts npm --validate-https \
-              --validate-integrity --validate-package-names
-            npm ci --no-audit --no-fund
-            npx hardhat compile
-            npx hardhat test
-          else
-            echo "contracts workspace not initialized yet — skipping"
-          fi
+          # Lockfile integrity before install — same rule as the app job.
+          npx --yes lockfile-lint@5.0.0 --path package-lock.json --type npm \
+            --allowed-hosts npm --validate-https \
+            --validate-integrity --validate-package-names
+          npm ci --no-audit --no-fund
+          npx hardhat compile
+          npx hardhat test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install slither (pinned)
+        # Top-level pin only; slither's own Python dependencies are not locked.
+        # The version matches the one recorded in SECURITY_FINDINGS.md.
+        run: python -m pip install --quiet slither-analyzer==0.11.4
+      - name: Static analysis (slither, blocking on new or stale High/Medium findings)
+        working-directory: contracts
+        # Same command as local: slither runs through the Hardhat platform (it
+        # re-compiles with the project's pinned solc 0.8.24 / shanghai) and
+        # writes the full report; scripts/check-slither.mjs fails on any
+        # High/Medium finding not triaged in slither-triage.json, on any triage
+        # entry that no longer matches a finding, on a malformed entry, and on a
+        # slither/compile failure. Added 2026-09-12 (guardrail-complete, PR C).
+        run: npm run slither
 
   migrations:
     name: Migrations — squawk (changed files only)

@@ -95,6 +95,8 @@ class on the shipped contract.
 
 ## Slither 0.11.4
 
+> **CI gate since 2026-09-12:** `npm run slither` in `contracts/` runs in the required `contracts` check. The eight High/Medium findings below are triaged by id in `contracts/slither-triage.json` (exact expression + reason); a new High/Medium finding, or a triaged one whose code moved, fails CI until re-triaged in the same PR.
+
 No high-severity class triggered — specifically **no `reentrancy-eth`,
 `uninitialized-state`, `suicidal`, or `arbitrary-send` to user-controlled input**.
 Triggered detectors, all reviewed & accepted:
