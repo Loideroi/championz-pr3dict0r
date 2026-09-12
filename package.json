@@ -11,6 +11,8 @@
     "dup": "jscpd app components hooks lib middleware.ts relayer/src --min-tokens 50 --ignore \"**/*.test.*,**/__tests__/**,**/test/**\" --threshold 2 --silent",
     "migrations:lint": "squawk supabase/migrations/*.sql",
     "test": "vitest run",
+    "check:agents": "node scripts/check-agents-md.mjs AGENTS.md",
+    "check:review-log": "node scripts/lint-review-log.mjs docs/REVIEW_LOG.md",
     "test:relayer": "npm --prefix relayer test",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

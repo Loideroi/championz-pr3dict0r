@@ -14,3 +14,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Go-To-Market
 
 `GO_TO_MARKET.md` at the repo root is the single source of truth for launch/growth activities and their statuses. Include it when planning any GTM work, and keep it updated when GTM work lands. (Moved from global CLAUDE.md, 2026-08-20.)
+
+## Boundaries
+
+The ask-first rules an agent must see every session (mechanically required by `scripts/check-agents-md.mjs`, the AGENTS.md admission-test judge from the Loideroi LLM Wiki, run in CI).
+
+- Commits, branches, PRs, and dependency changes are ask-first; `main` is protected and every change lands through a PR. Merges, deploys, the oracle relayer workflow, and anything that signs or moves value are forbidden unless the owner explicitly requests them; an owner instruction to merge never waives the reviewer passes or the log entry.
+- Never weaken `.npmrc`, the lockfile, `eslint.config.mjs`, `.squawk.toml`, or a CI step to make a task pass; the jscpd threshold only tightens.
+- Tier 3 paths (2 reviewers + human gate): the floor map in `docs/REVIEW_TIERS.md`; unlisted paths are never Tier 1 by omission. Log every reviewed PR in `docs/REVIEW_LOG.md` (linted in CI).
+- Never store secrets in the repo or in instruction files.

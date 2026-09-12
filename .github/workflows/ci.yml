@@ -42,6 +42,18 @@ jobs:
             --allowed-hosts npm --validate-https \
             --validate-integrity --validate-package-names
       - run: npm ci --no-audit --no-fund
+
+      # Process judges (LLM Wiki, adopted 2026-09-11; byte-identical copies of the
+      # wiki's tools/ at commit 947355e). Each runs its self-test first so a judge
+      # that can no longer go red fails the build itself.
+      - name: Instruction-file hygiene (self-test, then AGENTS.md)
+        run: |
+          node scripts/check-agents-md.mjs --self-test
+          node scripts/check-agents-md.mjs AGENTS.md
+      - name: Review-log contract (self-test, then docs/REVIEW_LOG.md)
+        run: |
+          node scripts/lint-review-log.mjs --self-test
+          node scripts/lint-review-log.mjs docs/REVIEW_LOG.md
       - name: Lint
         run: npm run lint
         # Added 2026-08-27 — CI previously never ran ESLint. Base-config
