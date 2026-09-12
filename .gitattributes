@@ -1,18 +1,20 @@
 # Generated files: excluded from the review-gate size cap and from reviewer
 # line budgets (the review contract's "excluding lockfiles and generated
 # files"). This file is Tier 3 — a wrong mark here hides lines from the cap.
+# Patterns are root-anchored (leading slash): an unanchored "package-lock.json"
+# matched lib/x/package-lock.json too (reviewer probe 2026-09-12).
 # Lockfiles are excluded by name in scripts/review-gate.mjs; marked here too
 # so GitHub collapses them in diffs.
-package-lock.json linguist-generated=true
-contracts/package-lock.json linguist-generated=true
-relayer/package-lock.json linguist-generated=true
+/package-lock.json linguist-generated=true
+/contracts/package-lock.json linguist-generated=true
+/relayer/package-lock.json linguist-generated=true
 # Relayer insight-generator output (relayer/src/insights.ts), six locales.
-public/insights/*.json linguist-generated=true
+/public/insights/*.json linguist-generated=true
 # Bundled UEFA fixture snapshot.
-lib/fixtures/matches.json linguist-generated=true
+/lib/fixtures/matches.json linguist-generated=true
 # Recorded API fixtures for the relayer tests.
-relayer/test/fixtures/*.json linguist-generated=true
+/relayer/test/fixtures/*.json linguist-generated=true
 # hardhat-upgrades network manifests.
-contracts/.openzeppelin/*.json linguist-generated=true
+/contracts/.openzeppelin/*.json linguist-generated=true
 # Deliberately NOT marked: relayer/config/mainnet-map.json — the oracle map is
 # value-moving configuration and must count toward the cap and be read.
