@@ -2,6 +2,37 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-09-12 — PR #<assigned at opening> `chore/portable-judges` (the wiki's review-log and AGENTS.md judges run on every PR)
+
+**Scope.** NEW `scripts/lint-review-log.mjs` (311 lines) and `scripts/check-agents-md.mjs` (354 lines) — byte-identical copies of the Loideroi LLM Wiki's `tools/` judges (sha256 `29b6cf03…37c` and `c6d6710c…56a`; `templates/ci-node.yml` prescribes them per repo); NEW `.github/workflows/review-gate.yml` running both on `pull_request` (opened/synchronize/reopened/edited) with `permissions: contents: read` and the review-log cutoff passed explicitly (`--since 2026-09-12`). Every log entry dated on/after the cutoff must carry tier, exact model ids, verdict, tally, `Checked:`, `Dismissed:` (Tier 2/3 also `verification-gap`, `named-set`, `Missing:`); `AGENTS.md` must keep a Boundaries section, stay ≤150 lines, restate no package scripts, and be imported by `CLAUDE.md`.
+
+**Tier.** 3 — `scripts/**` and `.github/workflows/**` (floor map). Confirmed by both reviewers. Copied files are the bulk of the diff (665 lines) — the reviewers attested byte identity **fully verified, not sampled**; hand-written logic is the 36-line workflow.
+
+**Roles and models.** Author: Claude Code interactive, `claude-fable-5-1` (first commit) / `claude-opus-5[1m]` (fix). Reviewer 1 (cross-vendor): OpenAI Codex CLI 0.144.1, `-m gpt-5.6-sol`, read-only sandbox. Reviewer 2 (fresh-context): Claude Code subagent, `claude-opus-5[1m]`.
+
+**Verdicts.** R1: **fail** (2 Major) → **pass** ×3 (final, tip `974da3d`-equivalent content). R2: **pass-with-minors** (1 Minor, 2 wiki-side Nits) → **pass** (2 wiki-side Nits carried). Tally (unique): 0 Blocker / 2 Major / 1 Minor / 2 Nit — Majors and Minor resolved; Nits are wiki-repo follow-ups, deliberately not changed here to keep byte identity.
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Major | R1 | The first copies were **not** byte-identical to the wiki judges (the wiki versions gained field-content, highest-tier-wins, date, fence, command-form and secret-family checks the same day) — the local judges accepted rubber-stamp entries | Re-copied from the wiki's current tools; sha256 + `cmp` identical, self-tests 41 and 42 cases; R1 and R2 both re-verified byte identity |
+| Major | R1 | Same, for the AGENTS.md judge (bare command bullets, shell fences, several secret families missed) | Same fix |
+| Minor | R2 | The review-log cutoff lived only inside the copied file, so a future byte-identical re-copy could change this repo's cutoff with no local decision | Workflow passes `--since 2026-09-12` explicitly |
+| Nit | R2 | (wiki-side) the judge's argv validation runs at module top level even when imported; cutoff/exempt constants not exported | Carried to the wiki (plan W7.9); byte identity kept here |
+
+**Checked.** R1: sha256 and whole-file `cmp` against both wiki files (three times across passes), both self-tests, the live `AGENTS.md` check, `git diff --check`, the workflow's expressions (no PR text interpolated into `run:`). R2: the same identity proof at the B1 tip and again at the B2 tip, both self-tests, `lint-review-log.mjs docs/REVIEW_LOG.md --since 2026-09-12` (0 entries ≥ cutoff at review time, expected), workflow read (job id `review-gate` stable for branch protection; `edited` covers body changes; fork PRs get a read-only token), reuse search (only `scripts/check-i18n-parity.mjs` pre-exists; no overlap). Sandbox note: R1's read-only sandbox denied `mkdtemp`, so the AGENTS judge's filesystem-discovery self-test case was skipped there and run by R2 and the author instead.
+
+**verification-gap:** the self-tests cover the judges' pure functions (83 red-capable cases); the workflow plumbing (steps run, exit codes propagate) is proven only by the first live PR run; byte identity to the wiki has no automated drift check (named follow-up).
+
+**named-set:** the judges' fixed sets (exempt headings `ESCAPE AUDIT|OWNER WAIVER|EXCEPTION RECORD`, tier values 1/2/3 highest-wins, secret families, package managers × built-ins) are the wiki's, verbatim. Event types are `opened, synchronize, reopened, edited`; `labeled/unlabeled` arrive with the gate PR.
+
+**Missing.** A drift check between these copies and the wiki originals (nothing fails if they diverge — follow-up); an explicit statement of the cutoff in the repo before this fix (now present).
+
+**Dismissed.** none. **Disputes.** none.
+
+**Risk brief (R2, for the owner).** Two judge scripts are exact copies of the wiki's, and a new CI job runs them on every PR. They are self-tested and cannot push, merge, or read secrets. What could break: nothing in the app — the job only reads `docs/REVIEW_LOG.md` and `AGENTS.md`. Residual risk: low; the judges are advisory until `review-gate` is a required check (owner click, named in the entry-file wiring PR).
+
+**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. After opening the PR, replace `#<assigned at opening>` in this heading with the real number.
+
 ## 2026-09-12 — PR #<assigned at opening> `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
 
 **Scope.** `.claude/settings.json` (rewritten: no `gh pr merge`, `git merge`, `gh api`, `vercel`, `npm install`, issue/workflow writes without a prompt; pushes prompt-free only on six branch prefixes; every refspec, delete, tag, prune, force form asks; every textual spelling of a push to `main` incl. `*heads/main` and `git -c`/`-C` denied; `node *` narrowed to `node scripts/*`; self-applying the `size-waiver` label asks), `AGENTS.md` (Boundaries + Pointers per the wiki template — merges are the owner's click, an owner "merge it" never waives the reviewer passes, every PR declares its tier and ships its own log entry, Tier 3 paths named, settings stated as cooperative with the missing "require a pull request" rule named), `CLAUDE.md` (workflow line), `CONTRIBUTING.md` (per-task recipe: tier, reviewers, same-PR log entry, no `--fill`). ~200 changed lines. Context: the 2026-09-09 escapes above — 20 unlogged merges (the entry's prose says 23; its list has 20) plus #85–#87 happened because these files never mentioned the review process and the old settings allowed the merge. Investigation record: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
