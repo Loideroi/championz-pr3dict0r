@@ -36,7 +36,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Gate.** Owner go/no-go pending. Merge third, after `chore/portable-judges`; then enroll `Review gate / review-gate` as a required status check. PR #104.
 
-## 2026-09-12 — PR #<assigned at opening> `chore/portable-judges` (the wiki's review-log and AGENTS.md judges run on every PR)
+## 2026-09-12 — PR #103 `chore/portable-judges` (the wiki's review-log and AGENTS.md judges run on every PR)
 
 **Scope.** NEW `scripts/lint-review-log.mjs` (311 lines) and `scripts/check-agents-md.mjs` (354 lines) — byte-identical copies of the Loideroi LLM Wiki's `tools/` judges (sha256 `29b6cf03…37c` and `c6d6710c…56a`; `templates/ci-node.yml` prescribes them per repo); NEW `.github/workflows/review-gate.yml` running both on `pull_request` (opened/synchronize/reopened/edited) with `permissions: contents: read` and the review-log cutoff passed explicitly (`--since 2026-09-12`). Every log entry dated on/after the cutoff must carry tier, exact model ids, verdict, tally, `Checked:`, `Dismissed:` (Tier 2/3 also `verification-gap`, `named-set`, `Missing:`); `AGENTS.md` must keep a Boundaries section, stay ≤150 lines, restate no package scripts, and be imported by `CLAUDE.md`.
 
@@ -67,7 +67,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. PR #104.
 
-## 2026-09-12 — PR #<assigned at opening> `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
+## 2026-09-12 — PR #102 `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
 
 **Scope.** `.claude/settings.json` (rewritten: no `gh pr merge`, `git merge`, `gh api`, `vercel`, `npm install`, issue/workflow writes without a prompt; pushes prompt-free only on six branch prefixes; every refspec, delete, tag, prune, force form asks; every textual spelling of a push to `main` incl. `*heads/main` and `git -c`/`-C` denied; `node *` narrowed to `node scripts/*`; self-applying the `size-waiver` label asks), `AGENTS.md` (Boundaries + Pointers per the wiki template — merges are the owner's click, an owner "merge it" never waives the reviewer passes, every PR declares its tier and ships its own log entry, Tier 3 paths named, settings stated as cooperative with the missing "require a pull request" rule named), `CLAUDE.md` (workflow line), `CONTRIBUTING.md` (per-task recipe: tier, reviewers, same-PR log entry, no `--fill`). ~200 changed lines. Context: the 2026-09-09 escapes above — 20 unlogged merges (the entry's prose says 23; its list has 20) plus #85–#87 happened because these files never mentioned the review process and the old settings allowed the merge. Investigation record: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
 
