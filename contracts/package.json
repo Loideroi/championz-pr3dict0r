@@ -6,7 +6,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:spicy": "hardhat run scripts/deploy.ts --network spicy",
-    "slither": "rm -f slither-report.json; slither . --config-file slither.config.json --json slither-report.json > /dev/null 2>&1; node scripts/check-slither.mjs"
+    "slither": "rm -f slither-report.json; npx hardhat compile > slither.log 2>&1 && slither . --hardhat-ignore-compile --config-file slither.config.json --json slither-report.json >> slither.log 2>&1; node scripts/check-slither.mjs",
+    "test:gate": "node --test scripts/check-slither.test.mjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
