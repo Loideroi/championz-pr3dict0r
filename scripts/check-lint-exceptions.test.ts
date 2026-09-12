@@ -12,7 +12,7 @@ const Cn = "/*" + "eslint ";
 const dirs: string[] = [];
 // Fixture flat config: no-console is an error everywhere but the ignored trees.
 const config = `export default [
-  { ignores: ["contracts/**", "relayer/**", ".next/**"] },
+  { ignores: ["contracts/**", "generated/**", ".next/**"] },
   { files: ["**/*.{js,mjs,cjs,ts}"], rules: { "no-console": "error" } },
 ];
 `;
@@ -125,7 +125,7 @@ describe("check-lint-exceptions (ESLint-driven)", () => {
   it("respects ESLint's own ignores exactly", () => {
     expect(run({
       "contracts/a.js": `// ${D}\n${LOG}`,
-      "relayer/src/b.js": `// ${D}\n${LOG}`,
+      "generated/b.js": `// ${D}\n${LOG}`,
       ".next/c.js": `// ${D}\n${LOG}`,
     }).code).toBe(0);
   });
