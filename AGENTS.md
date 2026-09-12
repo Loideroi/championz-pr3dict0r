@@ -14,3 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Go-To-Market
 
 `GO_TO_MARKET.md` at the repo root is the single source of truth for launch/growth activities and their statuses. Include it when planning any GTM work, and keep it updated when GTM work lands. (Moved from global CLAUDE.md, 2026-08-20.)
+
+## Gates (all blocking in CI — never weaken one to pass a task)
+
+`npm run typecheck`, `npm run lint` (budgets are errors; exceptions need `expires YYYY-MM-DD`), `npm run arch` (dependency-cruiser layering — see `ARCHITECTURE.md`), `npm run deadcode:ci` (knip), `npm run dup` (jscpd ≤ 1%), `npm test`, `npm run check:i18n`. Baselines, exceptions and tier floors: `docs/REVIEW_TIERS.md`. Guardrail-complete since 2026-09-11 (Loideroi LLM Wiki, Development Lifecycle → guardrail stack).

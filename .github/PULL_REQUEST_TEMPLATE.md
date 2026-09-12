@@ -9,8 +9,10 @@
 
 ## Author verification (before requesting review)
 
-- [ ] `npm run lint` green (complexity/max-lines budgets may warn — no NEW warnings)
-- [ ] `npm run dup` green (duplication under the 2% ratchet threshold)
+- [ ] `npm run lint` green (blocking: zero warnings, complexity ≤ 15, max-lines ≤ 400; any `eslint-disable` carries `expires YYYY-MM-DD` and is listed in `docs/REVIEW_TIERS.md`)
+- [ ] `npm run arch` green (dependency-cruiser: layering, cycles, orphans, devDeps)
+- [ ] `npm run deadcode:ci` green (knip: unused files, dependencies, unlisted imports)
+- [ ] `npm run dup` green (duplication under the 1% ratchet threshold)
 - [ ] `npm run typecheck` green
 - [ ] `npm test` green
 - [ ] `npm run check:i18n` green

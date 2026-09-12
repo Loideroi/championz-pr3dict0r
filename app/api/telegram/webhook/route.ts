@@ -69,6 +69,7 @@ async function groupInvite(): Promise<string | null> {
   return json.result?.invite_link ?? null;
 }
 
+// eslint-disable-next-line complexity -- known debt: complexity 19 vs budget 15 (2026-09-11); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export async function POST(request: NextRequest) {
   // Telegram authenticates webhooks via this header (setWebhook secret_token)
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
