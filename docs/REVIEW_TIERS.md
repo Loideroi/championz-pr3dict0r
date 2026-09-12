@@ -38,7 +38,11 @@ see Named Follow-Ups). `scripts/review-gate.mjs` fails a PR whose body has no
 cannot mark its own files) exceed 500 without the `size-waiver` label, or whose
 `docs/REVIEW_LOG.md` gains no new, complete entry about the PR (dated on/after the
 judge cutoff, non-exempt heading shape, fields checked with the judge's own rules,
-highest tier equal to the declared tier, older entries append-only).
+labeled tier — `**Tier.** N` / `raised to Tier N` — equal to the declared tier, older entries append-only; a text-typed file git reports as binary fails the gate outright).
+**Recovery from a wrong heading** (append-only has no in-band edit): the owner authors a
+correction PR with an `EXCEPTION RECORD` entry naming the wrong and right headings and
+merges it with the admin bypass; the gate will fail that PR by design and the log entry
+is the record. Never rewrite the old entry in a feature PR.
 `scripts/lint-review-log.mjs` then checks the entry's fields, and
 `scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
 `size-waiver` label is only valid with the human waiver recorded in the log entry as a

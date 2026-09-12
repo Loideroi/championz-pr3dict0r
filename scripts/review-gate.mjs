@@ -77,16 +77,30 @@ export function destPath(p) {
   return bare ? bare[2] : p;
 }
 
+// Extensions that are always text: git reporting one of these as binary means
+// a NUL byte was planted (git's heuristic), which would hide the file from the
+// cap AND from GitHub's diff view ("Binary file not shown"). Refuse, never skip.
+const TEXT_EXT_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|md|mdx|sql|sol|yml|yaml|css|scss|html|svg|toml|txt|sh|env|example|lock|csv|xml|graphql|prisma|py|rb|go|rs)$/i;
+// Real binary types that may legitimately be skipped.
+const BINARY_EXT_RE = /\.(png|jpe?g|gif|webp|avif|ico|icns|bmp|woff2?|ttf|otf|eot|pdf|wasm|zip|gz|tgz|mp[34]|webm|ogg|wav|mov)$/i;
+
 // numstat: "<added>\t<deleted>\t<path>" per line; binary files show "-\t-".
+// Returns { counted, skipped, refused }: refused names text-typed paths git
+// called binary — the caller fails the gate on any of them.
 export function countChangedLines(numstat, isGenerated) {
   let counted = 0;
   const skipped = [];
+  const refused = [];
   for (const line of numstat.split("\n")) {
     if (!line.trim()) continue;
     const [a, d, ...rest] = line.split("\t");
     const path = destPath(rest.join("\t"));
     if (a === "-" || d === "-") {
-      skipped.push(`${path} (binary)`);
+      if (TEXT_EXT_RE.test(path) || !BINARY_EXT_RE.test(path)) {
+        refused.push(path);
+      } else {
+        skipped.push(`${path} (binary)`);
+      }
       continue;
     }
     if (LOCKFILE_RE.test(path)) {
@@ -99,7 +113,7 @@ export function countChangedLines(numstat, isGenerated) {
     }
     counted += Number(a) + Number(d);
   }
-  return { counted, skipped };
+  return { counted, skipped, refused };
 }
 
 // The PR numbers an entry heading is ABOUT — the heading grammar is
@@ -129,9 +143,14 @@ export function isRealDate(s) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-// Highest "Tier N" an entry mentions (the judge's rule: a reviewer's raise wins).
+// The entry's tier, read from LABELED forms only — "**Tier.** N", "Tier: N",
+// "(Tier N)" in the heading, or "raised to Tier N" — never from prose such as
+// "no Tier 3 paths were touched". Highest labeled value wins (a reviewer's
+// raise beats the author's declaration).
 export function entryTier(entry) {
-  const tiers = [...`${entry.heading}\n${entry.body}`.matchAll(/\bTier\**\s*[.:]?\s*\**\s*([123])\b/gi)].map((m) => Number(m[1]));
+  const text = `${entry.heading}\n${entry.body}`;
+  const re = /(?:\*\*Tier\.?\*\*\s*|\bTier\s*[.:]\s*\**\s*|\(\s*Tier\s+|\braised\s+to\s+Tier\s+)([123])\b/gi;
+  const tiers = [...text.matchAll(re)].map((m) => Number(m[1]));
   return tiers.length ? Math.max(...tiers) : null;
 }
 
@@ -244,6 +263,12 @@ function runSelfTest() {
     "public/insights/en.json (linguist-generated)",
     "public/icon.png (binary)",
   ]);
+  check("nothing refused in the clean case", r.refused, []);
+  check("text-typed file reported binary is refused (.ts)", countChangedLines("-\t-\tlib/r2-nul.ts", isGen).refused, ["lib/r2-nul.ts"]);
+  check("text-typed file reported binary is refused (.sql)", countChangedLines("-\t-\tsupabase/migrations/x.sql", isGen).refused, ["supabase/migrations/x.sql"]);
+  check("unknown extension reported binary is refused too (fail closed)", countChangedLines("-\t-\tlib/blob.dat", isGen).refused, ["lib/blob.dat"]);
+  check("real binary type is skipped, not refused", countChangedLines("-\t-\tpublic/font.woff2", isGen).refused, []);
+  check("generated path reported binary is still refused when text-typed", countChangedLines("-\t-\tpublic/insights/en.json", isGen).refused, ["public/insights/en.json"]);
   check("braced rename resolves to destination", destPath("lib/{old => new}/util.ts"), "lib/new/util.ts");
   check("bare rename resolves to destination", destPath("old.md => new.md"), "new.md");
   check("plain path untouched", destPath("app/page.tsx"), "app/page.tsx");
@@ -269,7 +294,11 @@ function runSelfTest() {
   check("impossible heading date fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-02-30 — PR #85 (thing)" + FULL, 85).ok, false);
   check("new entry with no fields fails the judge's field check", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-12 — PR #85 (thing)\n\nno fields at all\n", 85).ok, false);
   check("Tier 2 entry missing named-set fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-12 — PR #85 (thing)" + FULL.replace("**named-set:**", "**enum:**"), 85).ok, false);
-  check("entryTier: highest wins", entryTier({ heading: "x", body: "declared Tier 2; reviewer raised to Tier 3" }), 3);
+  check("entryTier: labeled bold field", entryTier({ heading: "x", body: "**Tier.** 2 — ordinary code" }), 2);
+  check("entryTier: 'Tier: N' form", entryTier({ heading: "x", body: "- Tier: 1. Author x" }), 1);
+  check("entryTier: heading parenthesis", entryTier({ heading: "2026-09-12 — PR #5 (Tier 3)", body: "" }), 3);
+  check("entryTier: 'raised to Tier N' beats the labeled field", entryTier({ heading: "x", body: "**Tier.** 2, reviewer raised to Tier 3" }), 3);
+  check("entryTier: prose mention does not count", entryTier({ heading: "x", body: "**Tier.** 2 — no Tier 3 paths were touched" }), 2);
   check("entryTier: none", entryTier({ heading: "x", body: "no tier here" }), null);
   // 4. heading subject and waiver binding
   check("subject: PR #100 (follow-up to #999) is about #100 only", [...headingPrIds("2026-09-12 — PR #100 (follow-up to #999)")], [100]);
@@ -336,8 +365,9 @@ function main() {
   const numstat = git(["diff", "--numstat", "-M", base, HEAD_SHA]);
   const paths = numstat.split("\n").filter(Boolean).map((l) => destPath(l.split("\t").slice(2).join("\t")));
   const generated = generatedSet(paths, base);
-  const { counted, skipped } = countChangedLines(numstat, (p) => generated.has(p));
+  const { counted, skipped, refused } = countChangedLines(numstat, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
+  for (const p of refused) failures.push(`size: ${p} is reported binary by git (a NUL byte in a text-typed file hides its lines from this cap and from GitHub's diff) — remove the byte or the file`);
   console.log(`review-gate: ${counted} changed lines counted (cap ${LINE_CAP})`);
   // 3. same-PR log entry: new in this PR, log append-only
   const showLog = (sha) => {
