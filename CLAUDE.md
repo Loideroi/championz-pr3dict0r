@@ -73,5 +73,7 @@ npm run lint       # eslint
 - Triage labels: five-role vocabulary — see `docs/agents/triage-labels.md`.
 - Domain docs: `CONTEXT.md` glossary + `docs/adr/` (immutable; supersede, don't edit)
   — see `docs/agents/domain.md`. ADRs 0001–0011 encode the grilled decisions D1–D11.
-- Workflow: see `CONTRIBUTING.md` — branch off main, `typecheck && test && build`
-  before PR, rebase on origin/main, never push to main.
+- Workflow: see `CONTRIBUTING.md` — branch off main, gates green before the PR,
+  tier declared from `docs/REVIEW_TIERS.md`, the tier's reviewers run and this PR's
+  `docs/REVIEW_LOG.md` entry added in the same PR, never push to main. The merge is
+  the owner's click (Boundaries in `AGENTS.md`).

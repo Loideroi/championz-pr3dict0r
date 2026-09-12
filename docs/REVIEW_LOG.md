@@ -2,6 +2,39 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-09-12 — PR #102 `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
+
+**Scope.** `.claude/settings.json` (rewritten: no `gh pr merge`, `git merge`, `gh api`, `vercel`, `npm install`, issue/workflow writes without a prompt; pushes prompt-free only on six branch prefixes; every refspec, delete, tag, prune, force form asks; every textual spelling of a push to `main` incl. `*heads/main` and `git -c`/`-C` denied; `node *` narrowed to `node scripts/*`; self-applying the `size-waiver` label asks), `AGENTS.md` (Boundaries + Pointers per the wiki template — merges are the owner's click, an owner "merge it" never waives the reviewer passes, every PR declares its tier and ships its own log entry, Tier 3 paths named, settings stated as cooperative with the missing "require a pull request" rule named), `CLAUDE.md` (workflow line), `CONTRIBUTING.md` (per-task recipe: tier, reviewers, same-PR log entry, no `--fill`). ~200 changed lines. Context: the 2026-09-09 escapes above — 20 unlogged merges (the entry's prose says 23; its list has 20) plus #85–#87 happened because these files never mentioned the review process and the old settings allowed the merge. Investigation record: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
+
+**Tier.** 3 — `.claude/**`, `AGENTS.md`, `CLAUDE.md` are agent instruction / permission files (floor map); permission changes are never-eligible for an owner waiver. Confirmed by both reviewers.
+
+**Roles and models.** Author: Claude Code interactive, `claude-fable-5-1` for the first commit, `claude-opus-5[1m]` for the fix rounds (the session's model changed mid-work on a usage-credit stop; recorded, not a choice). Reviewer 1 (cross-vendor): OpenAI Codex CLI 0.144.1, invoked `-m gpt-5.6-sol`, read-only sandbox (four passes on this PR). Reviewer 2 (fresh-context, no author reasoning, no R1 findings on first pass): Claude Code subagent, `claude-opus-5[1m]` (a first `claude-fable-5-1` subagent died on the usage-credit stop before producing anything; three passes).
+
+**Verdicts.** R1: **fail** → fail → **pass** → **pass** (final, tip `a354168`). R2: **fail** (1 Blocker, 1 Major, 3 Minor, 1 Nit) → pass-with-minors (2 Minor, 2 Nit) → **pass** (1 Nit). Tally (all rounds, unique): 1 Blocker / 3 Major / 5 Minor / 4 Nit — all resolved except one accepted Nit.
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Blocker | R2 | `git push origin feat/x:main` (and multi-ref `feat/x main`) rode the `feat/*` allow row; no deny matched | Fixed: `* main`, `* *:main`, `*heads/main`, `+` force-refspec forms denied; generic `git push * *:*` asks. R1 raised the same as a Major on its first re-check; both re-checked: resolved |
+| Major | R1 | Catch-all `Bash(git push *)` in ask shadowed the six branch allow rows (deny → ask → allow, first match wins) | Fixed: catch-all removed; R1 re-checked |
+| Major | R2 | `node *`, `npm run*`, `git rebase -x` allow rows run arbitrary code, so the settings are cooperative while AGENTS.md stated them as a guarantee | Fixed by honest wording (settings shape what an agent tries; branch protection + the enrolled check are the boundary) and `node scripts/*`; R2 re-checked |
+| Major | R2 (re-check) | Branch protection on `main` has enforce-admins + required checks but no "require a pull request" rule, so a green PR head can be fast-forwarded to `main` directly | AGENTS.md states it; owner click queued (wiki plan O10); "narrowed, not closed" until both clicks |
+| Minor | R2 | `-d`, `--prune`, `--tags` rode the prefix rows; `--label=` and mid-command `rebase -x` missed the space-delimited ask rows; `heads/main` DWIM spelling missed every deny row; entry files referenced scripts that land in the stacked PRs | All fixed (`* -d`, `--prune*`, `--tags*`, `--all*`, `--mirror*` ask; `*--label*` / `* -l*`; `git rebase *-x*` etc.; `*heads/main` deny; "lands with the stacked PRs; merge the three in order") |
+| Nit | R2 | `git rebase *-i*` also prompts on branch names containing `-i` | **Accepted** (friction, not a hole) |
+
+**Checked.** R1: complete settings file under deny → ask → allow against the official permissions documentation (rule precedence, `*` spans spaces, `Bash(cmd *)` boundaries, compound commands), representative spellings (direct `main`, `HEAD:main`, `feat/x:main`, full-ref, force-refspec, delete, generic refspec, ordinary branch), JSON parse, `git diff --check`, cross-file consistency of AGENTS/CLAUDE/CONTRIBUTING. R2: full settings file (165 lines) plus a spelling matrix of ~30 forms incl. `git -C`, `--git-dir`, quoted refspecs, `heads/main` DWIM (verified live in a scratch repo), branch protection read via the API, `ci.yml`/`codeql.yml` triggers, `check-agents-md.mjs AGENTS.md` (pass), reuse search (no existing permission validator). Author self-verification: JSON parse; `check-agents-md` pass.
+
+**verification-gap:** permission rules have no in-repo test — if a rule stopped matching, nothing fails; correctness rests on the documented semantics and the reviewers' matchers. The AGENTS.md branch-protection claim is not mechanically checked.
+
+**named-set:** the main-push deny family covers `main`, `:main`, `*heads/main` (both spellings), `+` forms, `-u`/`--set-upstream`, `-c`/`-C`; the six allowed prefixes are consistent across settings and prose; other prefixes (`release/*`, `dependabot/*`) prompt (fail-closed). The forms no textual rule can see — quoted `"main"`, `HEAD` pushed from a `main` checkout — prompt (no push form is allow-listed for them) and are named in AGENTS.md.
+
+**Missing.** Both reviewers looked for a `PreToolUse` hook parsing the push destination (none — ask-first under the wiki ladder; the settings are cooperative by design and say so), an executable settings-policy test (none exists in the tooling), and the "require a pull request" branch rule (owner click).
+
+**Dismissed.** none. **Disputes.** none.
+
+**Risk brief (R2, for the owner).** The agent's unprompted git/gh surface is now tightly listed and the instruction file tells the truth: these rules guide a cooperating agent and are not a wall. Every obvious way of pushing `main` now prompts or is blocked. The part that matters for "merge is my click": your branch protection today blocks force-pushes and requires green checks, but it does not require a pull request — so a green PR head can still be pushed straight to `main` by anyone with your token, including an agent. One click ("Require a pull request before merging") makes the merge genuinely yours; enrolling `review-gate` as required is the second click. Residual after both: none for direct pushes; the agent could still write a misleading review-log entry, which is what the escape audit reads.
+
+**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #102.
+
 ## 2026-09-12 — PR #98 (insights: matchday 2 — form and the real league table, ranked UEFA's way)
 
 **Scope.** `relayer/src/insights.ts` (`tablePositions` rewritten: kickoff cut, UEFA league-phase tiebreaks a–h, shared positions; `buildFacts` threads kickoff), `relayer/test/insights.test.ts` (+12 tests), `relayer/scripts/generate-insights.mjs` (live-mode comparison with UEFA's published standings, warn-only), NEW `relayer/test/fixtures/standings-ucl-2027-md1.json` (18 MD1 results + UEFA's 36 published ranks, 3.6 KB); regenerated `public/insights/*.json` ×6 and `relayer/test/output/insights-sample/*.json` ×6. Hand-written: +287/−36 across two commits (`55a6436`, `cf4ebbe`); the rest is generator output. Owner intent, verbatim: "create updated AI insights for match day 2". The author widened that to two bug fixes because the first regeneration with real results shipped copy that was wrong (post-match table on played MD1 cards; 0-point clubs ranked 19th–36th by feed order) — recorded in the PR description as the deviation from the literal ask.
@@ -80,6 +113,13 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 **Human gate.** Owner script (from the PR body): open the `app` check on the PR and confirm the Lint / Architecture rules / Dead code steps ran; confirm `main` protection unchanged (5 required checks, strict, enforce-admins — this PR touches none of it); read this brief; merge. **Pending owner go/no-go** — not merged by the agent.
 
 **Wiki context.** Plan of record: Loideroi LLM Wiki `wiki/guide/development-lifecycle.md` guardrail-stack section (specified → installed → enforced; guardrail-complete target) and `wiki/guide/new-project.md` step 4b. After merge, championz's app tree is the first Loideroi tree with every applicable Layer 3 gate *enforced* behind a required check; the relayer and contracts workspaces follow as the next two single-concern PRs.
+
+**Appended 2026-09-12 (escape-prevention session, PR #102; entry above unchanged) — judge fields the entry predates.** The review-log judge (`scripts/lint-review-log.mjs`, cutoff 2026-09-12, arriving with PR #103) requires these five labeled fields; the entry was written hours before the judge existed, so the questions were not put to its reviewers. Owner item: the authoring session appends the real content below these lines.
+- Checked: per the entry's own text — all gates green locally at every pushed sha (typecheck, lint, arch, deadcode:ci, dup, test 213/213, check:i18n); break-the-judge mutations for each rule, reverted and verified clean; R1 plan review + three implementation rounds; R2 fix rounds with re-checks.
+- Dismissed: none recorded — the nine R2 Nits were accepted as fail-closed or recorded follow-ups (see the table).
+- verification-gap: not asked at review time — owner item.
+- named-set: not asked at review time — owner item.
+- Missing: not asked at review time — owner item.
 
 ## 2026-09-10 — PRs #94 and #95 (WalletConnect metadata; stale-fact corrections)
 
@@ -220,3 +260,6 @@ Minors (all resolved unless noted): duplicated `STAGE_FLOOR` (imported from `lib
    `#52 T3 1759 · #53 T3 77 · #54 T1 30 · #59 T3 3126 · #60 T3 228 · #61 T3 1130 · #62 T3 1622 · #63 T2 209 · #64 T3 663 · #65 T3 2696 · #66 T3 118 · #68 T3 102 · #69 T3 87 · #71 T3 60 · #72 T2 116 · #73 T2 113 · #74 T2 8 · #75 T3 228 · #76 T3 262 · #84 T3 1164` (sizes are additions+deletions incl. generated files).
 3. **Author gates skipped** on #85–#87: PR template not used, `npm run dup` not run locally (jscpd is not installed in this checkout; CI ran it and passed).
 4. **Roster tier mismatch**: #85/#87 R1 ran on the Tier 2 model because the tier was raised only by R2; the fix PRs were reviewed at Tier 3 (`gpt-5.6-sol` + fresh Fable).
+
+**Correction (2026-09-12, appended, entry otherwise unchanged).** Item 2 above says 23 unlogged PRs, 16 Tier 3; the list it gives has 20 PRs (#52, #53, #54, #59–#66, #68, #69, #71–#76, #84), 15 tagged T3 — confirmed against the GitHub API (merged PRs between #39 and #84). With #93 (found 2026-09-12 by the wiki's cross-repo check) the retroactive-triage scope is 16 Tier 3 PRs. Investigation: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
+
