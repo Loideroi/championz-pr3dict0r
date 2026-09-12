@@ -21,7 +21,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { UefaApiSource } from '../dist/src/source.js';
 import { toFixture, toMatchResult } from '../dist/src/source.js';
-import { buildFacts, INSIGHT_LOCALES, renderInsight } from '../dist/src/insights.js';
+import { buildFacts, INSIGHT_LOCALES, renderInsight, tablePositions } from '../dist/src/insights.js';
 import {
   buildStrengthIndex,
   fetchClubCoefficients,
@@ -91,6 +91,32 @@ try {
 } catch (err) {
   // Insights are decoration, not the oracle path — degrade, never fail the run.
   console.warn(`warning: strength data unavailable (${err.message}); falling back to form-only copy`);
+}
+
+/**
+ * The table line is computed locally (per fixture, as it stood at kickoff).
+ * Between matchdays that equals the table UEFA publishes, so in live mode
+ * compare the two and say so if they differ — a feed glitch or a tiebreak
+ * UEFA applied that we cannot see. Decoration, never a failed run.
+ */
+async function checkAgainstPublishedTable() {
+  if (argVal('--fixtures') || played.length === 0) return;
+  const official = await fetchLeaguePhaseRanks(season);
+  if (official.size === 0) return;
+  const ours = tablePositions(played);
+  const names = new Map(fixtures.flatMap((f) => [[f.home.uefaTeamId, f.home.name], [f.away.uefaTeamId, f.away.name]]));
+  const diffs = [...official].filter(([id, rank]) => ours.get(id) !== rank);
+  if (diffs.length === 0) {
+    console.log(`table: ${ours.size} clubs, all positions equal UEFA's published standings`);
+    return;
+  }
+  console.warn(`warning: ${diffs.length} table position(s) differ from UEFA's published standings:`);
+  for (const [id, rank] of diffs) console.warn(`  ${names.get(id) ?? id}: ours ${ours.get(id) ?? '-'}, UEFA ${rank}`);
+}
+try {
+  await checkAgainstPublishedTable();
+} catch (err) {
+  console.warn(`warning: could not compare with UEFA's published standings (${err.message})`);
 }
 
 const perLocale = Object.fromEntries(INSIGHT_LOCALES.map((l) => [l, {}]));

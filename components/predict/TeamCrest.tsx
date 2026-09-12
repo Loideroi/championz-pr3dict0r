@@ -23,7 +23,6 @@ export function TeamCrest({
   const [failed, setFailed] = useState(false);
   if (src && !failed) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- third-party crest, onError fallback (PRD §7.6)
       <img
         src={src}
         alt=""
