@@ -2,7 +2,7 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
-## 2026-09-12 — PR #<assigned at opening> `chore/review-gate` (tier declared, size cap, same-PR review-log entry as a status check)
+## 2026-09-12 — PR #104 `chore/review-gate` (tier declared, size cap, same-PR review-log entry as a status check)
 
 **Scope.** NEW `scripts/review-gate.mjs` (~400 lines, dependency-free, `--self-test` 74 red-capable cases, main-module guard) fails a PR whose body lacks `Declared tier: N`; whose changed lines — excluding the three anchored lockfiles and paths marked `linguist-generated` in the **base** tree's `.gitattributes` — exceed 500 without the `size-waiver` label backed by a `Size waiver:` field in the PR's own entry naming the owner, an affirmative decision word, a real date and a rationale; whose `docs/REVIEW_LOG.md` gains no new, complete entry about the PR (subject parsed from the `PR #N` run in the heading, dated on/after the judge cutoff, non-exempt shape, fields checked with the judge's exported `checkEntry`, labeled tier equal to the declared tier, older entries append-only); or that contains a text-typed file git reports as binary (a NUL byte hides lines from the cap and from GitHub's diff). `.github/workflows/review-gate.yml` gains the gate step (PR body and labels reach the script through `env` only; `labeled`/`unlabeled` events; `fetch-depth: 0`). NEW `.gitattributes` (root-anchored generated marks; the oracle map deliberately not marked). PR template and `docs/REVIEW_TIERS.md` document the gate, the heading grammar, the waiver shape, the Dependabot recipe, the `.gitattributes` Tier 3 row, the enroll-as-required-check follow-up, and the recovery path for a wrong heading under enforce-admins. ~330 hand-written lines.
 
@@ -34,7 +34,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** This adds a CI check that refuses a PR with no declared tier, more than 500 changed lines without a recorded owner waiver, or no complete review-log entry of its own — the three shapes of the 2026-09-09 escapes. Across four review passes eleven ways of satisfying it without real review evidence were found and closed, each now a self-test or probe case: number slipped into an old entry, backdated or waiver-shaped headings, self-marked generated files, look-alike lockfile paths, rewritten old entries, label without a real owner decision, a NUL byte making a source file "binary". It cannot push, merge, or read secrets. What it cannot do: tell whether the reviews it reads about actually happened — that is the escape audit's job — and it blocks nothing until you enroll `review-gate` as a required check on `main`. Residual after that click: an agent that writes a false but well-formed log entry.
 
-**Gate.** Owner go/no-go pending. Merge third, after `chore/portable-judges`; then enroll `Review gate / review-gate` as a required status check. After opening the PR, replace `#<assigned at opening>` in this heading with the real number.
+**Gate.** Owner go/no-go pending. Merge third, after `chore/portable-judges`; then enroll `Review gate / review-gate` as a required status check. PR #104.
 
 ## 2026-09-12 — PR #<assigned at opening> `chore/portable-judges` (the wiki's review-log and AGENTS.md judges run on every PR)
 
@@ -65,7 +65,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** Two judge scripts are exact copies of the wiki's, and a new CI job runs them on every PR. They are self-tested and cannot push, merge, or read secrets. What could break: nothing in the app — the job only reads `docs/REVIEW_LOG.md` and `AGENTS.md`. Residual risk: low; the judges are advisory until `review-gate` is a required check (owner click, named in the entry-file wiring PR).
 
-**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. After opening the PR, replace `#<assigned at opening>` in this heading with the real number.
+**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. PR #104.
 
 ## 2026-09-12 — PR #<assigned at opening> `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
 
@@ -98,7 +98,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** The agent's unprompted git/gh surface is now tightly listed and the instruction file tells the truth: these rules guide a cooperating agent and are not a wall. Every obvious way of pushing `main` now prompts or is blocked. The part that matters for "merge is my click": your branch protection today blocks force-pushes and requires green checks, but it does not require a pull request — so a green PR head can still be pushed straight to `main` by anyone with your token, including an agent. One click ("Require a pull request before merging") makes the merge genuinely yours; enrolling `review-gate` as required is the second click. Residual after both: none for direct pushes; the agent could still write a misleading review-log entry, which is what the escape audit reads.
 
-**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. After opening the PR, replace `#<assigned at opening>` in this heading with the real number (the entry is new in this PR, so the gate allows the edit).
+**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #104.
 
 ## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
 
