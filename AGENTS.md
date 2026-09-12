@@ -19,7 +19,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 The ask-first rules an agent must see every session (mechanically required by `scripts/check-agents-md.mjs`, the AGENTS.md admission-test judge from the Loideroi LLM Wiki, run in CI).
 
-- Commits, branches, PRs, and dependency changes are ask-first; `main` is protected and every change lands through a PR. Merges, deploys, the oracle relayer workflow, and anything that signs or moves value are forbidden unless the owner explicitly requests them; an owner instruction to merge never waives the reviewer passes or the log entry.
+- Commits, branches, PRs, and dependency changes are ask-first; `main` is protected and every change lands through a PR.
+- Merges are the owner's own click — never run `gh pr merge` or `git merge` into `main`, even when asked (contract: the human clicks merge at every tier; an owner instruction to merge never waives the reviewer passes or the log entry — the 2026-09-09 escapes on PRs #85–#87 are why this line exists).
+- Deploys, the oracle relayer workflow, and anything that signs or moves value are forbidden unless the owner explicitly requests them.
 - Never weaken `.npmrc`, the lockfile, `eslint.config.mjs`, `.squawk.toml`, or a CI step to make a task pass; the jscpd threshold only tightens.
 - Tier 3 paths (2 reviewers + human gate): the floor map in `docs/REVIEW_TIERS.md`; unlisted paths are never Tier 1 by omission. Log every reviewed PR in `docs/REVIEW_LOG.md` (linted in CI).
 - Never store secrets in the repo or in instruction files.
