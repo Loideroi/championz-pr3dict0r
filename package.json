@@ -36,7 +36,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dependency-cruiser": "18.2.0",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.3.4",
     "jscpd": "^5.0.16",
     "knip": "6.32.2",
