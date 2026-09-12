@@ -65,7 +65,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** Two judge scripts are exact copies of the wiki's, and a new CI job runs them on every PR. They are self-tested and cannot push, merge, or read secrets. What could break: nothing in the app — the job only reads `docs/REVIEW_LOG.md` and `AGENTS.md`. Residual risk: low; the judges are advisory until `review-gate` is a required check (owner click, named in the entry-file wiring PR).
 
-**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. PR #104.
+**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. PR #103.
 
 ## 2026-09-12 — PR #102 `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
 
@@ -98,7 +98,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** The agent's unprompted git/gh surface is now tightly listed and the instruction file tells the truth: these rules guide a cooperating agent and are not a wall. Every obvious way of pushing `main` now prompts or is blocked. The part that matters for "merge is my click": your branch protection today blocks force-pushes and requires green checks, but it does not require a pull request — so a green PR head can still be pushed straight to `main` by anyone with your token, including an agent. One click ("Require a pull request before merging") makes the merge genuinely yours; enrolling `review-gate` as required is the second click. Residual after both: none for direct pushes; the agent could still write a misleading review-log entry, which is what the escape audit reads.
 
-**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #104.
+**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #102.
 
 ## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
 
