@@ -139,3 +139,6 @@ Minors (all resolved unless noted): duplicated `STAGE_FLOOR` (imported from `lib
    `#52 T3 1759 · #53 T3 77 · #54 T1 30 · #59 T3 3126 · #60 T3 228 · #61 T3 1130 · #62 T3 1622 · #63 T2 209 · #64 T3 663 · #65 T3 2696 · #66 T3 118 · #68 T3 102 · #69 T3 87 · #71 T3 60 · #72 T2 116 · #73 T2 113 · #74 T2 8 · #75 T3 228 · #76 T3 262 · #84 T3 1164` (sizes are additions+deletions incl. generated files).
 3. **Author gates skipped** on #85–#87: PR template not used, `npm run dup` not run locally (jscpd is not installed in this checkout; CI ran it and passed).
 4. **Roster tier mismatch**: #85/#87 R1 ran on the Tier 2 model because the tier was raised only by R2; the fix PRs were reviewed at Tier 3 (`gpt-5.6-sol` + fresh Fable).
+
+**Correction (2026-09-12, appended, entry otherwise unchanged).** Item 2 above says 23 unlogged PRs, 16 Tier 3; the list it gives has 20 PRs (#52, #53, #54, #59–#66, #68, #69, #71–#76, #84), 15 tagged T3 — confirmed against the GitHub API (merged PRs between #39 and #84). With #93 (found 2026-09-12 by the wiki's cross-repo check) the retroactive-triage scope is 16 Tier 3 PRs. Investigation: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
+
