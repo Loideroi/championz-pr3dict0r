@@ -1,29 +1,24 @@
 #!/usr/bin/env node
 // Lint-exception gate (guardrail-complete, 2026-09-11): every ESLint
-// suppression that actually applies must be time-bounded and machine-visible.
-// A directive's justification (the text after `--`) must contain
-// `expires YYYY-MM-DD` with a real calendar date; expired or undated fails
-// the build. Run by `npm run lint` locally and in CI.
+// suppression that applies must be time-bounded and machine-visible — its
+// justification (after `--`) must say `expires YYYY-MM-DD`, a real date, not
+// past, not more than HORIZON_DAYS ahead. Run by `npm run lint` locally and in CI.
 //
-// Discovery is ESLint's own, not a regex: the script lints the same tree with
-// the same eslint.config.mjs and reads each result's `suppressedMessages`
-// (ESLint ≥ 8.8), so scope (ignores, extensions) and directive recognition
-// (line/next-line/block/file-level, strings, prose) are exactly ESLint's.
-// A directive that suppresses nothing never appears here — that case is
-// already an error via linterOptions.reportUnusedDisableDirectives.
+// Discovery is ESLint's own, never a regex over source text:
+//  1. A normal lint pass with the repo's eslint.config.mjs; each result's
+//     `suppressedMessages[].suppressions[]` (ESLint ≥ 8.8) gives every applied
+//     `eslint-disable*` directive with its parsed justification. A directive
+//     that suppresses nothing is already an error via
+//     linterOptions.reportUnusedDisableDirectives.
+//  2. A second pass with `linterOptions.noInlineConfig: true`, on which ESLint's
+//     parser reports every inline directive comment it recognizes ("… has no
+//     effect because you have 'noInlineConfig'"). Any that is not an
+//     eslint-disable/enable directive — `eslint rule: setting`, `global`,
+//     `globals`, `exported`, `eslint-env` — reconfigures a rule invisibly
+//     (R2 finding on PR #97) and fails the build. Multiline comments, comments
+//     after code and string literals are handled by the parser.
 //
-// Inline CONFIG comments (`eslint rule: setting`, `global`, `globals`,
-// `exported`, `eslint-env`) reconfigure a rule so nothing is ever reported or
-// suppressed — invisible to the records above (R2 finding on PR #97). They are
-// forbidden outright, and again ESLint's parser finds them, not a regex: a
-// second lint pass with `linterOptions.noInlineConfig: true` makes ESLint
-// report every inline directive comment it recognizes ("… has no effect
-// because you have 'noInlineConfig'"); every one that is not an
-// `eslint-disable*`/`eslint-enable*` directive fails the build. Multiline
-// comments and string literals are handled by the parser. Finally, an expiry
-// more than HORIZON_DAYS ahead is rejected so "time-bounded" stays meaningful.
-//
-// Env: LINT_EXCEPTIONS_TODAY=YYYY-MM-DD overrides "today";
+// Env: LINT_EXCEPTIONS_TODAY=YYYY-MM-DD overrides "today" (UTC);
 //      LINT_EXCEPTIONS_ROOT=<dir> overrides the lint root (tests).
 import { ESLint } from "eslint";
 import { relative } from "node:path";

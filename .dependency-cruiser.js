@@ -1,10 +1,8 @@
 /**
- * Architecture rules for the Next.js app tree. Layering: app → components →
- * hooks → foundation (lib/, i18n/, content/ — mutually importable), lower layers
- * never importing upward. contracts/ and relayer/ are their own npm trees with their
- * own toolchains and are not cruised here (same split as eslint.config.mjs).
- * Run: npm run arch (CI runs the same). Shape copied from Fanbet/Telescope;
- * baseline measured 2026-09-11 before severities were set (docs/REVIEW_TIERS.md).
+ * Architecture rules for the Next.js app tree: app → components → hooks →
+ * foundation (lib/, i18n/, content/ — mutually importable); lower layers never
+ * import upward. contracts/ and relayer/ are separate npm trees (not cruised).
+ * Run: npm run arch (CI runs the same). Baseline 2026-09-11: docs/REVIEW_TIERS.md.
  */
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -20,8 +18,7 @@ module.exports = {
     {
       name: "lib-does-not-import-upward",
       severity: "error",
-      comment:
-        "lib/, i18n/ and content/ form the shared foundation layer (they may import each other). If they need something from app/, components/ or hooks/, that something belongs in lib/.",
+      comment: "lib/, i18n/, content/ are the foundation layer; anything they need from app/components/hooks belongs in lib/.",
       from: { path: "^(lib|i18n|content)/" },
       to: { path: "^(app|components|hooks)/" },
     },
@@ -77,9 +74,8 @@ module.exports = {
     },
   ],
   options: {
-    // node_modules is doNotFollow, NOT exclude: excluding it would drop every
-    // edge into a package from the graph and silently disable not-to-dev-dep
-    // (proven by break-the-judge 2026-09-11 — the Telescope config has this bug).
+    // node_modules is doNotFollow, NOT exclude: excluding it drops every package
+    // edge and silently disables not-to-dev-dep (proven 2026-09-11).
     doNotFollow: { path: "node_modules" },
     exclude: { path: ["^\\.next", "^contracts", "^relayer", "^supabase"] },
     tsConfig: { fileName: "tsconfig.json" },
