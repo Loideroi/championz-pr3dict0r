@@ -17,4 +17,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Gates (all blocking in CI — never weaken one to pass a task)
 
-`npm run typecheck`, `npm run lint` (budgets are errors; exceptions need `expires YYYY-MM-DD`), `npm run arch` (dependency-cruiser layering — see `ARCHITECTURE.md`), `npm run deadcode:ci` (knip), `npm run dup` (jscpd ≤ 1%), `npm test`, `npm run check:i18n`. Baselines, exceptions and tier floors: `docs/REVIEW_TIERS.md`. Guardrail-complete since 2026-09-11 (Loideroi LLM Wiki, Development Lifecycle → guardrail stack).
+`npm run typecheck`, `npm run lint` (app tree **and** `relayer/`; budgets are errors; exceptions need `expires YYYY-MM-DD`, inline `/* eslint … */` config comments are forbidden), `npm run arch` (dependency-cruiser layering — see `ARCHITECTURE.md`), `npm run deadcode:ci` (knip), `npm run dup` (jscpd ≤ 1%), `npm test`, `npm run check:i18n`. Baselines, exceptions and tier floors: `docs/REVIEW_TIERS.md`. Guardrail-complete since 2026-09-11 (Loideroi LLM Wiki, Development Lifecycle → guardrail stack).

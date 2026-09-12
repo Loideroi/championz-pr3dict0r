@@ -39,6 +39,7 @@ export interface OnchainReport {
   discrepancies: OnchainDiscrepancy[];
 }
 
+// eslint-disable-next-line complexity -- known debt: complexity 17 vs budget 15 (2026-09-12); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export function diffOnchain(
   doc: MatchesDoc,
   rows: ChainMatchRow[],

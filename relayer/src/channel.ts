@@ -1,5 +1,5 @@
 import { escapeHtml } from './alerts.js';
-import type { ChainState, MapEntry, RelaySummary } from './relay.js';
+import type { ChainState, MapEntry } from './relay.js';
 
 /**
  * Public-channel content (slice 10, PRD §12): results digests after each run
