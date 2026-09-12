@@ -2,6 +2,39 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-09-12 — PR #<assigned at opening> `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
+
+**Scope.** `.claude/settings.json` (rewritten: no `gh pr merge`, `git merge`, `gh api`, `vercel`, `npm install`, issue/workflow writes without a prompt; pushes prompt-free only on six branch prefixes; every refspec, delete, tag, prune, force form asks; every textual spelling of a push to `main` incl. `*heads/main` and `git -c`/`-C` denied; `node *` narrowed to `node scripts/*`; self-applying the `size-waiver` label asks), `AGENTS.md` (Boundaries + Pointers per the wiki template — merges are the owner's click, an owner "merge it" never waives the reviewer passes, every PR declares its tier and ships its own log entry, Tier 3 paths named, settings stated as cooperative with the missing "require a pull request" rule named), `CLAUDE.md` (workflow line), `CONTRIBUTING.md` (per-task recipe: tier, reviewers, same-PR log entry, no `--fill`). ~200 changed lines. Context: the 2026-09-09 escapes above — 20 unlogged merges (the entry's prose says 23; its list has 20) plus #85–#87 happened because these files never mentioned the review process and the old settings allowed the merge. Investigation record: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
+
+**Tier.** 3 — `.claude/**`, `AGENTS.md`, `CLAUDE.md` are agent instruction / permission files (floor map); permission changes are never-eligible for an owner waiver. Confirmed by both reviewers.
+
+**Roles and models.** Author: Claude Code interactive, `claude-fable-5-1` for the first commit, `claude-opus-5[1m]` for the fix rounds (the session's model changed mid-work on a usage-credit stop; recorded, not a choice). Reviewer 1 (cross-vendor): OpenAI Codex CLI 0.144.1, invoked `-m gpt-5.6-sol`, read-only sandbox (four passes on this PR). Reviewer 2 (fresh-context, no author reasoning, no R1 findings on first pass): Claude Code subagent, `claude-opus-5[1m]` (a first `claude-fable-5-1` subagent died on the usage-credit stop before producing anything; three passes).
+
+**Verdicts.** R1: **fail** → fail → **pass** → **pass** (final, tip `a354168`). R2: **fail** (1 Blocker, 1 Major, 3 Minor, 1 Nit) → pass-with-minors (2 Minor, 2 Nit) → **pass** (1 Nit). Tally (all rounds, unique): 1 Blocker / 3 Major / 5 Minor / 4 Nit — all resolved except one accepted Nit.
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Blocker | R2 | `git push origin feat/x:main` (and multi-ref `feat/x main`) rode the `feat/*` allow row; no deny matched | Fixed: `* main`, `* *:main`, `*heads/main`, `+` force-refspec forms denied; generic `git push * *:*` asks. R1 raised the same as a Major on its first re-check; both re-checked: resolved |
+| Major | R1 | Catch-all `Bash(git push *)` in ask shadowed the six branch allow rows (deny → ask → allow, first match wins) | Fixed: catch-all removed; R1 re-checked |
+| Major | R2 | `node *`, `npm run*`, `git rebase -x` allow rows run arbitrary code, so the settings are cooperative while AGENTS.md stated them as a guarantee | Fixed by honest wording (settings shape what an agent tries; branch protection + the enrolled check are the boundary) and `node scripts/*`; R2 re-checked |
+| Major | R2 (re-check) | Branch protection on `main` has enforce-admins + required checks but no "require a pull request" rule, so a green PR head can be fast-forwarded to `main` directly | AGENTS.md states it; owner click queued (wiki plan O10); "narrowed, not closed" until both clicks |
+| Minor | R2 | `-d`, `--prune`, `--tags` rode the prefix rows; `--label=` and mid-command `rebase -x` missed the space-delimited ask rows; `heads/main` DWIM spelling missed every deny row; entry files referenced scripts that land in the stacked PRs | All fixed (`* -d`, `--prune*`, `--tags*`, `--all*`, `--mirror*` ask; `*--label*` / `* -l*`; `git rebase *-x*` etc.; `*heads/main` deny; "lands with the stacked PRs; merge the three in order") |
+| Nit | R2 | `git rebase *-i*` also prompts on branch names containing `-i` | **Accepted** (friction, not a hole) |
+
+**Checked.** R1: complete settings file under deny → ask → allow against the official permissions documentation (rule precedence, `*` spans spaces, `Bash(cmd *)` boundaries, compound commands), representative spellings (direct `main`, `HEAD:main`, `feat/x:main`, full-ref, force-refspec, delete, generic refspec, ordinary branch), JSON parse, `git diff --check`, cross-file consistency of AGENTS/CLAUDE/CONTRIBUTING. R2: full settings file (165 lines) plus a spelling matrix of ~30 forms incl. `git -C`, `--git-dir`, quoted refspecs, `heads/main` DWIM (verified live in a scratch repo), branch protection read via the API, `ci.yml`/`codeql.yml` triggers, `check-agents-md.mjs AGENTS.md` (pass), reuse search (no existing permission validator). Author self-verification: JSON parse; `check-agents-md` pass.
+
+**verification-gap:** permission rules have no in-repo test — if a rule stopped matching, nothing fails; correctness rests on the documented semantics and the reviewers' matchers. The AGENTS.md branch-protection claim is not mechanically checked.
+
+**named-set:** the main-push deny family covers `main`, `:main`, `*heads/main` (both spellings), `+` forms, `-u`/`--set-upstream`, `-c`/`-C`; the six allowed prefixes are consistent across settings and prose; other prefixes (`release/*`, `dependabot/*`) prompt (fail-closed). The forms no textual rule can see — quoted `"main"`, `HEAD` pushed from a `main` checkout — prompt (no push form is allow-listed for them) and are named in AGENTS.md.
+
+**Missing.** Both reviewers looked for a `PreToolUse` hook parsing the push destination (none — ask-first under the wiki ladder; the settings are cooperative by design and say so), an executable settings-policy test (none exists in the tooling), and the "require a pull request" branch rule (owner click).
+
+**Dismissed.** none. **Disputes.** none.
+
+**Risk brief (R2, for the owner).** The agent's unprompted git/gh surface is now tightly listed and the instruction file tells the truth: these rules guide a cooperating agent and are not a wall. Every obvious way of pushing `main` now prompts or is blocked. The part that matters for "merge is my click": your branch protection today blocks force-pushes and requires green checks, but it does not require a pull request — so a green PR head can still be pushed straight to `main` by anyone with your token, including an agent. One click ("Require a pull request before merging") makes the merge genuinely yours; enrolling `review-gate` as required is the second click. Residual after both: none for direct pushes; the agent could still write a misleading review-log entry, which is what the escape audit reads.
+
+**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. After opening the PR, replace `#<assigned at opening>` in this heading with the real number (the entry is new in this PR, so the gate allows the edit).
+
 ## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
 
 **Scope.** `app/standings/StandingsPanel.tsx` (row extracted, `useAccount` read), NEW `app/standings/BoardRow.tsx` (`BoardRow` + `PredictorCell`), `lib/predictor/standings.ts` (+`isSelfRow`), `lib/predictor/standings.test.ts` (+4 assertions), `messages/*.json` ×6 (+`standings.you`). ~200 changed lines. Presentation-only: no contract call, no signed payload, no server route.
