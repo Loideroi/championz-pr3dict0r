@@ -367,7 +367,12 @@ function main() {
   const generated = generatedSet(paths, base);
   const { counted, skipped, refused } = countChangedLines(numstat, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
-  for (const p of refused) failures.push(`size: ${p} is reported binary by git (a NUL byte in a text-typed file hides its lines from this cap and from GitHub's diff) — remove the byte or the file`);
+  // A deleted git-binary file cannot hide anything (it has no lines in the head tree).
+  const deleted = new Set(git(["diff", "--name-only", "--diff-filter=D", base, HEAD_SHA]).split("\n").filter(Boolean));
+  for (const p of refused) {
+    if (deleted.has(p)) console.log(`review-gate: not counted — ${p} (binary, deleted)`);
+    else failures.push(`size: ${p} is reported binary by git (a NUL byte in a text-typed file hides its lines from this cap and from GitHub's diff) — remove the byte or the file`);
+  }
   console.log(`review-gate: ${counted} changed lines counted (cap ${LINE_CAP})`);
   // 3. same-PR log entry: new in this PR, log append-only
   const showLog = (sha) => {
