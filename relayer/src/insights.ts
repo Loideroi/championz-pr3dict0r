@@ -23,7 +23,7 @@ export interface MatchFacts {
   /** last ≤5 results before this match, newest first: 'W' | 'D' | 'L' */
   homeForm: string[];
   awayForm: string[];
-  /** mini-table position among the supplied matches' teams; null pre-MD2 or knockout */
+  /** league-table position at kickoff (UEFA tiebreak order); null pre-MD2 or knockout */
   homePos: number | null;
   awayPos: number | null;
   knockout: boolean;
@@ -81,24 +81,113 @@ export function formFor(teamId: string, played: PlayedMatch[], beforeKickoff: nu
     .map((m) => outcomeFor(teamId, m));
 }
 
-/** League-phase mini table (3/1/0 points) over the played matches. */
-export function tablePositions(played: PlayedMatch[]): Map<string, number> {
-  const pts = new Map<string, number>();
-  for (const m of played.filter((x) => x.fixture.type === 'GROUP_STAGE')) {
-    const home = m.fixture.home.uefaTeamId;
-    const away = m.fixture.away.uefaTeamId;
-    const add = (id: string, p: number) => pts.set(id, (pts.get(id) ?? 0) + p);
-    if (m.result.totalA > m.result.totalB) add(home, 3);
-    else if (m.result.totalA < m.result.totalB) add(away, 3);
-    else {
-      add(home, 1);
-      add(away, 1);
+/** One club's line in the league-phase table, in UEFA tiebreak order. */
+interface TableRow {
+  pts: number;
+  gd: number;
+  gf: number;
+  awayGf: number;
+  wins: number;
+  awayWins: number;
+  /** Collective points / goal difference / goals of the opponents faced so far. */
+  oppPts: number;
+  oppGd: number;
+  oppGf: number;
+}
+
+/**
+ * Regulations of the UEFA Champions League, league-phase ranking, criteria
+ * a–h. The two that follow — i. disciplinary points, j. club coefficient —
+ * stop here on purpose: cards are not in the match feed, and applying j
+ * without i would invent an order UEFA might not publish. Clubs still level
+ * after h share the position, which is what UEFA's own standings feed shows
+ * for clubs level on the published criteria (nine shared positions after
+ * matchday 1 of 2026/27).
+ */
+const TIEBREAK: ReadonlyArray<keyof TableRow> = [
+  'pts',
+  'gd',
+  'gf',
+  'awayGf',
+  'wins',
+  'awayWins',
+  'oppPts',
+  'oppGd',
+  'oppGf',
+];
+
+/**
+ * League-phase table over the matches played strictly before `beforeKickoff`
+ * (default: all of them), ranked the way UEFA ranks it — see {@link TIEBREAK}.
+ * Points-only ranking put the 18 matchday-1 losers in feed order, 19th to 36th.
+ *
+ * 90-minute scores, per the 90-minute rule; the league phase has no extra
+ * time, so this is also what the table on UEFA's site shows.
+ */
+export function tablePositions(
+  played: PlayedMatch[],
+  beforeKickoff: number = Number.MAX_SAFE_INTEGER,
+): Map<string, number> {
+  const rows = new Map<string, TableRow>();
+  const opponents = new Map<string, string[]>();
+  const row = (id: string): TableRow => {
+    let r = rows.get(id);
+    if (!r) {
+      r = { pts: 0, gd: 0, gf: 0, awayGf: 0, wins: 0, awayWins: 0, oppPts: 0, oppGd: 0, oppGf: 0 };
+      rows.set(id, r);
+      opponents.set(id, []);
     }
-    pts.set(home, pts.get(home) ?? 0);
-    pts.set(away, pts.get(away) ?? 0);
+    return r;
+  };
+  const league = played.filter(
+    (m) => m.fixture.type === 'GROUP_STAGE' && (m.fixture.kickoffUnix ?? 0) < beforeKickoff,
+  );
+  for (const m of league) {
+    const homeId = m.fixture.home.uefaTeamId;
+    const awayId = m.fixture.away.uefaTeamId;
+    const home = row(homeId);
+    const away = row(awayId);
+    opponents.get(homeId)!.push(awayId);
+    opponents.get(awayId)!.push(homeId);
+    const { scoreA90: hg, scoreB90: ag } = m.result;
+    home.gf += hg;
+    home.gd += hg - ag;
+    away.gf += ag;
+    away.awayGf += ag;
+    away.gd += ag - hg;
+    if (hg > ag) {
+      home.pts += 3;
+      home.wins += 1;
+    } else if (hg < ag) {
+      away.pts += 3;
+      away.wins += 1;
+      away.awayWins += 1;
+    } else {
+      home.pts += 1;
+      away.pts += 1;
+    }
   }
-  const ranked = [...pts.entries()].sort((a, b) => b[1] - a[1]);
-  return new Map(ranked.map(([id], i) => [id, i + 1]));
+  // criteria f–h need every club's own line first, hence the second pass
+  for (const [id, r] of rows) {
+    for (const oppId of opponents.get(id)!) {
+      const opp = rows.get(oppId)!;
+      r.oppPts += opp.pts;
+      r.oppGd += opp.gd;
+      r.oppGf += opp.gf;
+    }
+  }
+  const compare = (a: TableRow, b: TableRow): number => {
+    for (const key of TIEBREAK) if (a[key] !== b[key]) return b[key] - a[key];
+    return 0;
+  };
+  const ranked = [...rows.entries()].sort((a, b) => compare(a[1], b[1]));
+  // standard competition ranking: level clubs share a position, the next one skips
+  const out = new Map<string, number>();
+  ranked.forEach(([id, r], i) => {
+    const prev = ranked[i - 1];
+    out.set(id, prev && compare(prev[1], r) === 0 ? out.get(prev[0])! : i + 1);
+  });
+  return out;
 }
 
 /** The team's latest scheduled fixture before `beforeKickoff`, from the full schedule. */
@@ -123,9 +212,10 @@ export function buildFacts(
   schedule: Fixture[] = [],
   strength: Map<string, TeamStrength> | null = null,
 ): MatchFacts {
-  const table = tablePositions(played);
   const knockout = fixture.type !== 'GROUP_STAGE';
   const kickoff = fixture.kickoffUnix ?? Number.MAX_SAFE_INTEGER;
+  // like form: the table as it stood at kickoff, never the one this match produced
+  const table = tablePositions(played, kickoff);
   const homeStrength = strength?.get(fixture.home.uefaTeamId) ?? null;
   const awayStrength = strength?.get(fixture.away.uefaTeamId) ?? null;
   return {

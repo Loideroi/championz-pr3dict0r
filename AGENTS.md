@@ -15,6 +15,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 `GO_TO_MARKET.md` at the repo root is the single source of truth for launch/growth activities and their statuses. Include it when planning any GTM work, and keep it updated when GTM work lands. (Moved from global CLAUDE.md, 2026-08-20.)
 
+## Gates (all blocking in CI — never weaken one to pass a task)
+
+`npm run typecheck`, `npm run lint` (budgets are errors; exceptions need `expires YYYY-MM-DD`), `npm run arch` (dependency-cruiser layering — see `ARCHITECTURE.md`), `npm run deadcode:ci` (knip), `npm run dup` (jscpd ≤ 1%), `npm test`, `npm run check:i18n`. Baselines, exceptions and tier floors: `docs/REVIEW_TIERS.md`. Guardrail-complete since 2026-09-11 (Loideroi LLM Wiki, Development Lifecycle → guardrail stack).
+
 ## Boundaries
 
 - **Merges are the owner's click, never an agent's.** `gh pr merge` and `git merge` are ask-first, and an owner instruction to "merge it" does not replace the reviewer passes or the review-log entry — if asked to merge an unreviewed PR, say so and run the reviews first. (2026-09-09: PRs #85–#87 were merged that way with no review; 11 Majors surfaced afterwards, one in production — `docs/REVIEW_LOG.md`.)
