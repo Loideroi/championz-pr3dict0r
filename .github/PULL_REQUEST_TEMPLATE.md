@@ -1,6 +1,6 @@
 # What
 
-<!-- One logical change. ≤500 changed lines (excl. lockfiles and linguist-generated paths); Tier 3 aims ≤300. Over the cap → split, or label `size-waiver` and record the human waiver in this PR's review-log entry as `**Size waiver.** owner <go/decision> YYYY-MM-DD: <why splitting is worse>` (the gate checks for the owner, a real date, and a rationale). -->
+<!-- One logical change. ≤500 changed lines (excl. lockfiles and linguist-generated paths); Tier 3 aims ≤300. Over the cap → split, or label `size-waiver` and record the human waiver in this PR's review-log entry as `**Size waiver.** owner approved YYYY-MM-DD: <why splitting is worse>` (the gate checks for the word owner, an affirmative decision — approved / waived / granted / go — with no rejected / denied / pending wording, a real date, and a rationale). Entry headings follow `## YYYY-MM-DD — PR #N <title>` (or `PRs #N, #M and #K`); the subject numbers are the run right after `PR`. -->
 
 ## Tier declaration
 

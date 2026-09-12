@@ -102,13 +102,17 @@ export function countChangedLines(numstat, isGenerated) {
   return { counted, skipped };
 }
 
-// The PR numbers an entry heading is ABOUT: the "#N" tokens in the segment
-// that starts with "PR"/"PRs", with parenthesised text removed first — so
-// "## 2026-09-12 — PR #100 (follow-up to #999)" is about #100 only, and
-// "## 2026-09-10 — PRs #94 and #95 (...)" is about both.
+// The PR numbers an entry heading is ABOUT — the heading grammar is
+//   ## YYYY-MM-DD — PR #N <title>            or
+//   ## YYYY-MM-DD — PRs #N, #M and #K <title>
+// i.e. the subject is the run of "#N" tokens immediately after "PR"/"PRs",
+// joined only by commas, "and", "&", "/", or en/em dashes. Parsing stops at
+// the first word that is not such a token, so "PR #100 follow-up to #999" and
+// "PR #100 (follow-up to #999)" are both about #100 only, while
+// "PRs #94 and #95 (x)" is about both. (A range "#85–#87" yields its two
+// endpoints; list every number instead when the middle ones matter.)
 export function headingPrIds(heading) {
-  const stripped = heading.replace(/\([^)]*\)/g, " ");
-  const m = stripped.match(/\bPRs?\b(.*)$/i);
+  const m = heading.match(/\bPRs?\s+((?:#\d+(?!\d)(?:\s*(?:,|and|&|\/|–|—|-)\s*)?)+)/i);
   if (!m) return new Set();
   return new Set([...m[1].matchAll(/#(\d+)(?!\d)/g)].map((x) => Number(x[1])));
 }
@@ -157,10 +161,15 @@ export function logEntryIsNew(baseLog, headLog, prNumber, cutoff = LOG_CUTOFF) {
   return { ok: true, entry };
 }
 
-// "Size waiver:" / "**Size waiver.**" field = the recorded human waiver: it
-// must name the owner, carry a real YYYY-MM-DD date, and say something
-// (>= 20 characters of rationale beyond the date and the word "owner").
-// "Size waiver: 2026-09-12" or "Size waiver: none" is not a waiver.
+// "Size waiver:" / "**Size waiver.**" field = the recorded human waiver. It
+// must be an affirmative owner decision: the word "owner", an affirmative
+// decision word (approved / waived / granted / go), no negative or pending
+// word anywhere in the field (rejected, denied, declined, pending, "not
+// approved"...), a real YYYY-MM-DD date, and >= 20 characters of rationale.
+// "Size waiver: 2026-09-12", "Size waiver: none", and "owner rejected ..."
+// are not waivers. The gate checks the record's shape, not its truth.
+const WAIVER_YES = /\b(approved|approves|waived|waives|granted|grants|go)\b/i;
+const WAIVER_NO = /\b(not|no|never|un)[\s-]*(approved|waived|granted|authori[sz]ed)\b|\b(rejected|rejects|denied|denies|declined|declines|pending|refused|refuses|withheld|awaiting|tbd|todo)\b/i;
 export function hasSizeWaiver(entry) {
   if (!entry) return false;
   const m = entry.body.match(/(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:]\**\s*([^\n]*)/i);
@@ -169,7 +178,9 @@ export function hasSizeWaiver(entry) {
   const dates = [...text.matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)].map((x) => x[1]);
   if (!dates.some(isRealDate)) return false;
   if (!/\bowner\b/i.test(text)) return false;
-  const rationale = text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, "").replace(/\bowner\b/gi, "").replace(/[^A-Za-z0-9]+/g, " ").trim();
+  if (WAIVER_NO.test(text)) return false;
+  if (!WAIVER_YES.test(text)) return false;
+  const rationale = text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, "").replace(/\bowner\b/gi, "").replace(WAIVER_YES, "").replace(/[^A-Za-z0-9]+/g, " ").trim();
   return rationale.length >= 20;
 }
 
@@ -265,6 +276,11 @@ function runSelfTest() {
   check("subject: PRs #94 and #95 is about both", [...headingPrIds("2026-09-10 — PRs #94 and #95 (x)")].sort(), [94, 95]);
   check("subject: no PR token means no subject", [...headingPrIds("2026-09-09 — escape audit mentions #85")], []);
   check("subject: #85 in prose after PR #88 heading excluded by parenthesis only", [...headingPrIds("PR #88 (acts on #85, #86)")], [88]);
+  check("subject: unparenthesised trailing reference is not a subject", [...headingPrIds("2026-09-12 — PR #100 follow-up to #999")], [100]);
+  check("subject: comma list", [...headingPrIds("PRs #85, #86, #87 (admin)")].sort(), [85, 86, 87]);
+  check("subject: 'PRs #88 and #89 fix #85' stops at 'fix'", [...headingPrIds("PRs #88 and #89 fix #85")].sort(), [88, 89]);
+  check("subject: en-dash range gives its endpoints", [...headingPrIds("PRs #85–#87 (x)")].sort(), [85, 87]);
+  check("subject: 'PR' without a number", [...headingPrIds("PR template update")], []);
   const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner go 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n\n## 2026-09-12 — PR #100 (follow-up to #999)\n\nbody\n";
   check("prEntry finds the heading about #12", prEntry(log, 12)?.heading, "2026-09-12 — PR #12 (big)");
   check("prEntry ignores #1 vs #12", prEntry(log, 1), null);
@@ -279,7 +295,15 @@ function runSelfTest() {
   check("no owner attribution fails", w("Size waiver: go 2026-09-12, generated fixtures dominate the diff"), false);
   check("owner + real date + rationale passes", w("Size waiver: owner go 2026-09-12 — generated fixtures dominate the diff"), true);
   check("owner + date but no rationale fails", w("Size waiver: owner 2026-09-12"), false);
-  check("bold-label form passes", w("- **Size waiver:** owner Mark, 2026-09-12: 640 lines, split judged riskier than one review"), true);
+  check("owner rejected fails", w("Size waiver: owner rejected 2026-09-12 because this oversized change must be split"), false);
+  check("owner approval pending fails", w("Size waiver: owner approval pending 2026-09-12 because this oversized change must be split"), false);
+  check("owner denied fails", w("Size waiver: owner denied 2026-09-12: generated fixtures dominate the diff"), false);
+  check("'not approved' fails", w("Size waiver: owner has not approved 2026-09-12: generated fixtures dominate the diff"), false);
+  check("owner text without a decision word fails", w("Size waiver: owner Mark 2026-09-12: generated fixtures dominate the diff"), false);
+  check("owner approved passes", w("Size waiver: owner approved 2026-09-12: generated fixtures dominate the diff"), true);
+  check("owner waived passes", w("**Size waiver.** owner waived the cap 2026-09-12 — split judged riskier than one review"), true);
+  check("approved but awaiting second reviewer fails (pending word)", w("Size waiver: owner approved 2026-09-12, awaiting R2; generated fixtures dominate"), false);
+  check("bold-label form passes", w("- **Size waiver:** owner Mark approved, 2026-09-12: 640 lines, split judged riskier than one review"), true);
   check("waiver in another entry does not carry over", hasSizeWaiver(prEntry(log + "\n## 2026-09-12 — PR #13\n\nbody\n", 13)), false);
   if (failures.length) {
     for (const f of failures) console.error(`SELF-TEST FAIL: ${f}`);

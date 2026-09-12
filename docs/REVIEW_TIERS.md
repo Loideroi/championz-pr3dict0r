@@ -42,8 +42,11 @@ highest tier equal to the declared tier, older entries append-only).
 `scripts/lint-review-log.mjs` then checks the entry's fields, and
 `scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
 `size-waiver` label is only valid with the human waiver recorded in the log entry as a
-`Size waiver:` field naming the owner, a real date, and a rationale (the gate checks the
-shape, not the truth of it); whether the reviews actually ran is beyond any gate — the
+`Size waiver:` field naming the owner, an affirmative decision word (approved / waived /
+granted / go, with no rejected / denied / pending wording), a real date, and a rationale
+(the gate checks the shape, not the truth of it). Entry headings follow
+`## YYYY-MM-DD — PR #N <title>` / `PRs #N, #M and #K <title>`: the subject numbers are the
+run right after `PR`, so a reference later in the title is not a subject; whether the reviews actually ran is beyond any gate — the
 monthly escape audit checks that.
 Dependabot PRs hit this gate too and cannot satisfy it in place (Dependabot force-pushes
 its branch on rebase, dropping added commits, and `dependabot/*` is not an allowed push
