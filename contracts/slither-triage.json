@@ -1,0 +1,90 @@
+[
+  {
+    "id": "c64987e949ac023f7f52467cf67a80dbcd8cff640b997f03f91fc7e42d291887",
+    "check": "arbitrary-send-eth",
+    "slither_impact": "High",
+    "slither_confidence": "Medium",
+    "function": "lockStage",
+    "where": "src/ChampionzPredictor.sol#273",
+    "expression": "(ok,None) = feeRecipient.call{value: fees}()",
+    "triaged": "2026-09-12",
+    "reason": "lockStage forwards the escrowed fees to `feeRecipient`, which only the owner sets (setFeeRecipient, non-zero) \u2014 not to caller-controlled input; recovery via emergencyWithdraw (C-1b). Slither severity High; project disposition: accepted. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "6fa1df6cde1e8a813b261b53762ab997b94c249d82c05df3ec7599ea2b4a7159",
+    "check": "incorrect-equality",
+    "slither_impact": "Medium",
+    "slither_confidence": "High",
+    "function": "_score",
+    "where": "src/ChampionzPredictor.sol#695",
+    "expression": "pa == ra && pb == rb",
+    "triaged": "2026-09-12",
+    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "55351088bacc469e5cf1e6a7e8a0332f6a2b6020c6f1636ef10598f55d635a4e",
+    "check": "incorrect-equality",
+    "slither_impact": "Medium",
+    "slither_confidence": "High",
+    "function": "_score",
+    "where": "src/ChampionzPredictor.sol#698",
+    "expression": "int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))",
+    "triaged": "2026-09-12",
+    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "b7967ff4b6b1b2768a102f04096adb0fc3a2a6315f7dfd9f60eba0b151b70384",
+    "check": "incorrect-equality",
+    "slither_impact": "Medium",
+    "slither_confidence": "High",
+    "function": "_score",
+    "where": "src/ChampionzPredictor.sol#710",
+    "expression": "(packed >> 16) & 1 == (res >> 16) & 1",
+    "triaged": "2026-09-12",
+    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "b52a2f13477f0612ea33a1ccb10987a62f828d7760b59dcb4ece9345934fead5",
+    "check": "incorrect-equality",
+    "slither_impact": "Medium",
+    "slither_confidence": "High",
+    "function": "_score",
+    "where": "src/ChampionzPredictor.sol#711",
+    "expression": "(packed >> 17) & 1 == (res >> 17) & 1",
+    "triaged": "2026-09-12",
+    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "2009c5c3ae0b804e20977e108712dbf06fdf66bc9a48f841a69ebdab44a60149",
+    "check": "incorrect-equality",
+    "slither_impact": "Medium",
+    "slither_confidence": "High",
+    "function": "_score",
+    "where": "src/ChampionzPredictor.sol#713",
+    "expression": "(packed >> 18) & 3 == (res >> 18) & 3",
+    "triaged": "2026-09-12",
+    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "278aec9d4d5e1a1a783ae90e7557164b494d68f2806d6aff766b18620a0e4206",
+    "check": "uninitialized-local",
+    "slither_impact": "Medium",
+    "slither_confidence": "Medium",
+    "function": "distributed",
+    "where": "src/ChampionzPredictor.sol#628",
+    "expression": "distributed",
+    "triaged": "2026-09-12",
+    "reason": "accumulator local `distributed` relies on the Solidity zero default before a bounded loop adds to it. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  },
+  {
+    "id": "3ce0eeff97a55c2c386ed74cb4fafd74e82b9971fdc6951e6f599cf1af30a246",
+    "check": "uninitialized-local",
+    "slither_impact": "Medium",
+    "slither_confidence": "Medium",
+    "function": "completed",
+    "where": "src/ChampionzPredictor.sol#668",
+    "expression": "completed",
+    "triaged": "2026-09-12",
+    "reason": "accumulator local `completed` relies on the Solidity zero default before a bounded loop adds to it. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+  }
+]
