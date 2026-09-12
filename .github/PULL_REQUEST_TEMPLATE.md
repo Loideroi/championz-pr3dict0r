@@ -1,6 +1,6 @@
 # What
 
-<!-- One logical change. ≤500 changed lines (excl. lockfiles and linguist-generated paths); Tier 3 aims ≤300. Over the cap → split, or label `size-waiver` and record the human waiver in this PR's review-log entry. -->
+<!-- One logical change. ≤500 changed lines (excl. lockfiles and linguist-generated paths); Tier 3 aims ≤300. Over the cap → split, or label `size-waiver` and record the human waiver in this PR's review-log entry as `**Size waiver.** owner <go/decision> YYYY-MM-DD: <why splitting is worse>` (the gate checks for the owner, a real date, and a rationale). -->
 
 ## Tier declaration
 

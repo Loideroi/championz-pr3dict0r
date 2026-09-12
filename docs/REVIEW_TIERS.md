@@ -38,8 +38,10 @@ see Named Follow-Ups). `scripts/review-gate.mjs` fails a PR whose body has no
 `size-waiver` label, or whose diff adds no `docs/REVIEW_LOG.md` entry naming the PR.
 `scripts/lint-review-log.mjs` then checks the entry's fields, and
 `scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
-`size-waiver` label is only valid with the human waiver recorded in the log entry;
-the gate cannot verify that, nor that the reviews ran — the monthly escape audit does.
+`size-waiver` label is only valid with the human waiver recorded in the log entry as a
+`Size waiver:` field naming the owner, a real date, and a rationale (the gate checks the
+shape, not the truth of it); whether the reviews actually ran is beyond any gate — the
+monthly escape audit checks that.
 Dependabot PRs hit this gate too: an agent adds the tier line and the log entry after
 reviewing the lockfile change (Tier 3 by this map), which is the intended cost.
 

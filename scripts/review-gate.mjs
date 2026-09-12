@@ -88,10 +88,27 @@ export function countChangedLines(numstat, isGenerated) {
   return { counted, skipped };
 }
 
-// The PR's own entry in a log: heading names "#<PR>".
+// The PR numbers an entry heading is ABOUT: the "#N" tokens in the segment
+// that starts with "PR"/"PRs", with parenthesised text removed first — so
+// "## 2026-09-12 — PR #100 (follow-up to #999)" is about #100 only, and
+// "## 2026-09-10 — PRs #94 and #95 (...)" is about both.
+export function headingPrIds(heading) {
+  const stripped = heading.replace(/\([^)]*\)/g, " ");
+  const m = stripped.match(/\bPRs?\b(.*)$/i);
+  if (!m) return new Set();
+  return new Set([...m[1].matchAll(/#(\d+)(?!\d)/g)].map((x) => Number(x[1])));
+}
+
+// The PR's own entry in a log: an entry whose heading is about "#<PR>".
 export function prEntry(logText, prNumber) {
-  const re = new RegExp(`#${prNumber}(?!\\d)`);
-  return splitEntries(logText).find((e) => re.test(e.heading)) ?? null;
+  return splitEntries(logText).find((e) => headingPrIds(e.heading).has(prNumber)) ?? null;
+}
+
+// A real calendar date (Date.parse normalises 2026-02-30 to March 2).
+export function isRealDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
 // The entry must be NEW in this PR and the log append-only: no entry naming
@@ -108,10 +125,20 @@ export function logEntryIsNew(baseLog, headLog, prNumber) {
   return { ok: true, entry };
 }
 
-// "Size waiver:" / "**Size waiver.**" field carrying a YYYY-MM-DD date.
+// "Size waiver:" / "**Size waiver.**" field = the recorded human waiver: it
+// must name the owner, carry a real YYYY-MM-DD date, and say something
+// (>= 20 characters of rationale beyond the date and the word "owner").
+// "Size waiver: 2026-09-12" or "Size waiver: none" is not a waiver.
 export function hasSizeWaiver(entry) {
   if (!entry) return false;
-  return /(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:][^\n]*\b\d{4}-\d{2}-\d{2}\b/i.test(entry.body);
+  const m = entry.body.match(/(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:]\**\s*([^\n]*)/i);
+  if (!m) return false;
+  const text = m[2];
+  const dates = [...text.matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)].map((x) => x[1]);
+  if (!dates.some(isRealDate)) return false;
+  if (!/\bowner\b/i.test(text)) return false;
+  const rationale = text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, "").replace(/\bowner\b/gi, "").replace(/[^A-Za-z0-9]+/g, " ").trim();
+  return rationale.length >= 20;
 }
 
 function git(args, input) {
@@ -186,21 +213,33 @@ function runSelfTest() {
   check("old heading removed fails even with a new entry", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)\n\nbody\n", 85).ok, false);
   check("new entry inserted above old ones (newest-first log) passes", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)\n\nbody\n" + baseLog.slice("# Review Log\n".length), 85).ok, true);
   check("empty base log, new entry passes", logEntryIsNew("", "## 2026-09-12 — PR #1 (first)\n\nbody\n", 1).ok, true);
-  // 4. waiver binding
-  const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner go 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n";
-  check("prEntry finds the heading naming #12", prEntry(log, 12)?.heading, "2026-09-12 — PR #12 (big)");
+  // 4. heading subject and waiver binding
+  check("subject: PR #100 (follow-up to #999) is about #100 only", [...headingPrIds("2026-09-12 — PR #100 (follow-up to #999)")], [100]);
+  check("subject: PRs #94 and #95 is about both", [...headingPrIds("2026-09-10 — PRs #94 and #95 (x)")].sort(), [94, 95]);
+  check("subject: no PR token means no subject", [...headingPrIds("2026-09-09 — escape audit mentions #85")], []);
+  check("subject: #85 in prose after PR #88 heading excluded by parenthesis only", [...headingPrIds("PR #88 (acts on #85, #86)")], [88]);
+  const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner go 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n\n## 2026-09-12 — PR #100 (follow-up to #999)\n\nbody\n";
+  check("prEntry finds the heading about #12", prEntry(log, 12)?.heading, "2026-09-12 — PR #12 (big)");
   check("prEntry ignores #1 vs #12", prEntry(log, 1), null);
   check("prEntry returns null when absent", prEntry(log, 99), null);
-  check("dated waiver field passes", hasSizeWaiver(prEntry(log, 12)), true);
-  check("'Size waiver: none' (no date) fails", hasSizeWaiver(prEntry(log, 91)), false);
+  check("prEntry: a reference inside another heading's parentheses is not that PR's entry", prEntry(log, 999), null);
+  check("substantive dated owner waiver passes", hasSizeWaiver(prEntry(log, 12)), true);
+  check("'Size waiver: none' fails", hasSizeWaiver(prEntry(log, 91)), false);
   check("missing entry fails", hasSizeWaiver(null), false);
+  const w = (t) => hasSizeWaiver({ heading: "x", body: `**Tier.** 2\n${t}\n` });
+  check("date-only waiver fails", w("Size waiver: 2026-09-12"), false);
+  check("impossible date fails", w("Size waiver: owner go 2026-99-99, generated fixtures dominate the diff"), false);
+  check("no owner attribution fails", w("Size waiver: go 2026-09-12, generated fixtures dominate the diff"), false);
+  check("owner + real date + rationale passes", w("Size waiver: owner go 2026-09-12 — generated fixtures dominate the diff"), true);
+  check("owner + date but no rationale fails", w("Size waiver: owner 2026-09-12"), false);
+  check("bold-label form passes", w("- **Size waiver:** owner Mark, 2026-09-12: 640 lines, split judged riskier than one review"), true);
   check("waiver in another entry does not carry over", hasSizeWaiver(prEntry(log + "\n## 2026-09-12 — PR #13\n\nbody\n", 13)), false);
   if (failures.length) {
     for (const f of failures) console.error(`SELF-TEST FAIL: ${f}`);
     console.error(`review-gate self-test: ${failures.length} case(s) failed`);
     process.exit(1);
   }
-  console.log("review-gate self-test passed (33 cases, judge proven red-capable).");
+  console.log("review-gate self-test passed (47 cases, judge proven red-capable).");
 }
 
 function main() {
