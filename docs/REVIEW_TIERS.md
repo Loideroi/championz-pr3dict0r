@@ -35,8 +35,8 @@ Guardrail-complete since 2026-09-11 (app tree) and 2026-09-12 (relayer under the
 | Gate | Baseline (measured 2026-09-11 app, 2026-09-12 relayer) | Budget / enforcement |
 |---|---|---|
 | ESLint `complexity` (error ≥ 15; app tree + `relayer/`) | 10 over-budget functions (5 app, 5 relayer), each carrying a dated exception (below) | Blocking; `eslint --max-warnings 0`. New code stays under 15 — no new exceptions without a reviewer-approved, dated comment |
-| ESLint `max-lines` (error > 400; tests and the vendored `relayer/vendor/uefa-api-types.ts` exempt — a third-party type file we never refactor; every other rule still applies to it) | 0 | Blocking — keep it at zero |
-| Lint exceptions (`scripts/check-lint-exceptions.mjs`, ESLint-API driven over the whole linted tree, tested in `scripts/check-lint-exceptions.test.ts`) | 10, all `expires 2026-10-31` | Blocking: a suppression directive without a real `expires YYYY-MM-DD` date, past it, or more than 180 days out fails the build anywhere ESLint lints; inline config comments (`eslint rule: setting`, `global`, `globals`, `exported`, `eslint-env`) are forbidden outright because they bypass suppression tracking — detected by ESLint's own parser via a `noInlineConfig` pass, not a regex; `reportUnusedDisableDirectives: error` fails a stale directive once the function is fixed |
+| ESLint `max-lines` (error > 400; tests and the vendored `relayer/vendor/uefa-api-types.ts` exempt — a third-party type file we never refactor; every other rule still applies to it) | 1 file over budget with a dated exception: `relayer/src/insights.ts` (459 counted lines after PR #98 landed on 2026-09-12 while this PR was in review) | Blocking; the one exception expires 2026-10-31 — split the renderers out of `insights.ts` by then |
+| Lint exceptions (`scripts/check-lint-exceptions.mjs`, ESLint-API driven over the whole linted tree, tested in `scripts/check-lint-exceptions.test.ts`) | 11 (10 complexity + 1 max-lines), all `expires 2026-10-31` | Blocking: a suppression directive without a real `expires YYYY-MM-DD` date, past it, or more than 180 days out fails the build anywhere ESLint lints; inline config comments (`eslint rule: setting`, `global`, `globals`, `exported`, `eslint-env`) are forbidden outright because they bypass suppression tracking — detected by ESLint's own parser via a `noInlineConfig` pass, not a regex; `reportUnusedDisableDirectives: error` fails a stale directive once the function is fixed |
 | dependency-cruiser (`npm run arch`: app, components, hooks, lib, i18n, content, middleware.ts) | 0 violations over 123 modules / 297 dependencies | Blocking: no cycles, no upward imports, no orphans outside framework entry files, no runtime devDependency imports |
 | knip (`npm run deadcode:ci`: files, dependencies, unlisted) | 0 / 0 / 0 (19 unused exports + 7 unused types remain informational via `npm run deadcode`) | Blocking on the three high-signal categories; exports/types are slow-burn, not gated |
 | jscpd (`npm run dup`: app, components, hooks, lib, middleware.ts, relayer/src; tests excluded, min-tokens 50) | 9 exact clones, 0.86% duplicated lines | CI threshold **1%** (tightened from 2% on 2026-09-11) — ratchet down as clones consolidate |
@@ -56,6 +56,7 @@ Guardrail-complete since 2026-09-11 (app tree) and 2026-09-12 (relayer under the
 | `relayOnce` | `relayer/src/relay.ts` | 20 | 2026-10-31 |
 | `diffOnchain` | `relayer/src/onchainVerify.ts` | 17 | 2026-10-31 |
 | `runsFromMatches` | `relayer/src/strength.ts` | 17 | 2026-10-31 |
+| *(file)* `insights.ts` — `max-lines` | `relayer/src/insights.ts` | 459 lines vs 400 | 2026-10-31 |
 
 An expiry may be extended only in a reviewed PR that says why; the checker fails the build the day after it passes.
 

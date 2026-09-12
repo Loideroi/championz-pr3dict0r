@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- known debt: 459 counted lines vs budget 400 since PR #98 (2026-09-12); expires 2026-10-31; split tracked in docs/REVIEW_TIERS.md */
 import type { Fixture, MatchResult } from './source.js';
 import { verdictFor, type PrevRun, type TeamStrength, type Verdict } from './strength.js';
 
