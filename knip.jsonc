@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Scope: the Next.js app tree only. contracts/ and relayer/ are their own npm
+  // trees with their own toolchains (same split as eslint.config.mjs and
+  // .dependency-cruiser.js); supabase/ holds SQL, not modules. knip's Next.js
+  // and next-intl plugins pick up app/**, middleware.ts and i18n/request.ts as
+  // entries on their own. scripts/*.mjs are CI tooling run directly by node.
+  "entry": ["scripts/*.mjs"],
+  "project": ["app/**", "components/**", "hooks/**", "lib/**", "i18n/**", "content/**", "scripts/**"]
+}

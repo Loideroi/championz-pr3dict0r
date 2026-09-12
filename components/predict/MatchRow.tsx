@@ -23,6 +23,7 @@ const fmtPick = (p: ScorePick) => `${p.scoreA}–${p.scoreB}`;
  * the countdown never renders on the server). Club names come from the
  * bundled fixtures (lib/fixtures) and fall back to the on-chain codes.
  */
+// eslint-disable-next-line complexity -- known debt: complexity 32 vs budget 15 (2026-09-11); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export function MatchRow({
   match,
   phase,

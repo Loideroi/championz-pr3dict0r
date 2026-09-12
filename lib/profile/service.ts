@@ -143,6 +143,7 @@ export async function getProfile(
   return { status: 200, body: { profile: publicProfile(data) } };
 }
 
+// eslint-disable-next-line complexity -- known debt: complexity 27 vs budget 15 (2026-09-11); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export async function saveProfile(
   input: SaveProfileInput,
   deps: SaveProfileDeps,

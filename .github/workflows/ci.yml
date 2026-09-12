@@ -54,12 +54,21 @@ jobs:
         run: |
           node scripts/lint-review-log.mjs --self-test
           node scripts/lint-review-log.mjs docs/REVIEW_LOG.md
-      - name: Lint
+      - name: Lint (blocking budgets, zero warnings, time-bounded exceptions)
         run: npm run lint
-        # Added 2026-08-27 — CI previously never ran ESLint. Base-config
-        # findings are errors; the complexity/max-lines budgets are WARN-only
-        # ratchets (baselines in docs/REVIEW_TIERS.md) and do not fail this
-        # step — reviewers reject NEW budget warnings instead.
+        # Added 2026-08-27; BLOCKING since 2026-09-11: eslint runs with
+        # --max-warnings 0, the complexity/max-lines budgets are errors, and
+        # scripts/check-lint-exceptions.mjs fails on any eslint-disable that
+        # lacks an expiry or is past it (exceptions listed in docs/REVIEW_TIERS.md).
+      - name: Architecture rules (dependency-cruiser)
+        run: npm run arch
+        # Layering app → components → hooks → foundation (lib/i18n/content),
+        # no cycles, no orphans outside framework entry files, no runtime
+        # imports of devDependencies. Rules: .dependency-cruiser.js.
+      - name: Dead code (knip — files, dependencies, unlisted imports)
+        run: npm run deadcode:ci
+        # High-signal categories only; unused exports/types are informational
+        # (`npm run deadcode`), same policy as Fanbet. Config: knip.jsonc.
       - name: i18n parity (key + non-translatable-token check)
         run: npm run check:i18n
       - name: Type-check
@@ -68,9 +77,10 @@ jobs:
         run: npm test
       - name: Code duplication (jscpd)
         run: npm run dup
-        # Ratchet gate: fails above 2% duplicated lines (baseline 1.20% /
-        # 8 exact clones, 2026-08-27, tests excluded — docs/REVIEW_TIERS.md).
-        # Tighten the threshold as clones are consolidated; never raise it.
+        # Ratchet gate: fails above 1% duplicated lines (threshold tightened
+        # 2% → 1% on 2026-09-11 at a measured 0.86% / 9 exact clones, tests
+        # excluded — docs/REVIEW_TIERS.md). Tighten as clones are
+        # consolidated; never raise it.
       - name: Build
         run: npm run build
 
@@ -125,12 +135,12 @@ jobs:
     name: Migrations — squawk (changed files only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # PR-gate only, changed files only: the historical migration is already
-    # applied in production and carries 25 warning-level findings
-    # (docs/REVIEW_TIERS.md baseline) — retro-gating it would be noise.
-    # Direct pushes to main bypass this job; the PR gate is the enforcement
-    # point.
-    if: github.event_name == 'pull_request'
+    # Changed files only: the historical migration is already applied in
+    # production and carries 25 warning-level findings (docs/REVIEW_TIERS.md
+    # baseline) — retro-gating it would be noise. Runs on pull requests (the
+    # merge gate — it is a required check) AND on pushes to main since
+    # 2026-09-11, diffing against the previous main head, so no path to main
+    # skips it.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -152,8 +162,11 @@ jobs:
         # via env, not script interpolation (actions hardening guidance);
         # sha...HEAD gives merge-base semantics (fetch-depth 0 above).
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base commit to diff against (branch creation event) — nothing to lint"; exit 0
+          fi
           echo "Changed migration files (if any):"
           git diff --name-only --no-renames --diff-filter=AM "$BASE_SHA...HEAD" -- 'supabase/migrations/*.sql'
           git diff --name-only -z --no-renames --diff-filter=AM "$BASE_SHA...HEAD" -- 'supabase/migrations/*.sql' \
