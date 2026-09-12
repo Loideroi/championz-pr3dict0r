@@ -279,7 +279,9 @@ Project X does Y. State: building. Priority: ship Z.
     { name: 'secret: Stripe', content: good + '\n- key: sk_live_abcdefghijklmnopqrstu\n', opts: base, expect: 1 },
     { name: 'secret: AWS', content: good + '\n- key: AKIAABCDEFGHIJKLMNOP\n', opts: base, expect: 1 },
     { name: 'secret: Slack', content: good + '\n- token: xoxb-123456789012-abcdef\n', opts: base, expect: 1 },
-    { name: 'secret: Google', content: good + '\n- key: AIzaSyA1234567890abcdefghijklmnopqrstuv\n', opts: base, expect: 1 },
+    // Assembled at runtime: GitHub's Google matcher is a bare regex with no checksum, so the
+    // literal fixture trips secret scanning in every repo this file is copied into.
+    { name: 'secret: Google', content: good + '\n- key: ' + ['AIza', 'SyA1234567890abcdefghijklmnopqrstuv'].join('') + '\n', opts: base, expect: 1 },
     { name: 'secret: JWT', content: good + '\n- jwt: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnopqrstuvwxyz\n', opts: base, expect: 1 },
     { name: 'secret: private key block', content: good + '\n-----BEGIN RSA PRIVATE KEY-----\n', opts: base, expect: 1 },
     { name: 'CLAUDE.md without import', content: good, opts: { ...base, claudeMd: '# CLAUDE.md\n\nsome notes\n' }, expect: 1 },
