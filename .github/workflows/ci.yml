@@ -123,9 +123,9 @@ jobs:
         run: python -m pip install --quiet slither-analyzer==0.11.4
       - name: Static analysis (slither, blocking on new or stale High/Medium findings)
         working-directory: contracts
-        # Same command as local: `hardhat compile` (pinned solc 0.8.24 /
-        # shanghai; a cache hit after the step above) then slither on the
-        # artifacts (--hardhat-ignore-compile — no re-compile, no
+        # Same command as local: `hardhat compile --force` (pinned solc 0.8.24 /
+        # shanghai; a full compile so artifacts always match the source) then
+        # slither on those artifacts (--hardhat-ignore-compile — no
         # `hardhat clean --global`); scripts/check-slither.mjs fails on any
         # High/Medium finding not triaged in slither-triage.json, on any triage
         # entry whose id or metadata no longer matches a current finding, on a

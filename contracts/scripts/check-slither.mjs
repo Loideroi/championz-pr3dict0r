@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Slither gate for the contracts workspace (2026-09-12). Run via `npm run
-// slither` (contracts/): `hardhat compile` first, then slither with
-// --hardhat-ignore-compile (it reads the artifacts instead of re-compiling —
-// and instead of running `hardhat clean --global`, which wipes the shared
-// compiler cache and races any other compile on the machine); slither writes
+// slither` (contracts/): `hardhat compile --force` first (a full compile, so
+// the artifacts always match the source even after an earlier failed compile
+// left Hardhat's cache inconsistent), then slither with
+// --hardhat-ignore-compile (it reads those artifacts instead of re-compiling
+// through `hardhat clean --global`, which wipes the shared compiler cache and
+// races any other compile on the machine); slither writes
 // slither-report.json for the whole tree
 // (the triage file is deliberately NOT named slither.db.json, which slither
 // would auto-load and silently filter with — so the report is the complete
