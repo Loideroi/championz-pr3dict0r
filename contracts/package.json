@@ -5,7 +5,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy:spicy": "hardhat run scripts/deploy.ts --network spicy"
+    "deploy:spicy": "hardhat run scripts/deploy.ts --network spicy",
+    "slither": "rm -f slither-report.json; slither . --config-file slither.config.json --json slither-report.json > /dev/null 2>&1; node scripts/check-slither.mjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

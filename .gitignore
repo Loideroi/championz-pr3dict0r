@@ -46,3 +46,4 @@ contracts/.oracle.key
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+contracts/slither-report.json
