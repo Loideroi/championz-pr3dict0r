@@ -33,17 +33,23 @@ PR it reviews**, not in a trailing docs PR.
 
 A required status check on every PR (owner click to enroll it in branch protection,
 see Named Follow-Ups). `scripts/review-gate.mjs` fails a PR whose body has no
-`Declared tier: N` line, whose counted changed lines (excl. lockfiles and
-`linguist-generated` paths from `.gitattributes`) exceed 500 without the
-`size-waiver` label, or whose diff adds no `docs/REVIEW_LOG.md` entry naming the PR.
+`Declared tier: N` line, whose counted changed lines (excl. the three lockfiles and
+`linguist-generated` paths as declared in the **base** tree's `.gitattributes` — a PR
+cannot mark its own files) exceed 500 without the `size-waiver` label, or whose
+`docs/REVIEW_LOG.md` gains no new, complete entry about the PR (dated on/after the
+judge cutoff, non-exempt heading shape, fields checked with the judge's own rules,
+highest tier equal to the declared tier, older entries append-only).
 `scripts/lint-review-log.mjs` then checks the entry's fields, and
 `scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
 `size-waiver` label is only valid with the human waiver recorded in the log entry as a
 `Size waiver:` field naming the owner, a real date, and a rationale (the gate checks the
 shape, not the truth of it); whether the reviews actually ran is beyond any gate — the
 monthly escape audit checks that.
-Dependabot PRs hit this gate too: an agent adds the tier line and the log entry after
-reviewing the lockfile change (Tier 3 by this map), which is the intended cost.
+Dependabot PRs hit this gate too and cannot satisfy it in place (Dependabot force-pushes
+its branch on rebase, dropping added commits, and `dependabot/*` is not an allowed push
+prefix): an agent reviews the bump at Tier 3 (this map), then opens a replacement PR with
+the same lockfile change plus the tier line and log entry, and the Dependabot PR is closed
+— which is the intended cost.
 
 ## Gate Baselines (measured 2026-08-27, ratchet — may shrink, never grow)
 

@@ -9,17 +9,22 @@
 //      not count). Reviewers confirm or raise the tier; the floor map in
 //      docs/REVIEW_TIERS.md beats the declaration.
 //   2. The size cap: additions + deletions between the merge-base and the head,
-//      excluding lockfiles and paths carrying the `linguist-generated` git
-//      attribute (.gitattributes), must not exceed 500 — unless the PR carries
+//      excluding the three lockfiles and paths carrying the `linguist-generated`
+//      git attribute as declared in the BASE tree's .gitattributes (a PR cannot
+//      mark its own files generated; marks apply from the next PR on, after
+//      review), must not exceed 500 — unless the PR carries
 //      the `size-waiver` label, which stands for the contract's recorded human
 //      waiver (the log entry must name it). Tier 3 above 300 is a warning only
 //      (the contract's aim, not its cap).
 //   3. A same-PR review-log entry: the head tree's docs/REVIEW_LOG.md must
-//      hold an entry whose `## ` heading names "#<PR number>", the base tree
-//      must not, and every base heading must survive verbatim (the log is
-//      append-only) — so a number dropped into an old entry, into prose, or
-//      onto an existing heading does not count. Field completeness of the
-//      entry is scripts/lint-review-log.mjs's job (next workflow step).
+//      hold an entry whose `## ` heading is about "#<PR number>", dated on or
+//      after the judge cutoff and not an exempt-shaped heading (so the field
+//      lint cannot be sidestepped by a backdated or "OWNER WAIVER" heading);
+//      the base tree must not hold one; every base heading must survive and
+//      every base entry body may only be appended to (re-check outcomes), never
+//      edited. The entry's fields are then checked here with the judge's own
+//      checkEntry, and its highest "Tier N" must equal the declared tier (a
+//      reviewer's raise means the PR body is updated, not ignored).
 //   4. When over the cap with the `size-waiver` label, the PR's own log entry
 //      (the one whose heading names it, in the head tree) must carry a
 //      "Size waiver:" field with a date — the recorded human waiver the
@@ -41,13 +46,22 @@
 // merged with no tier line, no review, and no log entry while CI was green.
 
 import { spawnSync } from "node:child_process";
-import { splitEntries } from "./lint-review-log.mjs";
+import { realpathSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { splitEntries, checkEntry } from "./lint-review-log.mjs";
 
 export const LINE_CAP = 500;
 export const TIER3_AIM = 300;
 export const WAIVER_LABEL = "size-waiver";
 export const LOG_PATH = "docs/REVIEW_LOG.md";
-const LOCKFILE_RE = /(^|\/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml)$/;
+// The three real lockfiles only — a basename match anywhere let lib/x/package-lock.json hide lines.
+const LOCKFILE_RE = /^(contracts\/|relayer\/)?package-lock\.json$/;
+// Same cutoff and exempt shapes as scripts/lint-review-log.mjs (not exported there;
+// keep in step when re-copying the judge — the workflow passes the same --since).
+export const LOG_CUTOFF = "2026-09-12";
+const EXEMPT_HEADING_RE = /\b(ESCAPE AUDIT|OWNER WAIVER|EXCEPTION RECORD)\b/i;
+const HEADING_DATE_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
 
 export function declaredTier(body) {
   const m = (body ?? "").match(/Declared tier\**\s*:\s*\**\s*([123])(?!\d)/i);
@@ -111,17 +125,35 @@ export function isRealDate(s) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-// The entry must be NEW in this PR and the log append-only: no entry naming
-// the PR in the base tree, one in the head tree, and every base heading still
-// present verbatim in the head (so renaming an old heading to add the number,
-// or adding the number to prose, does not count).
-export function logEntryIsNew(baseLog, headLog, prNumber) {
-  if (prEntry(baseLog, prNumber)) return { ok: false, reason: `an entry naming #${prNumber} already existed before this PR` };
+// Highest "Tier N" an entry mentions (the judge's rule: a reviewer's raise wins).
+export function entryTier(entry) {
+  const tiers = [...`${entry.heading}\n${entry.body}`.matchAll(/\bTier\**\s*[.:]?\s*\**\s*([123])\b/gi)].map((m) => Number(m[1]));
+  return tiers.length ? Math.max(...tiers) : null;
+}
+
+// The entry must be NEW in this PR, dated on/after the cutoff, not exempt-shaped,
+// and the log append-only: no entry about the PR in the base tree, one in the
+// head tree, every base heading still present, every base body only appended
+// to. Then the judge's own field check runs on that entry.
+export function logEntryIsNew(baseLog, headLog, prNumber, cutoff = LOG_CUTOFF) {
+  if (prEntry(baseLog, prNumber)) return { ok: false, reason: `an entry about #${prNumber} already existed before this PR` };
   const entry = prEntry(headLog, prNumber);
-  if (!entry) return { ok: false, reason: `no "## ..." entry naming #${prNumber} in the head tree` };
-  const headHeadings = new Set(splitEntries(headLog).map((e) => e.heading));
-  const lost = splitEntries(baseLog).map((e) => e.heading).filter((h) => !headHeadings.has(h));
+  if (!entry) return { ok: false, reason: `no "## ..." entry about #${prNumber} in the head tree` };
+  const date = entry.heading.match(HEADING_DATE_RE)?.[1];
+  if (!date || !isRealDate(date)) return { ok: false, reason: `entry "${entry.heading.slice(0, 50)}" has no real YYYY-MM-DD date in its heading` };
+  if (date < cutoff) return { ok: false, reason: `entry "${entry.heading.slice(0, 50)}" is dated before the ${cutoff} judge cutoff — a backdated heading does not count` };
+  if (EXEMPT_HEADING_RE.test(entry.heading)) return { ok: false, reason: `entry "${entry.heading.slice(0, 50)}" uses an exempt heading shape (escape audit / owner waiver / exception record) — a PR's own entry may not` };
+  const headByHeading = new Map(splitEntries(headLog).map((e) => [e.heading, e.body]));
+  const lost = [];
+  const edited = [];
+  for (const b of splitEntries(baseLog)) {
+    if (!headByHeading.has(b.heading)) lost.push(b.heading);
+    else if (!headByHeading.get(b.heading).trimEnd().startsWith(b.body.trimEnd())) edited.push(b.heading);
+  }
   if (lost.length) return { ok: false, reason: `existing heading(s) changed or removed — the log is append-only: ${lost.map((h) => `"${h.slice(0, 50)}"`).join(", ")}` };
+  if (edited.length) return { ok: false, reason: `existing entry body edited (only appending, e.g. a re-check outcome, is allowed): ${edited.map((h) => `"${h.slice(0, 50)}"`).join(", ")}` };
+  const problems = checkEntry(entry, cutoff);
+  if (problems.length) return { ok: false, reason: `entry fields incomplete — ${problems.join("; ")}` };
   return { ok: true, entry };
 }
 
@@ -150,9 +182,11 @@ function git(args, input) {
   return r.stdout;
 }
 
-function generatedSet(paths) {
+// Attributes are read from the BASE tree (git >= 2.40 --source), never from the
+// PR's own checkout, so a PR cannot mark its files generated to dodge the cap.
+function generatedSet(paths, baseSha) {
   if (paths.length === 0) return new Set();
-  const out = git(["check-attr", "--stdin", "linguist-generated"], `${paths.join("\n")}\n`);
+  const out = git(["check-attr", `--source=${baseSha}`, "--stdin", "linguist-generated"], `${paths.join("\n")}\n`);
   const set = new Set();
   for (const line of out.split("\n")) {
     const m = line.match(/^(.*): linguist-generated: (.*)$/);
@@ -163,7 +197,9 @@ function generatedSet(paths) {
 
 function runSelfTest() {
   const failures = [];
+  let cases = 0;
   const check = (name, actual, expected) => {
+    cases += 1;
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       failures.push(`${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
     }
@@ -202,17 +238,28 @@ function runSelfTest() {
   check("plain path untouched", destPath("app/page.tsx"), "app/page.tsx");
   check("empty numstat counts zero", countChangedLines("", isGen).counted, 0);
   // 3. log entry
+  const FULL = "\n\n**Tier.** 2. Author `claude-opus-5`; R1 `gpt-5.6-sol`; R2 `claude-opus-5`.\n**Verdicts.** R1 pass; R2 pass. Tally: 0 Blocker / 0 Major / 0 Minor / 0 Nit.\n**Checked.** ran the suite, read every file, reuse search done.\n**verification-gap:** every change has a failing-capable test.\n**named-set:** the status enum is fully handled.\n**Dismissed.** none.\n**Missing.** looked for a rollback path; none needed.\n";
   const baseLog = "# Review Log\n\n## 2026-09-10 — PR #91 (other)\n\nbody\n";
-  const appended = baseLog + "\n## 2026-09-12 — PR #85 (thing)\n\nbody mentions #86\n";
-  check("appended heading naming #85 is new", logEntryIsNew(baseLog, appended, 85).ok, true);
+  const appended = baseLog + "\n## 2026-09-12 — PR #85 (thing)" + FULL + "body mentions #86\n";
+  check("appended complete entry about #85 is new", logEntryIsNew(baseLog, appended, 85).ok, true);
   check("#85 does not satisfy #8", logEntryIsNew(baseLog, appended, 8).ok, false);
   check("#85 does not satisfy #850", logEntryIsNew(baseLog, appended, 850).ok, false);
   check("number in prose only does not count", logEntryIsNew(baseLog, appended, 86).ok, false);
   check("entry already in base is not new", logEntryIsNew(baseLog, appended, 91).ok, false);
   check("old heading renamed to add the number fails (append-only)", logEntryIsNew(baseLog, baseLog.replace("PR #91 (other)", "PR #91 (other) and #97"), 97).ok, false);
-  check("old heading removed fails even with a new entry", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)\n\nbody\n", 85).ok, false);
-  check("new entry inserted above old ones (newest-first log) passes", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)\n\nbody\n" + baseLog.slice("# Review Log\n".length), 85).ok, true);
-  check("empty base log, new entry passes", logEntryIsNew("", "## 2026-09-12 — PR #1 (first)\n\nbody\n", 1).ok, true);
+  check("old heading removed fails even with a new entry", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)" + FULL, 85).ok, false);
+  check("old entry body edited fails", logEntryIsNew(baseLog, appended.replace("\nbody\n", "\nrewritten\n"), 85).ok, false);
+  check("old entry body appended to (re-check outcome) passes", logEntryIsNew(baseLog, appended.replace("(other)\n\nbody\n", "(other)\n\nbody\nRe-check 2026-09-12: resolved.\n"), 85).ok, true);
+  check("new entry inserted above old ones (newest-first log) passes", logEntryIsNew(baseLog, "# Review Log\n\n## 2026-09-12 — PR #85 (thing)" + FULL + baseLog.slice("# Review Log\n".length), 85).ok, true);
+  check("empty base log, new complete entry passes", logEntryIsNew("", "## 2026-09-12 — PR #1 (first)" + FULL, 1).ok, true);
+  check("backdated heading (before cutoff) fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-01 — PR #85 (thing)" + FULL, 85).ok, false);
+  check("OWNER WAIVER heading shape fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-12 — PR #85 OWNER WAIVER" + FULL, 85).ok, false);
+  check("ESCAPE AUDIT heading shape fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-12 — ESCAPE AUDIT #2 PR #85" + FULL, 85).ok, false);
+  check("impossible heading date fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-02-30 — PR #85 (thing)" + FULL, 85).ok, false);
+  check("new entry with no fields fails the judge's field check", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-12 — PR #85 (thing)\n\nno fields at all\n", 85).ok, false);
+  check("Tier 2 entry missing named-set fails", logEntryIsNew(baseLog, baseLog + "\n## 2026-09-12 — PR #85 (thing)" + FULL.replace("**named-set:**", "**enum:**"), 85).ok, false);
+  check("entryTier: highest wins", entryTier({ heading: "x", body: "declared Tier 2; reviewer raised to Tier 3" }), 3);
+  check("entryTier: none", entryTier({ heading: "x", body: "no tier here" }), null);
   // 4. heading subject and waiver binding
   check("subject: PR #100 (follow-up to #999) is about #100 only", [...headingPrIds("2026-09-12 — PR #100 (follow-up to #999)")], [100]);
   check("subject: PRs #94 and #95 is about both", [...headingPrIds("2026-09-10 — PRs #94 and #95 (x)")].sort(), [94, 95]);
@@ -239,7 +286,7 @@ function runSelfTest() {
     console.error(`review-gate self-test: ${failures.length} case(s) failed`);
     process.exit(1);
   }
-  console.log("review-gate self-test passed (47 cases, judge proven red-capable).");
+  console.log(`review-gate self-test passed (${cases} cases, judge proven red-capable).`);
 }
 
 function main() {
@@ -264,14 +311,17 @@ function main() {
   const base = git(["merge-base", BASE_SHA, HEAD_SHA]).trim();
   const numstat = git(["diff", "--numstat", "-M", base, HEAD_SHA]);
   const paths = numstat.split("\n").filter(Boolean).map((l) => destPath(l.split("\t").slice(2).join("\t")));
-  const generated = generatedSet(paths);
+  const generated = generatedSet(paths, base);
   const { counted, skipped } = countChangedLines(numstat, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
   console.log(`review-gate: ${counted} changed lines counted (cap ${LINE_CAP})`);
   // 3. same-PR log entry: new in this PR, log append-only
   const showLog = (sha) => {
     const r = spawnSync("git", ["show", `${sha}:${LOG_PATH}`], { encoding: "utf8" });
-    return r.status === 0 ? r.stdout : ""; // absent file = empty log
+    if (r.status === 0) return r.stdout;
+    if (/does not exist in|exists on disk, but not in/.test(r.stderr)) return ""; // absent file = empty log
+    console.error(`review-gate: git show ${sha}:${LOG_PATH} failed: ${r.stderr.trim()} (shallow fetch? the workflow needs fetch-depth: 0)`);
+    process.exit(2);
   };
   const logCheck = logEntryIsNew(showLog(base), showLog(HEAD_SHA), prNumber);
   const entry = logCheck.ok ? logCheck.entry : null;
@@ -279,6 +329,10 @@ function main() {
     failures.push(`log: ${logCheck.reason} (append this PR's own review-log entry to ${LOG_PATH} before asking for the merge)`);
   } else {
     console.log(`review-gate: ${LOG_PATH} entry "${entry.heading.slice(0, 60)}" added for #${prNumber}`);
+    const logged = entryTier(entry);
+    if (tier !== null && logged !== null && logged !== tier) {
+      failures.push(`tier: PR body declares Tier ${tier} but the review-log entry's highest tier is ${logged} — the floor/reviewer raise wins; update the "Declared tier" line to ${logged}`);
+    }
   }
 
   // 4. size cap, with the waiver bound to this PR's own entry
@@ -301,5 +355,17 @@ function main() {
   console.log("review-gate: PASS");
 }
 
-if (process.argv.includes("--self-test")) runSelfTest();
+// Run only when executed directly (importing the module for its functions runs nothing).
+function isMainModule() {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (!isMainModule()) {
+  // imported as a module
+} else if (process.argv.includes("--self-test")) runSelfTest();
 else main();
