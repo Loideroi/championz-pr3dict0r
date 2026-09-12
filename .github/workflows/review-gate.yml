@@ -1,12 +1,14 @@
 name: Review gate
 
-# Process judges as a status check (adopted 2026-09-11 after the 2026-09-09
-# escapes in docs/REVIEW_LOG.md). Dependency-free: the scripts use node only.
-# `edited` re-runs it when the PR body changes.
+# The review contract's merge preconditions as a required status check
+# (adopted 2026-09-11 after the 2026-09-09 escapes in docs/REVIEW_LOG.md):
+# tier declared, size cap, this PR's review-log entry present and complete,
+# AGENTS.md hygiene. `edited`/`labeled`/`unlabeled` re-run it when the body or
+# the size-waiver label changes. Dependency-free: the scripts use node only.
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -21,9 +23,21 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Tier declared, size cap, same-PR review-log entry
+        # The body and labels reach the script through env, never through
+        # shell interpolation, so PR text cannot inject commands.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/review-gate.mjs
       - name: Review-log entry fields (docs/REVIEW_LOG.md)
         # Every entry dated 2026-09-12 or later: tier, exact model ids, verdict,
         # tally, Checked, Dismissed; Tier 2/3 also verification-gap, named-set,
