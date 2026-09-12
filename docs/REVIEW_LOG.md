@@ -2,7 +2,7 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
-## 2026-09-12 — PR #<assigned at opening> `chore/portable-judges` (the wiki's review-log and AGENTS.md judges run on every PR)
+## 2026-09-12 — PR #103 `chore/portable-judges` (the wiki's review-log and AGENTS.md judges run on every PR)
 
 **Scope.** NEW `scripts/lint-review-log.mjs` (311 lines) and `scripts/check-agents-md.mjs` (354 lines) — byte-identical copies of the Loideroi LLM Wiki's `tools/` judges (sha256 `29b6cf03…37c` and `c6d6710c…56a`; `templates/ci-node.yml` prescribes them per repo); NEW `.github/workflows/review-gate.yml` running both on `pull_request` (opened/synchronize/reopened/edited) with `permissions: contents: read` and the review-log cutoff passed explicitly (`--since 2026-09-12`). Every log entry dated on/after the cutoff must carry tier, exact model ids, verdict, tally, `Checked:`, `Dismissed:` (Tier 2/3 also `verification-gap`, `named-set`, `Missing:`); `AGENTS.md` must keep a Boundaries section, stay ≤150 lines, restate no package scripts, and be imported by `CLAUDE.md`.
 
@@ -31,7 +31,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** Two judge scripts are exact copies of the wiki's, and a new CI job runs them on every PR. They are self-tested and cannot push, merge, or read secrets. What could break: nothing in the app — the job only reads `docs/REVIEW_LOG.md` and `AGENTS.md`. Residual risk: low; the judges are advisory until `review-gate` is a required check (owner click, named in the entry-file wiring PR).
 
-**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. After opening the PR, replace `#<assigned at opening>` in this heading with the real number.
+**Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. PR #103.
 
 ## 2026-09-12 — PR #<assigned at opening> `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
 
@@ -64,7 +64,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** The agent's unprompted git/gh surface is now tightly listed and the instruction file tells the truth: these rules guide a cooperating agent and are not a wall. Every obvious way of pushing `main` now prompts or is blocked. The part that matters for "merge is my click": your branch protection today blocks force-pushes and requires green checks, but it does not require a pull request — so a green PR head can still be pushed straight to `main` by anyone with your token, including an agent. One click ("Require a pull request before merging") makes the merge genuinely yours; enrolling `review-gate` as required is the second click. Residual after both: none for direct pushes; the agent could still write a misleading review-log entry, which is what the escape audit reads.
 
-**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. After opening the PR, replace `#<assigned at opening>` in this heading with the real number (the entry is new in this PR, so the gate allows the edit).
+**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #103.
 
 ## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
 
