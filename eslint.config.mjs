@@ -17,18 +17,37 @@ const eslintConfig = defineConfig([
     "relayer/**",
   ]),
   {
-    // Complexity budgets (architecture fitness functions, wired 2026-08-27).
-    // Warn-only ratchet: baseline counts live in docs/REVIEW_TIERS.md and
-    // may shrink, never grow. Tests are exempt from max-lines.
+    // Complexity budgets (architecture fitness functions). Wired warn-only
+    // 2026-08-27; BLOCKING since 2026-09-11 (guardrail-complete decision):
+    // `npm run lint` runs with --max-warnings 0, so any finding fails CI.
+    // The five pre-existing over-budget functions carry a one-line
+    // `eslint-disable-next-line complexity -- ... expires YYYY-MM-DD` exception
+    // each, listed in docs/REVIEW_TIERS.md; scripts/check-lint-exceptions.mjs
+    // fails the build when an exception lacks an expiry or is past it, and
+    // reportUnusedDisableDirectives fails it once the function is fixed.
+    // Tests are exempt from max-lines.
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
     rules: {
-      complexity: ["warn", 15],
-      "max-lines": ["warn", { max: 400, skipBlankLines: true, skipComments: true }],
+      complexity: ["error", 15],
+      "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
     },
   },
   {
     files: ["**/*.test.*", "**/__tests__/**"],
     rules: {
       "max-lines": "off",
+    },
+  },
+  {
+    // Permanent, reviewed design decision (PRD §7.6): team crests are
+    // third-party URLs rendered with a plain <img> plus an onError fallback;
+    // next/image cannot serve them. Lives here, not as an inline
+    // eslint-disable, because inline disables must be time-bounded debt.
+    files: ["components/predict/TeamCrest.tsx"],
+    rules: {
+      "@next/next/no-img-element": "off",
     },
   },
 ]);

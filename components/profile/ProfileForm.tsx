@@ -32,6 +32,7 @@ type SavedProfile = {
   updatedAt: string;
 };
 
+// eslint-disable-next-line complexity -- known debt: complexity 26 vs budget 15 (2026-09-11); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export function ProfileForm() {
   const t = useTranslations("profile.form");
   const { open } = useAppKit();
