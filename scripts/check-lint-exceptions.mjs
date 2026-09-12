@@ -12,23 +12,25 @@
 // A directive that suppresses nothing never appears here — that case is
 // already an error via linterOptions.reportUnusedDisableDirectives.
 //
-// Two things ESLint's suppression records cannot see are checked lexically on
-// the same set of linted files: inline CONFIG comments (a block comment
-// starting with `eslint <rule>: <setting>` reconfigures the rule, so nothing
-// is ever reported or suppressed — R2 finding on PR #97), which are forbidden
-// outright; and an expiry more than
-// HORIZON_DAYS ahead, which would make "time-bounded" meaningless.
+// Inline CONFIG comments (`eslint rule: setting`, `global`, `globals`,
+// `exported`, `eslint-env`) reconfigure a rule so nothing is ever reported or
+// suppressed — invisible to the records above (R2 finding on PR #97). They are
+// forbidden outright, and again ESLint's parser finds them, not a regex: a
+// second lint pass with `linterOptions.noInlineConfig: true` makes ESLint
+// report every inline directive comment it recognizes ("… has no effect
+// because you have 'noInlineConfig'"); every one that is not an
+// `eslint-disable*`/`eslint-enable*` directive fails the build. Multiline
+// comments and string literals are handled by the parser. Finally, an expiry
+// more than HORIZON_DAYS ahead is rejected so "time-bounded" stays meaningful.
 //
 // Env: LINT_EXCEPTIONS_TODAY=YYYY-MM-DD overrides "today";
 //      LINT_EXCEPTIONS_ROOT=<dir> overrides the lint root (tests).
 import { ESLint } from "eslint";
-import { readFileSync } from "node:fs";
 import { relative } from "node:path";
 
 const HORIZON_DAYS = 180;
-// ESLint honours inline configuration only in block comments that start with
-// `eslint` followed by whitespace (not `eslint-disable…`, `eslint-env`, etc.).
-const inlineConfig = /\/\*\s*eslint\s(?!-)/;
+const noEffect = /^'([\s\S]*)' has no effect because you have 'noInlineConfig'/;
+const disableDirective = /^(?:\/\/|\/\*)\s*eslint-(?:disable|enable)(?:-next-line|-line)?(?![\w-])/;
 
 const root = process.env.LINT_EXCEPTIONS_ROOT ?? process.cwd();
 const expires = /expires (\d{4}-\d{2}-\d{2})/;
@@ -52,16 +54,22 @@ if (today === null) {
 
 const eslint = new ESLint({ cwd: root });
 const results = await eslint.lintFiles(["."]);
+const strict = new ESLint({ cwd: root, overrideConfig: { linterOptions: { noInlineConfig: true } } });
+const strictResults = await strict.lintFiles(["."]);
 
 const problems = [];
 const seen = new Set(); // one directive can suppress several messages; count it once
 const horizon = today + HORIZON_DAYS * 86400000;
+for (const result of strictResults) {
+  for (const msg of result.messages) {
+    if (msg.ruleId !== null) continue;
+    const m = noEffect.exec(msg.message);
+    if (!m || disableDirective.test(m[1])) continue;
+    const head = m[1].split("\n")[0].slice(0, 60);
+    problems.push(`${relative(root, result.filePath)}:${msg.line}: inline ESLint config comment ${JSON.stringify(head)} is not allowed — rules and globals are configured in eslint.config.mjs; use a dated eslint-disable for known debt`);
+  }
+}
 for (const result of results) {
-  readFileSync(result.filePath, "utf8").split("\n").forEach((line, i) => {
-    if (inlineConfig.test(line)) {
-      problems.push(`${relative(root, result.filePath)}:${i + 1}: inline ESLint config comment (block comment starting with "eslint <rule>:") is not allowed — rules are configured in eslint.config.mjs; use a dated eslint-disable for known debt`);
-    }
-  });
   for (const msg of result.suppressedMessages) {
     for (const sup of msg.suppressions) {
       if (sup.kind !== "directive") continue;

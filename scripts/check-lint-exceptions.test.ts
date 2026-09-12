@@ -108,19 +108,31 @@ describe("check-lint-exceptions (ESLint-driven)", () => {
     expect(run(fixture({ "lib/h.js": "export const h = 1;\n" }), "2028-02-29").code).toBe(0);
   });
 
-  it("forbids inline ESLint config comments, which bypass suppression tracking", () => {
+  it("forbids inline ESLint config comments in every form ESLint's parser recognizes", () => {
     for (const src of [
       `${C}no-console: "off" */\nconsole.log(1);\n`,
       `${C}no-console: ["error", { allow: ["log"] }] */\nconsole.log(1);\n`,
       `${Cn}no-console:0*/\nconsole.log(1);\n`,
+      `console.log(1); ${C}no-console: off */\n`,
+      `/*` + `eslint\n no-console: off */\nconsole.log(1);\n`,
+      `/* ` + `exported foo */\nvar foo = 1;\n`,
+      `/* ` + `global bar */\nexport const b = bar;\n`,
+      `/* ` + `globals baz */\nexport const z = baz;\n`,
+      `/* ` + `eslint-env node */\nexport const e = 1;\n`,
     ]) {
       const dir = fixture({ "lib/k.js": src });
       const r = run(dir);
       expect(r.code, src).toBe(1);
       expect(r.out).toContain("inline ESLint config comment");
     }
-    // a disable directive is not a config comment
-    const ok = fixture({ "lib/k2.js": `/* ${D}-next-line no-console -- expires 2026-10-31 */\nconsole.log(1);\n` });
+  });
+
+  it("does not mistake a disable directive, an enable directive, or a string for a config comment", () => {
+    const ok = fixture({
+      "lib/k2.js": `/* ${D}-next-line no-console -- expires 2026-10-31 */\nconsole.log(1);\n`,
+      "lib/k3.js": `/* ${D} no-console -- expires 2026-10-31 */\nconsole.log(1);\n/* eslint-enable no-console */\n`,
+      "lib/k4.js": `export const s = "${C}no-console: off */";\n`,
+    });
     expect(run(ok).code).toBe(0);
   });
 
