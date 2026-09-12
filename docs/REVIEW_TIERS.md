@@ -30,13 +30,13 @@ see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
 
 ## Gate Baselines (ratchet — may shrink, never grow)
 
-Guardrail-complete since 2026-09-11: every gate below fails CI inside the required `app` check (strict, enforce-admins). Wired warn-only 2026-08-27; measured again 2026-09-11 before the flip.
+Guardrail-complete since 2026-09-11 (app tree) and 2026-09-12 (relayer under the same ESLint budgets): every gate below fails CI inside the required `app` check (strict, enforce-admins). Wired warn-only 2026-08-27; measured again 2026-09-11 before the flip; relayer baseline measured 2026-09-12.
 
-| Gate | Baseline (2026-09-11) | Budget / enforcement |
+| Gate | Baseline (measured 2026-09-11 app, 2026-09-12 relayer) | Budget / enforcement |
 |---|---|---|
-| ESLint `complexity` (error ≥ 15) | 5 over-budget functions, each carrying a dated exception (below) | Blocking; `eslint --max-warnings 0`. New code stays under 15 — no new exceptions without a reviewer-approved, dated comment |
-| ESLint `max-lines` (error > 400; tests exempt) | 0 | Blocking — keep it at zero |
-| Lint exceptions (`scripts/check-lint-exceptions.mjs`, ESLint-API driven over the whole linted tree, tested in `scripts/check-lint-exceptions.test.ts`) | 5, all `expires 2026-10-31` | Blocking: a suppression directive without a real `expires YYYY-MM-DD` date, past it, or more than 180 days out fails the build anywhere ESLint lints; inline config comments (`eslint rule: setting`, `global`, `globals`, `exported`, `eslint-env`) are forbidden outright because they bypass suppression tracking — detected by ESLint's own parser via a `noInlineConfig` pass, not a regex; `reportUnusedDisableDirectives: error` fails a stale directive once the function is fixed |
+| ESLint `complexity` (error ≥ 15; app tree + `relayer/`) | 10 over-budget functions (5 app, 5 relayer), each carrying a dated exception (below) | Blocking; `eslint --max-warnings 0`. New code stays under 15 — no new exceptions without a reviewer-approved, dated comment |
+| ESLint `max-lines` (error > 400; tests and the vendored `relayer/vendor/uefa-api-types.ts` exempt — a third-party type file we never refactor; every other rule still applies to it) | 1 file over budget with a dated exception: `relayer/src/insights.ts` (459 counted lines after PR #98 landed on 2026-09-12 while this PR was in review) | Blocking; the one exception expires 2026-10-31 — split the renderers out of `insights.ts` by then |
+| Lint exceptions (`scripts/check-lint-exceptions.mjs`, ESLint-API driven over the whole linted tree, tested in `scripts/check-lint-exceptions.test.ts`) | 11 (10 complexity + 1 max-lines), all `expires 2026-10-31` | Blocking: a suppression directive without a real `expires YYYY-MM-DD` date, past it, or more than 180 days out fails the build anywhere ESLint lints; inline config comments (`eslint rule: setting`, `global`, `globals`, `exported`, `eslint-env`) are forbidden outright because they bypass suppression tracking — detected by ESLint's own parser via a `noInlineConfig` pass, not a regex; `reportUnusedDisableDirectives: error` fails a stale directive once the function is fixed |
 | dependency-cruiser (`npm run arch`: app, components, hooks, lib, i18n, content, middleware.ts) | 0 violations over 123 modules / 297 dependencies | Blocking: no cycles, no upward imports, no orphans outside framework entry files, no runtime devDependency imports |
 | knip (`npm run deadcode:ci`: files, dependencies, unlisted) | 0 / 0 / 0 (19 unused exports + 7 unused types remain informational via `npm run deadcode`) | Blocking on the three high-signal categories; exports/types are slow-burn, not gated |
 | jscpd (`npm run dup`: app, components, hooks, lib, middleware.ts, relayer/src; tests excluded, min-tokens 50) | 9 exact clones, 0.86% duplicated lines | CI threshold **1%** (tightened from 2% on 2026-09-11) — ratchet down as clones consolidate |
@@ -51,12 +51,19 @@ Guardrail-complete since 2026-09-11: every gate below fails CI inside the requir
 | `saveProfile` | `lib/profile/service.ts` | 27 | 2026-10-31 |
 | `ProfileForm` | `components/profile/ProfileForm.tsx` | 26 | 2026-10-31 |
 | `POST` (Telegram webhook) | `app/api/telegram/webhook/route.ts` | 19 | 2026-10-31 |
+| `toMatchResult` (arrow) | `relayer/src/source.ts` | 37 | 2026-10-31 |
+| `renderInsight` | `relayer/src/insights.ts` | 20 | 2026-10-31 |
+| `relayOnce` | `relayer/src/relay.ts` | 20 | 2026-10-31 |
+| `diffOnchain` | `relayer/src/onchainVerify.ts` | 17 | 2026-10-31 |
+| `runsFromMatches` | `relayer/src/strength.ts` | 17 | 2026-10-31 |
+| *(file)* `insights.ts` — `max-lines` | `relayer/src/insights.ts` | 459 lines vs 400 | 2026-10-31 |
 
 An expiry may be extended only in a reviewed PR that says why; the checker fails the build the day after it passes.
 
 ## Named Follow-Ups (gaps known at wiring time, 2026-08-27 — not silently accepted)
 
-- **Relayer ESLint coverage** (next PR after the 2026-09-11 app-tree gates, per the guardrail-complete plan review): the relayer (Tier 3, value-moving oracle data) has typecheck + tests but no lint tooling, so the complexity/max-lines budgets don't reach it; dependency-cruiser/knip applicability to be evaluated in the same PR. jscpd already covers `relayer/src`.
+- ~~**Relayer ESLint coverage**~~ **Done 2026-09-12**: `relayer/**` is linted from the root config (same budgets, exception policy and inline-config ban; zero new dependencies). Three `no-unused-vars` findings were fixed in code, not by relaxing the rule.
+- **Relayer dependency-cruiser + knip** (deferred gap, named here so it is not forgotten): both would add value now — cycle detection and dead-export/unlisted-dependency checks over `relayer/src` — but need relayer-specific entry configuration (scripts run by `oracle-bot.yml`, the vendored types) and, for knip, a workspace-aware config. Not "no gap": a follow-up PR once the contracts slither and Node 24 items land. jscpd already covers `relayer/src`.
 - **Contracts security scanning** (the PR after that): CodeQL covers JS/TS only; the contracts workspace has no slither step (Fanbet's does). Mirror Fanbet's slither job (adds a Python toolchain to the `contracts` required check).
 - **CI npm bootstrap**: the `app` job still runs an unpinned `npm install -g npm@11` before the supply-chain guard (flagged by the wiki's CI-template review 2026-09-11). Move the job to Node 24, whose bundled npm is 11, and delete the step.
 - **Dependabot alerts + automated security fixes**: repo Settings → Security & analysis (owner click; the CodeQL workflow covers scanning, this covers advisories).

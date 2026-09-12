@@ -32,6 +32,7 @@ Self-contained npm package — `npm install` here, not at the repo root.
 npm test           # vitest run (43 tests, offline — recorded fixtures only)
 npm run typecheck  # tsc --noEmit
 npm run build      # tsc -> dist/
+# Lint runs from the repo root: `npm run lint` there covers relayer/ (blocking complexity/max-lines budgets, dated exceptions) since 2026-09-12.
 node scripts/capture-fixture.mjs [seasonYear]
 node scripts/generate-matches.mjs --season 2027 --out ../lib/fixtures/matches.json
 node scripts/verify-fixtures.mjs --matches ../lib/fixtures/matches.json --season 2027
