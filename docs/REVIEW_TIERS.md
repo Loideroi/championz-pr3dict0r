@@ -32,7 +32,7 @@ see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
 
 Guardrail-complete since 2026-09-11 (app tree) and 2026-09-12 (relayer under the same ESLint budgets): every gate below fails CI inside the required `app` check (strict, enforce-admins). Wired warn-only 2026-08-27; measured again 2026-09-11 before the flip; relayer baseline measured 2026-09-12.
 
-| Gate | Baseline (2026-09-11) | Budget / enforcement |
+| Gate | Baseline (measured 2026-09-11 app, 2026-09-12 relayer) | Budget / enforcement |
 |---|---|---|
 | ESLint `complexity` (error ≥ 15; app tree + `relayer/`) | 10 over-budget functions (5 app, 5 relayer), each carrying a dated exception (below) | Blocking; `eslint --max-warnings 0`. New code stays under 15 — no new exceptions without a reviewer-approved, dated comment |
 | ESLint `max-lines` (error > 400; tests and the vendored `relayer/vendor/uefa-api-types.ts` exempt — a third-party type file we never refactor; every other rule still applies to it) | 0 | Blocking — keep it at zero |

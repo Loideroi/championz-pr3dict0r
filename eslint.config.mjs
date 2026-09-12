@@ -24,7 +24,7 @@ const eslintConfig = defineConfig([
     // Complexity budgets (architecture fitness functions). Wired warn-only
     // 2026-08-27; BLOCKING since 2026-09-11 (guardrail-complete decision):
     // `npm run lint` runs with --max-warnings 0, so any finding fails CI.
-    // The five pre-existing over-budget functions carry a one-line
+    // The ten pre-existing over-budget functions (five app, five relayer) carry a one-line
     // `eslint-disable-next-line complexity -- ... expires YYYY-MM-DD` exception
     // each, listed in docs/REVIEW_TIERS.md; scripts/check-lint-exceptions.mjs
     // fails the build when an exception lacks an expiry or is past it, and
