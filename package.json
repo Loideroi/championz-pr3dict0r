@@ -42,7 +42,7 @@
     "knip": "6.32.2",
     "squawk-cli": "^2.63.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "vitest": "^3"
   }
 }
