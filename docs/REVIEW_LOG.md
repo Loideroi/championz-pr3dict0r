@@ -33,7 +33,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Gate.** Owner go/no-go pending. Merge second, after `chore/review-process-wiring` and before `chore/review-gate`. PR #103.
 
-## 2026-09-12 — PR #<assigned at opening> `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
+## 2026-09-12 — PR #102 `chore/review-process-wiring` (merge click is the owner's; review process wired into the entry files)
 
 **Scope.** `.claude/settings.json` (rewritten: no `gh pr merge`, `git merge`, `gh api`, `vercel`, `npm install`, issue/workflow writes without a prompt; pushes prompt-free only on six branch prefixes; every refspec, delete, tag, prune, force form asks; every textual spelling of a push to `main` incl. `*heads/main` and `git -c`/`-C` denied; `node *` narrowed to `node scripts/*`; self-applying the `size-waiver` label asks), `AGENTS.md` (Boundaries + Pointers per the wiki template — merges are the owner's click, an owner "merge it" never waives the reviewer passes, every PR declares its tier and ships its own log entry, Tier 3 paths named, settings stated as cooperative with the missing "require a pull request" rule named), `CLAUDE.md` (workflow line), `CONTRIBUTING.md` (per-task recipe: tier, reviewers, same-PR log entry, no `--fill`). ~200 changed lines. Context: the 2026-09-09 escapes above — 20 unlogged merges (the entry's prose says 23; its list has 20) plus #85–#87 happened because these files never mentioned the review process and the old settings allowed the merge. Investigation record: Loideroi LLM Wiki `raw/audits/2026-09-11-championz-escape-investigation.md`.
 
@@ -64,7 +64,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Risk brief (R2, for the owner).** The agent's unprompted git/gh surface is now tightly listed and the instruction file tells the truth: these rules guide a cooperating agent and are not a wall. Every obvious way of pushing `main` now prompts or is blocked. The part that matters for "merge is my click": your branch protection today blocks force-pushes and requires green checks, but it does not require a pull request — so a green PR head can still be pushed straight to `main` by anyone with your token, including an agent. One click ("Require a pull request before merging") makes the merge genuinely yours; enrolling `review-gate` as required is the second click. Residual after both: none for direct pushes; the agent could still write a misleading review-log entry, which is what the escape audit reads.
 
-**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #103.
+**Gate.** Owner go/no-go pending. Merge this PR first, then `chore/portable-judges`, then `chore/review-gate`, in one sitting: this PR's entry files reference `scripts/lint-review-log.mjs` and the `review-gate` check that land in the other two. PR #102.
 
 ## 2026-09-10 — PR #91 (standings: mark the connected wallet's row)
 
