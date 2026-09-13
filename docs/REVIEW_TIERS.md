@@ -18,7 +18,7 @@ boundaries belong to the human.
 | Any module that constructs, signs, or submits chain transactions, and Reown/AppKit wallet configuration (`lib/wagmi/**`, `app/providers.tsx`) | 3 | Signing surface — path-independent catch-all |
 | `lib/supabase/**`, `lib/telegram/**`, `lib/profile/verify.ts`, `lib/profile/rate-limit.ts` — and any module handling secrets, privileged service clients, or authentication/signature verification | 3 | Auth/secrets kernel (reviewer finding 2026-08-27): the service-role Supabase client, ERC-1271/EOA wallet verification, and account linking are the contract's "auth, permissions, secrets handling" — path-independent catch-all applies to new modules of this kind |
 | `scripts/**` | 3 | `check-i18n-parity.mjs` is gate tooling; catch-all: any script that signs, deploys, or mutates production data is Tier 3 regardless of name |
-| `.github/**` (non-workflows), `.npmrc` (all three roots), `eslint.config.mjs`, `.dependency-cruiser.js`, `knip.jsonc`, `.squawk.toml`, `next.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `postcss.config.mjs` | 3 | Guardrail / build / deploy config — editing these can silence a gate |
+| `.github/**` (non-workflows), `.npmrc` (all three roots), `.gitattributes`, `eslint.config.mjs`, `.dependency-cruiser.js`, `knip.jsonc`, `.squawk.toml`, `next.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `postcss.config.mjs` | 3 | Guardrail / build / deploy config — editing these can silence a gate; `.gitattributes` decides which paths the review-gate size cap ignores as generated |
 | `package.json`, `contracts/package.json`, `relayer/package.json` | 3 | Own the gate scripts; editing them can silence every gate |
 | `package-lock.json`, `contracts/package-lock.json`, `relayer/package-lock.json` | 3 | Precedent: chilitize adjudication 2026-08-25, mirrored on Fanbet with explicit owner confirmation 2026-08-27 (supply chain feeding CI; no reviewer credibly reads a lockfile blob — detection is mechanical or nothing). Deliberately stricter than the contract's Tier 1 dependency-patch row; owner confirmation for this repo recorded at the 2026-08-27 wiring gate |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/**`, `docs/REVIEW_TIERS.md`, `docs/REVIEW_LOG.md` | 3 | Agent instruction files and the review process itself |
@@ -26,7 +26,39 @@ boundaries belong to the human.
 | **Anything not listed above** (incl. `app/**` pages, `components/**`, `hooks/**`, `lib/**`, `messages/**`, `content/**`) | 2 | Default floor until mapped — an unlisted path is never Tier 1 by omission; add a row when a new surface appears |
 
 Review depth per tier, reviewer independence, PR size caps, and merge gates:
-see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
+see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md` — **inside the
+PR it reviews**, not in a trailing docs PR.
+
+## Review Gate (`.github/workflows/review-gate.yml`, added 2026-09-11)
+
+A required status check on every PR (owner click to enroll it in branch protection,
+see Named Follow-Ups). `scripts/review-gate.mjs` fails a PR whose body has no
+`Declared tier: N` line, whose counted changed lines (excl. the three lockfiles and
+`linguist-generated` paths as declared in the **base** tree's `.gitattributes` — a PR
+cannot mark its own files) exceed 500 without the `size-waiver` label, or whose
+`docs/REVIEW_LOG.md` gains no new, complete entry about the PR (dated on/after the
+judge cutoff, non-exempt heading shape, fields checked with the judge's own rules,
+labeled tier — `**Tier.** N` / `raised to Tier N` — equal to the declared tier, older entries append-only; a text-typed file git reports as binary fails the gate outright).
+**Recovery from a wrong heading** (append-only has no in-band edit): the owner authors a
+correction PR with an `EXCEPTION RECORD` entry naming the wrong and right headings; the
+gate fails that PR by design. Because `main` has enforce-admins, there is no admin bypass:
+the owner temporarily un-requires the `review-gate` check, merges, re-requires it, and
+records that toggle inside the same `EXCEPTION RECORD` entry (the next escape audit reads
+it). Never rewrite the old entry in a feature PR.
+`scripts/lint-review-log.mjs` then checks the entry's fields, and
+`scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
+`size-waiver` label is only valid with the human waiver recorded in the log entry as a
+`Size waiver:` field naming the owner, an affirmative decision word (approved / waived /
+granted / go, with no rejected / denied / pending wording), a real date, and a rationale
+(the gate checks the shape, not the truth of it). Entry headings follow
+`## YYYY-MM-DD — PR #N <title>` / `PRs #N, #M and #K <title>`: the subject numbers are the
+run right after `PR`, so a reference later in the title is not a subject; whether the reviews actually ran is beyond any gate — the
+monthly escape audit checks that.
+Dependabot PRs hit this gate too and cannot satisfy it in place (Dependabot force-pushes
+its branch on rebase, dropping added commits, and `dependabot/*` is not an allowed push
+prefix): an agent reviews the bump at Tier 3 (this map), then opens a replacement PR with
+the same lockfile change plus the tier line and log entry, and the Dependabot PR is closed
+— which is the intended cost.
 
 ## Gate Baselines (ratchet — may shrink, never grow)
 
@@ -59,4 +91,5 @@ An expiry may be extended only in a reviewed PR that says why; the checker fails
 - **Relayer ESLint coverage** (next PR after the 2026-09-11 app-tree gates, per the guardrail-complete plan review): the relayer (Tier 3, value-moving oracle data) has typecheck + tests but no lint tooling, so the complexity/max-lines budgets don't reach it; dependency-cruiser/knip applicability to be evaluated in the same PR. jscpd already covers `relayer/src`.
 - **Contracts security scanning** (the PR after that): CodeQL covers JS/TS only; the contracts workspace has no slither step (Fanbet's does). Mirror Fanbet's slither job (adds a Python toolchain to the `contracts` required check).
 - **CI npm bootstrap**: the `app` job still runs an unpinned `npm install -g npm@11` before the supply-chain guard (flagged by the wiki's CI-template review 2026-09-11). Move the job to Node 24, whose bundled npm is 11, and delete the step.
+- **Enroll `review-gate` as a required status check** on `main` (owner click or `gh api` on owner instruction, as with the 2026-08-28 checks). Until then the check runs but does not block.
 - **Dependabot alerts + automated security fixes**: repo Settings → Security & analysis (owner click; the CodeQL workflow covers scanning, this covers advisories).
