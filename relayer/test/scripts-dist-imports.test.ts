@@ -32,6 +32,32 @@ const namedImports = (clause: string) =>
     .filter((s) => s.length > 0)
     .map((s) => s.split(/\s+as\s+/)[0]!.trim());
 
+describe('dist-import parser — fail-closed on every form it does not understand', () => {
+  const parsed = (src: string) => [...src.matchAll(NAMED_DIST_IMPORT)].length;
+  const literals = (src: string) => [...src.matchAll(ANY_DIST_LITERAL)].length;
+
+  it('accepts a static named import in either quote style', () => {
+    for (const src of ["import { a, b as c } from '../dist/src/x.js';", 'import {\n  a,\n} from "../dist/src/x.js";']) {
+      expect(parsed(src)).toBe(1);
+      expect(literals(src)).toBe(1);
+      expect(namedImports(src.slice(src.indexOf('{') + 1, src.indexOf('}')))).toEqual(src.includes(' as ') ? ['a', 'b'] : ['a']);
+    }
+  });
+
+  it('counts every other dist reference as a literal the parser did not accept', () => {
+    for (const src of [
+      "import '../dist/src/x.js';",
+      "import x from '../dist/src/x.js';",
+      "import * as x from '../dist/src/x.js';",
+      "const x = await import('../dist/src/x.js');",
+      'const x = require("../dist/src/x.js");',
+    ]) {
+      expect(parsed(src), src).toBe(0);
+      expect(literals(src), src).toBe(1);
+    }
+  });
+});
+
 describe('scripts/*.mjs — dist imports', () => {
   beforeAll(() => {
     // Always rebuild (about 2 s): the check is only as good as dist matching
