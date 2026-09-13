@@ -17,11 +17,13 @@ import { relayerRoot } from './helpers.js';
 const scriptsDir = resolve(relayerRoot, 'scripts');
 const scripts = readdirSync(scriptsDir).filter((f) => f.endsWith('.mjs'));
 
-// `import { a, b as c } from '../dist/src/x.js'` — the scripts use named
-// imports only; a default or namespace import would fail the count check
-// below rather than pass silently.
-const NAMED_DIST_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*'(\.\.\/dist\/[^']+)'/gm;
-const ANY_DIST_IMPORT = /^import\b[^;]*?from\s*'\.\.\/dist\/[^']+'/gm;
+// `import { a, b as c } from '../dist/src/x.js'` (either quote style) — the
+// scripts use static named imports only. Fail-closed: every string literal
+// naming `../dist/…` in a script must be one of these, so a default,
+// namespace or side-effect import, a dynamic `import()`, or a `require`
+// of dist fails the count check below instead of passing unparsed.
+const NAMED_DIST_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*(['"])(\.\.\/dist\/[^'"]+)\2/gm;
+const ANY_DIST_LITERAL = /(['"])\.\.\/dist\/[^'"]+\1/g;
 
 const namedImports = (clause: string) =>
   clause
@@ -39,7 +41,8 @@ describe('scripts/*.mjs — dist imports', () => {
   }, 120_000);
 
   it('covers every script that imports dist', () => {
-    const importing = scripts.filter((s) => /from '\.\.\/dist\//.test(readFileSync(resolve(scriptsDir, s), 'utf8')));
+    // search(), not test(): a /g regex's test() is stateful across calls.
+    const importing = scripts.filter((s) => readFileSync(resolve(scriptsDir, s), 'utf8').search(ANY_DIST_LITERAL) !== -1);
     expect(importing.length).toBeGreaterThan(0);
     // The workflow entry points must be among them (a rename would silently drop coverage).
     expect(importing).toEqual(expect.arrayContaining(['relay.mjs', 'check-balance.mjs', 'sentinel.mjs', 'matchday-span.mjs']));
@@ -48,12 +51,14 @@ describe('scripts/*.mjs — dist imports', () => {
   it.each(scripts)('%s: every dist module exists and exports what is imported', async (name) => {
     const text = readFileSync(resolve(scriptsDir, name), 'utf8');
     const named = [...text.matchAll(NAMED_DIST_IMPORT)];
-    // Every dist import must be a named import the parser understood.
-    expect(named.length).toBe([...text.matchAll(ANY_DIST_IMPORT)].length);
+    // Every `../dist/…` literal must be a named import the parser understood.
+    expect(named.length, `${name}: a dist import this test cannot parse`).toBe(
+      [...text.matchAll(ANY_DIST_LITERAL)].length,
+    );
     for (const match of named) {
-      // Both groups always capture (the regex has no optional groups).
+      // All groups always capture (the regex has no optional groups).
       const clause = match[1] ?? '';
-      const specifier = match[2] ?? '';
+      const specifier = match[3] ?? '';
       const url = pathToFileURL(resolve(scriptsDir, specifier)).href;
       const mod = (await import(url)) as Record<string, unknown>;
       for (const symbol of namedImports(clause)) {

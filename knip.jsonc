@@ -15,10 +15,12 @@
     },
     "relayer": {
       // Entries (each with its reason):
-      // - scripts/*.mjs: all 11 are shebang CLIs with a usage contract, run
-      //   directly by node — relay, check-balance, sentinel, matchday-span by
-      //   .github/workflows/oracle-bot.yml and matchday-watch.yml, the rest by
-      //   the operator per relayer/README.md.
+      // - scripts/*.mjs: all 11 are shebang CLIs with a usage contract in
+      //   their header, run directly by node — relay, check-balance, sentinel,
+      //   matchday-span by .github/workflows/oracle-bot.yml and
+      //   matchday-watch.yml; the other seven by the operator (five listed in
+      //   relayer/README.md; bot-poll and generate-insights document their own
+      //   invocation in the header).
       // - vendor/uefa-api-types.ts: vendored, externally maintained type
       //   reference (PRD §7.1) that nothing imports by design (src/schema.ts
       //   mirrors it in zod). Modelled as an entry, NOT ignored: its exports are

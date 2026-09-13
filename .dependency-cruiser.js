@@ -120,8 +120,10 @@ module.exports = {
           "^i18n/request\\.ts$", // loaded by the next-intl plugin (default path) via next.config.ts
           "^scripts/", // CI tooling run directly by node
           // relayer entry points: all 11 scripts/*.mjs are shebang CLIs with a usage
-          // contract — run by oracle-bot.yml / matchday-watch.yml (relay, check-balance,
-          // sentinel, matchday-span) or by the operator per relayer/README.md.
+          // contract in their header — run by oracle-bot.yml / matchday-watch.yml
+          // (relay, check-balance, sentinel, matchday-span) or by the operator (five
+          // listed in relayer/README.md; bot-poll and generate-insights document
+          // their own invocation in the header).
           "^relayer/scripts/",
           // Vendored reference types nothing imports by design (src/schema.ts mirrors
           // them in zod); kept as the source of truth for the UEFA API shapes (PRD §7.1).
