@@ -25,14 +25,14 @@ const LOW = finding("l1", "timestamp", "Low", "Medium", "src/A.sol", 30, "block.
 
 const CONFIG = { filter_paths: "node_modules", fail_on: "medium", show_ignored_findings: true };
 
-function run({ report, triage, noReport = false, log, config = CONFIG }) {
+function run({ report, triage, noReport = false, log, config = CONFIG, args = [], env = {} }) {
   const dir = mkdtempSync(join(tmpdir(), "slither-gate-"));
   try {
     writeFileSync(join(dir, "slither.config.json"), JSON.stringify(config));
     if (!noReport) writeFileSync(join(dir, "slither-report.json"), JSON.stringify(report));
     writeFileSync(join(dir, "slither-triage.json"), JSON.stringify(triage));
     if (log) writeFileSync(join(dir, "slither.log"), log);
-    const r = spawnSync(process.execPath, [script], { cwd: dir, encoding: "utf8" });
+    const r = spawnSync(process.execPath, [script, ...args], { cwd: dir, encoding: "utf8", env: { ...process.env, ...env } });
     return { code: r.status, out: r.stdout + r.stderr };
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
@@ -100,4 +100,22 @@ test("a finding whose elements lack source mappings still gates", () => {
   const f = { ...HIGH, id: "h2", elements: [{ type: "contract", name: "A" }] };
   const r = run({ report: ok([f]), triage: [] });
   assert.equal(r.code, 1); assert.match(r.out, /NEW High .* at \?/);
+});
+test("--run never consumes a pre-existing report: a failed compile fails even with a valid old report in cwd", () => {
+  const r = run({ report: ok([LOW]), triage: [], args: ["--run"], env: { SLITHER_COMPILE_CMD: "echo HH600 compile failed; exit 1", SLITHER_CMD: "true" } });
+  assert.equal(r.code, 1); assert.match(r.out, /compile failed/); assert.match(r.out, /HH600/);
+});
+test("--run: slither that writes nothing fails even with a valid old report in cwd", () => {
+  const r = run({ report: ok([LOW]), triage: [], args: ["--run"], env: { SLITHER_COMPILE_CMD: "true", SLITHER_CMD: "true" } });
+  assert.equal(r.code, 1); assert.match(r.out, /slither did not run/);
+});
+test("--run: the report slither writes to the fresh path is what gets checked, not a stale one in cwd", () => {
+  // a fake slither that copies a clean Low-only fixture to the --json path it is given
+  const fixture = join(tmpdir(), `slither-fixture-${process.pid}.json`);
+  writeFileSync(fixture, JSON.stringify(ok([LOW])));
+  try {
+    const fake = `sh -c 'prev=""; for a in "$@"; do [ "$prev" = "--json" ] && cp "${fixture}" "$a"; prev="$a"; done' fake`;
+    const r = run({ report: ok([HIGH]), triage: [], args: ["--run"], env: { SLITHER_COMPILE_CMD: "true", SLITHER_CMD: fake } });
+    assert.equal(r.code, 0, r.out); // the stale HIGH report in cwd is ignored
+  } finally { rmSync(fixture, { force: true }); }
 });
