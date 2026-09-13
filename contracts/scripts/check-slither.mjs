@@ -61,7 +61,7 @@ function fail(msg) {
 }
 
 // The metadata a triage entry must carry, derived from the finding itself.
-export function describe(f) {
+function describe(f) {
   const els = f.elements.filter((e) => e.source_mapping);
   const last = els[els.length - 1];
   const sm = last?.source_mapping;
