@@ -1,0 +1,7 @@
+# pip-tools input for the slither gate (CI `contracts` job and local runs).
+# Only the top-level tool is named here; contracts/requirements-slither.txt is
+# the generated lock (every transitive package pinned + sha256-hashed). To
+# upgrade slither: bump this line, regenerate the .txt with the command in
+# docs/REVIEW_TIERS.md (Named Follow-Ups → "Slither Python pins"), and refresh
+# slither-triage.json in the same PR if findings move. Tier 3.
+slither-analyzer==0.11.4

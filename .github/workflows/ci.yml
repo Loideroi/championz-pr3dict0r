@@ -132,10 +132,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install slither (pinned)
-        # Top-level pin only; slither's own Python dependencies are not locked.
-        # The version matches the one recorded in SECURITY_FINDINGS.md.
-        run: python -m pip install --quiet slither-analyzer==0.11.4
+      - name: Install slither (hash-pinned requirements)
+        # Every package — slither-analyzer 0.11.4 (the version recorded in
+        # SECURITY_FINDINGS.md) and its 48 transitive dependencies — is pinned
+        # by exact version AND sha256 in contracts/requirements-slither.txt
+        # (pip-compile --generate-hashes; refresh procedure in
+        # docs/REVIEW_TIERS.md). --require-hashes makes pip refuse any
+        # artifact whose hash is absent or differs; --only-binary=:all: refuses
+        # sdists, so no isolated build environment can pull unpinned build
+        # dependencies (every locked package ships a manylinux wheel, verified
+        # 2026-09-13). Not hashed: the interpreter (setup-python 3.11.x) and
+        # pip itself — recorded as the residual boundary in REVIEW_TIERS.
+        run: >-
+          python -m pip install --quiet --require-hashes --only-binary=:all:
+          -r contracts/requirements-slither.txt
       - name: Static analysis (slither, blocking on new or stale High/Medium findings)
         working-directory: contracts
         # Same command as local: scripts/check-slither.mjs --run does
