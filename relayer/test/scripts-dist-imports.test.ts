@@ -7,11 +7,10 @@
  * and dependency-cruiser excludes dist/. A misspelled module or a renamed
  * export would otherwise surface only when the workflow runs.
  */
-import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { relayerRoot } from './helpers.js';
 
 const scriptsDir = resolve(relayerRoot, 'scripts');
@@ -19,11 +18,14 @@ const scripts = readdirSync(scriptsDir).filter((f) => f.endsWith('.mjs'));
 
 // `import { a, b as c } from '../dist/src/x.js'` (either quote style) — the
 // scripts use static named imports only. Fail-closed: every string literal
-// naming `../dist/…` in a script must be one of these, so a default,
-// namespace or side-effect import, a dynamic `import()`, or a `require`
-// of dist fails the count check below instead of passing unparsed.
-const NAMED_DIST_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*(['"])(\.\.\/dist\/[^'"]+)\2/gm;
-const ANY_DIST_LITERAL = /(['"])\.\.\/dist\/[^'"]+\1/g;
+// that starts with `../dist/` — single, double or backtick quoted, complete
+// or a bare `'../dist/'` prefix about to be concatenated — must be one of
+// these, so a default, namespace or side-effect import, a dynamic
+// `import()`, a `require`, a template literal or a built-up specifier fails
+// the count check below instead of passing unparsed. A specifier the test
+// cannot check statically is out of the gate by construction, never silently.
+const NAMED_DIST_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*(['"])(\.\.\/dist\/[^'"`]+)\2/gm;
+const ANY_DIST_LITERAL = /(['"`])\.\.\/dist\/[^'"`]*\1/g;
 
 const namedImports = (clause: string) =>
   clause
@@ -51,6 +53,8 @@ describe('dist-import parser — fail-closed on every form it does not understan
       "import * as x from '../dist/src/x.js';",
       "const x = await import('../dist/src/x.js');",
       'const x = require("../dist/src/x.js");',
+      'const x = await import(`../dist/src/nope.js`);',
+      "const x = await import('../dist/' + name);",
     ]) {
       expect(parsed(src), src).toBe(0);
       expect(literals(src), src).toBe(1);
@@ -59,12 +63,8 @@ describe('dist-import parser — fail-closed on every form it does not understan
 });
 
 describe('scripts/*.mjs — dist imports', () => {
-  beforeAll(() => {
-    // Always rebuild (about 2 s): the check is only as good as dist matching
-    // src, and a stale local dist would let a renamed export pass. CI's
-    // relayer job runs the tests before `npm run build`, so it needs this too.
-    execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { cwd: relayerRoot, stdio: 'pipe' });
-  }, 120_000);
+  // dist/ is rebuilt once per vitest run by test/global-setup.ts (shared with
+  // scripts.test.ts): the check is only as good as dist matching src.
 
   it('covers every script that imports dist', () => {
     // search(), not test(): a /g regex's test() is stateful across calls.

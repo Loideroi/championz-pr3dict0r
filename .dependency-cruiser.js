@@ -50,7 +50,7 @@ module.exports = {
       comment:
         "The relayer is deployed alone (oracle-bot.yml installs relayer/ only); an import from the app tree resolves locally and breaks in production. Data it needs from the app (lib/fixtures/matches.json) is passed as a CLI path, never imported.",
       from: { path: "^relayer/" },
-      to: { path: "^((app|components|hooks|lib|i18n|content|scripts)/|middleware\\.ts$)" },
+      to: { path: "^((app|components|hooks|lib|i18n|content|scripts|messages|public|supabase)/|(middleware|next\\.config|vitest\\.config|postcss\\.config|eslint\\.config)\\.[cm]?[jt]s$)" },
     },
     {
       name: "app-tree-does-not-import-relayer",
@@ -155,7 +155,7 @@ module.exports = {
     // not enter the graph as a second copy of src. When it is absent the same
     // imports show up as unresolvable modules named by their raw specifier
     // ("../dist/src/x.js"), hence the second alternative — the graph is
-    // identical with or without a build (2026-09-13: 409 dependencies either way; 176 modules locally, 173 in CI where relayer/node_modules is absent and viem/zod/vitest resolve once from the root).
+    // identical with or without a build (2026-09-13: 410 dependencies either way; 177 modules locally, 174 in CI where relayer/node_modules is absent and viem/zod/vitest resolve once from the root).
     exclude: { path: ["^\\.next", "^contracts", "^(relayer/|\\.\\./)dist/", "^supabase"] },
     tsConfig: { fileName: "tsconfig.json" },
     tsPreCompilationDeps: true,
