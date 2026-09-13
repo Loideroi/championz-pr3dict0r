@@ -19,7 +19,7 @@ and the top-20 of each stage split the pools. Results flow automatically from UE
 ## Stack
 
 - Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind v4
-- Vitest · wagmi v2 + viem v2 + Reown AppKit (Chiliz 88888 / Spicy 88882)
+- Vitest · wagmi v3 + viem v2 + Reown AppKit (Chiliz 88888 / Spicy 88882)
 - `contracts/` Hardhat + Solidity 0.8.24 (UUPS) · `relayer/` GitHub-Actions oracle
 - Supabase (existing free project, `clp_`-prefixed tables) — read-model only; chain is truth
 

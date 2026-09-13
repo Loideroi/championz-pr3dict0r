@@ -492,7 +492,7 @@ the UI copy to defuse fee anxiety.
   present / entry recorded) with a ~120s window — never await a tx receipt that may
   arrive via WalletConnect relay (predecessor `usePredictions.ts` pattern).
 - Never overwrite `window.ethereum`; pick from `window.ethereum.providers`.
-- Stack: wagmi v2 + viem v2 + **Reown AppKit**, with Socios.com Wallet surfaced via
+- Stack: wagmi v3 + viem v2 + **Reown AppKit**, with Socios.com Wallet surfaced via
   `explorerRecommendedWalletIds`. Test on Spicy (88882) before mainnet (88888).
 
 ## 12. Telegram
