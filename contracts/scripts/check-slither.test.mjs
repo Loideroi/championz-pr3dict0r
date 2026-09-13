@@ -15,7 +15,7 @@ function finding(id, check, impact, confidence, file, line, name, extra = {}) {
                { type: "node", name, source_mapping: { filename_relative: file, lines: [line] } }], ...extra };
 }
 function entry(f, over = {}) {
-  return { id: f.id, check: f.check, slither_impact: f.impact, slither_confidence: f.confidence,
+  return { id: f.id, check: f.check, slither_impact: f.impact, slither_confidence: f.confidence, function: "fn",
     where: `${f.elements[1].source_mapping.filename_relative}#${f.elements[1].source_mapping.lines[0]}`,
     expression: f.elements[1].name, triaged: "2026-09-12", reason: "reviewed — SECURITY_FINDINGS.md §Slither", ...over };
 }
@@ -23,9 +23,12 @@ const HIGH = finding("h1", "arbitrary-send-eth", "High", "Medium", "src/A.sol", 
 const MED = finding("m1", "incorrect-equality", "Medium", "High", "src/A.sol", 20, "a == b");
 const LOW = finding("l1", "timestamp", "Low", "Medium", "src/A.sol", 30, "block.timestamp");
 
-function run({ report, triage, noReport = false, log }) {
+const CONFIG = { filter_paths: "node_modules", fail_on: "medium", show_ignored_findings: true };
+
+function run({ report, triage, noReport = false, log, config = CONFIG }) {
   const dir = mkdtempSync(join(tmpdir(), "slither-gate-"));
   try {
+    writeFileSync(join(dir, "slither.config.json"), JSON.stringify(config));
     if (!noReport) writeFileSync(join(dir, "slither-report.json"), JSON.stringify(report));
     writeFileSync(join(dir, "slither-triage.json"), JSON.stringify(triage));
     if (log) writeFileSync(join(dir, "slither.log"), log);
@@ -40,8 +43,16 @@ test("clean: every High/Medium triaged, Low informational", () => {
   assert.equal(r.code, 0, r.out);
   assert.match(r.out, /2 High\/Medium finding\(s\), all 2 triaged .* 1 lower-severity/);
 });
-test("no findings at all passes", () => {
-  assert.equal(run({ report: ok([]), triage: [] }).code, 0);
+test("zero findings is a failure (slither analyzed nothing), Low-only passes", () => {
+  const r = run({ report: ok([]), triage: [] });
+  assert.equal(r.code, 1); assert.match(r.out, /analyzed nothing/);
+  assert.equal(run({ report: ok([LOW]), triage: [] }).code, 0);
+});
+test("config without show_ignored_findings is refused (inline slither-disable would bypass the gate)", () => {
+  for (const config of [{ filter_paths: "node_modules" }, { show_ignored_findings: false }]) {
+    const r = run({ report: ok([LOW]), triage: [], config });
+    assert.equal(r.code, 1); assert.match(r.out, /show_ignored_findings/);
+  }
 });
 test("new High finding fails and is named", () => {
   const r = run({ report: ok([HIGH, MED]), triage: [entry(MED)] });
@@ -56,7 +67,7 @@ test("stale entry (id no longer reported) fails", () => {
   assert.equal(r.code, 1); assert.match(r.out, /stale — no current finding has this id/);
 });
 test("entry metadata must match the current finding (where, expression, impact, check)", () => {
-  for (const over of [{ where: "src/A.sol#11" }, { expression: "x == y" }, { slither_impact: "Low" }, { check: "reentrancy-eth" }, { slither_confidence: "Low" }]) {
+  for (const over of [{ where: "src/A.sol#11" }, { expression: "x == y" }, { slither_impact: "Low" }, { check: "reentrancy-eth" }, { slither_confidence: "Low" }, { function: "other" }]) {
     const r = run({ report: ok([MED]), triage: [entry(MED, over)] });
     assert.equal(r.code, 1, JSON.stringify(over)); assert.match(r.out, /but the current finding says/);
   }

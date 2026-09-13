@@ -16,8 +16,8 @@
 //   2. every High/Medium finding must be triaged in slither-triage.json — a new
 //      one fails with its location and description;
 //   3. every triage entry must still match a current High/Medium finding by id
-//      AND its machine-derivable metadata (check, impact, confidence, where,
-//      expression) must equal what the finding says now — so an entry cannot
+//      AND its machine-derivable metadata (check, impact, confidence,
+//      function, where, expression) must equal what the finding says now — so an entry cannot
 //      describe one thing while hiding another, and a stale entry (the code
 //      moved or was fixed) fails and must be removed or re-triaged; the
 //      database can only shrink or be consciously refreshed;
@@ -27,11 +27,12 @@
 // Tests: scripts/check-slither.test.mjs (`npm run test:gate`).
 import { readFileSync, existsSync } from "node:fs";
 
+const CONFIG = process.env.SLITHER_CONFIG ?? "slither.config.json";
 const REPORT = process.env.SLITHER_REPORT ?? "slither-report.json";
 const DB = process.env.SLITHER_TRIAGE ?? "slither-triage.json";
 const LOG = process.env.SLITHER_LOG ?? "slither.log";
 const GATED = new Set(["High", "Medium"]);
-const DERIVED = ["check", "slither_impact", "slither_confidence", "where", "expression"];
+const DERIVED = ["check", "slither_impact", "slither_confidence", "function", "where", "expression"];
 const REVIEWER = ["triaged", "reason"];
 
 function fail(msg) {
@@ -50,14 +51,27 @@ export function describe(f) {
   const sm = last?.source_mapping;
   const lines = sm?.lines ?? [];
   const where = sm ? `${sm.filename_relative}#${lines[0]}${lines.length > 1 && lines[lines.length - 1] !== lines[0] ? `-${lines[lines.length - 1]}` : ""}` : "?";
+  const fn = f.elements.find((e) => e.type === "function")?.name
+    ?? last?.type_specific_fields?.parent?.name
+    ?? null;
   return {
     check: f.check,
     slither_impact: f.impact,
     slither_confidence: f.confidence,
+    function: fn,
     where,
     expression: (last?.name ?? "").trim().replace(/\n/g, " ").slice(0, 120),
   };
 }
+
+// Slither honours `// slither-disable-next-line <check>` (and -start/-end
+// ranges, and an auto-loaded slither.db.json) BEFORE writing the report. With
+// show_ignored_findings those suppressed findings are still written, so an
+// inline comment cannot hide a finding from this gate (R2 finding, PR #105).
+// The gate refuses to run against a config without it.
+if (!existsSync(CONFIG)) fail(`${CONFIG} missing`);
+const config = JSON.parse(readFileSync(CONFIG, "utf8"));
+if (config.show_ignored_findings !== true) fail(`${CONFIG} must set "show_ignored_findings": true — otherwise an inline slither-disable comment hides a finding from this gate`);
 
 if (!existsSync(REPORT)) fail(`${REPORT} missing — slither did not run`);
 const report = JSON.parse(readFileSync(REPORT, "utf8"));
@@ -65,6 +79,9 @@ if (!report.success) fail(`slither failed: ${report.error ?? "unknown error"}`);
 
 const db = JSON.parse(readFileSync(DB, "utf8"));
 const findings = report.results?.detectors ?? [];
+// This tree always yields Low/Informational findings; zero means slither
+// analyzed nothing (wrong sources path, no contracts) — never a pass.
+if (findings.length === 0) fail("zero findings in the report — slither analyzed nothing");
 const current = new Map(findings.map((f) => [f.id, f]));
 const problems = [];
 const seen = new Set();

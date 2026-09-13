@@ -1,4 +1,5 @@
 {
   "filter_paths": "node_modules",
-  "fail_on": "medium"
+  "fail_on": "medium",
+  "show_ignored_findings": true
 }

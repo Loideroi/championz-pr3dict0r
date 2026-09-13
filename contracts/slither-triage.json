@@ -19,7 +19,7 @@
     "where": "src/ChampionzPredictor.sol#695",
     "expression": "pa == ra && pb == rb",
     "triaged": "2026-09-12",
-    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+    "reason": "_score awards the exact-score tier when predicted and actual goals match exactly \u2014 exact-match scoring is the specification (scoring rules as cited in SECURITY_FINDINGS.md), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
   },
   {
     "id": "55351088bacc469e5cf1e6a7e8a0332f6a2b6020c6f1636ef10598f55d635a4e",
@@ -30,7 +30,7 @@
     "where": "src/ChampionzPredictor.sol#698",
     "expression": "int16(uint16(pa)) - int16(uint16(pb)) == int16(uint16(ra)) - int16(uint16(rb))",
     "triaged": "2026-09-12",
-    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+    "reason": "_score awards the goal-difference tier when predicted and actual goal differences are equal \u2014 exact-match scoring is the specification, not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
   },
   {
     "id": "b7967ff4b6b1b2768a102f04096adb0fc3a2a6315f7dfd9f60eba0b151b70384",
@@ -41,7 +41,7 @@
     "where": "src/ChampionzPredictor.sol#710",
     "expression": "(packed >> 16) & 1 == (res >> 16) & 1",
     "triaged": "2026-09-12",
-    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+    "reason": "_score compares one packed prediction bit-field against the same bits of the packed result \u2014 bonus flags are exact-match by specification, not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
   },
   {
     "id": "b52a2f13477f0612ea33a1ccb10987a62f828d7760b59dcb4ece9345934fead5",
@@ -52,7 +52,7 @@
     "where": "src/ChampionzPredictor.sol#711",
     "expression": "(packed >> 17) & 1 == (res >> 17) & 1",
     "triaged": "2026-09-12",
-    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+    "reason": "_score compares one packed prediction bit-field against the same bits of the packed result \u2014 bonus flags are exact-match by specification, not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
   },
   {
     "id": "2009c5c3ae0b804e20977e108712dbf06fdf66bc9a48f841a69ebdab44a60149",
@@ -63,14 +63,14 @@
     "where": "src/ChampionzPredictor.sol#713",
     "expression": "(packed >> 18) & 3 == (res >> 18) & 3",
     "triaged": "2026-09-12",
-    "reason": "_score compares a packed predicted value against the packed result bit-for-bit \u2014 exact-match scoring is the specification (PRD \u00a78), not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
+    "reason": "_score compares one packed prediction bit-field against the same bits of the packed result \u2014 bonus flags are exact-match by specification, not a balance or timing check. Slither severity Medium; project disposition: reviewed informational. SECURITY_FINDINGS.md \u00a7Slither."
   },
   {
     "id": "278aec9d4d5e1a1a783ae90e7557164b494d68f2806d6aff766b18620a0e4206",
     "check": "uninitialized-local",
     "slither_impact": "Medium",
     "slither_confidence": "Medium",
-    "function": "distributed",
+    "function": "_applyRanking",
     "where": "src/ChampionzPredictor.sol#628",
     "expression": "distributed",
     "triaged": "2026-09-12",
@@ -81,7 +81,7 @@
     "check": "uninitialized-local",
     "slither_impact": "Medium",
     "slither_confidence": "Medium",
-    "function": "completed",
+    "function": "_requireStageFinalized",
     "where": "src/ChampionzPredictor.sol#668",
     "expression": "completed",
     "triaged": "2026-09-12",
