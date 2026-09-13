@@ -135,6 +135,16 @@ Entries dated 2026-09-12 or later are linted in CI by `scripts/lint-review-log.m
 
 **Risk brief (R1, final).** *What changed:* only the app CI job moves to Node 24; npm 11 is asserted; the pre-guard global install is removed; every existing gate stays intact and in order. *What could break:* toolchain drift within Node 24 / npm 11 minor and patch releases — made fail-visible by the assertion (if a 24.x ever bundles npm 12 the job fails loudly). *What was checked:* the diff, step order, grep quoting inside the YAML block scalar, locked dependency engines, the other jobs' separation, production workflows untouched. *Residual risk:* low; Vercel's production Node major is dashboard-selected and now not guaranteed identical to CI — a named Tier 3 follow-up; the owner confirms the preview build log at the gate.
 
+**Checked.** R2: every `engines.node` range in the root lockfile (549 of 909 entries) evaluated against 24.0.0 / 24.5.0 / 24.12.0 with npm's bundled semver — one exclusion, `@img/sharp-win32-ia32` (optional win32/ia32 binary, never selected on ubuntu); Node's dist index (22 line ships npm 10.5.1–10.9.8 only; 24 line ships npm 11.3.0–11.19.0 only); the PR's live run (Node v24.20.0 / npm 11.19.0, `npm ci` 708 packages without config warnings, lockfile-lint clean, all checks green); YAML step order; the grep's quoting inside the literal block and its behaviour without `pipefail`; repo-wide grep for Node-version assumptions (`engines`, `.nvmrc`, `vercel.json`, docs); the other three jobs' separation and the production workflows. R1: the diff, step order, grep escaping, the locked devDependency engines, docs wording, plan-finding dispositions, `git diff --check`.
+
+**verification-gap.** If setup-node "24" ever resolved to a toolchain without npm 11, the new assertion step fails the required `app` check — self-testing. If the lockfile guard were moved after `npm ci`, nothing mechanical would catch it; pre-existing and untouched here. If Vercel's production Node major drifts from CI, nothing in the repo detects it — the named follow-up.
+
+**named-set.** Only the `app` job's `node-version` changes; the other three CI jobs and the two production workflows stay on 22 by decision, listed explicitly in REVIEW_TIERS; no enum or flag set is partially special-cased.
+
+**Missing.** Looked for and did not find: an in-repo pin of the production Node version (`engines.node`, `vercel.json`, `.nvmrc`); any locked dependency that rejects Node 24 on the CI platform; any gate weakened, removed, or reordered; any network-fetched executable before the lockfile guard other than the pre-existing `npx lockfile-lint@5.0.0`.
+
+**Dismissed.** None. Open by agreement: Nit `@types/node ^20` (pre-existing, older types are the conservative direction).
+
 **Human gate.** Owner script: `app` check green with the Toolchain step printing Node 24 / npm 11; `main` protection unchanged; glance at the Vercel preview build log's Node version; merge. **Pending owner go/no-go.**
 
 ## 2026-09-12 — PR #98 (insights: matchday 2 — form and the real league table, ranked UEFA's way)
