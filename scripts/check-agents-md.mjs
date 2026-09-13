@@ -5,12 +5,14 @@
 // through failure; anything derivable from source is read live, never stored.
 //
 //   node tools/check-agents-md.mjs [path ...] [--fenced] [--max-lines N]
-//                                  [--require-heading <regex>] [--self-test]
+//                                  [--require-heading <text>] [--self-test]
 //
 // Checks per file:
 //   1. Line budget (default 150). Long instruction files drift and dilute.
-//   2. A boundaries section (heading matching --require-heading, default
-//      "Boundaries") — the ask-first rules an agent must see every session.
+//   2. A boundaries section (a heading containing --require-heading as literal
+//      text, case-insensitive; default "Boundaries") — the ask-first rules an
+//      agent must see every session. Literal, not a regex: the value comes from
+//      the command line and must never reach `new RegExp` (CodeQL js/regex-injection).
 //   3. No secret-shaped values — a maintained heuristic list (private-key
 //      blocks; OpenAI, GitHub, GitLab, AWS, Slack, Stripe, Google, JWT shapes),
 //      not a full secret scanner. One self-test fixture per family.
@@ -36,6 +38,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 function isMainModule() {
@@ -59,7 +62,7 @@ const optionValue = (name, fallback) => {
 const maxLinesRaw = optionValue('--max-lines', '150')
 const headingRaw = optionValue('--require-heading', 'Boundaries')
 let maxLines = 150
-let requireHeading = /Boundaries/i
+let requireHeading = headingMatcher('Boundaries')
 if (isMainModule()) {
   if (!/^[1-9]\d*$/.test(String(maxLinesRaw))) {
     console.error(`--max-lines must be a positive integer (got "${maxLinesRaw}")`)
@@ -67,15 +70,17 @@ if (isMainModule()) {
   }
   maxLines = Number(maxLinesRaw)
   if (typeof headingRaw !== 'string' || !headingRaw.trim() || headingRaw.startsWith('--')) {
-    console.error(`--require-heading needs a non-empty pattern (got "${headingRaw}")`)
+    console.error(`--require-heading needs non-empty heading text (got "${headingRaw}")`)
     process.exit(2)
   }
-  try {
-    requireHeading = new RegExp(headingRaw, 'i')
-  } catch (err) {
-    console.error(`--require-heading is not a valid regular expression: ${err.message}`)
-    process.exit(2)
-  }
+  requireHeading = headingMatcher(headingRaw)
+}
+
+// Case-insensitive literal substring matcher exposing .test() like a RegExp,
+// so callers and self-tests can pass either.
+function headingMatcher(text) {
+  const needle = text.trim().toLowerCase()
+  return { test: (heading) => heading.toLowerCase().includes(needle), source: text }
 }
 const skipNext = new Set(['--max-lines', '--require-heading'])
 const targets = args.filter((arg, i) => !arg.startsWith('--') && !skipNext.has(args[i - 1]))
@@ -129,9 +134,15 @@ export function stripFences(text) {
 
 function isKnownScriptCommand(cmd, scripts) {
   if (/^yarn$/.test(cmd)) return true
-  const c = cmd.match(/^(npm|pnpm|yarn|bun)\s+(?:run\s+)?([A-Za-z0-9:._-]+)(?:\s+--?[\w=-]+)*$/)
-  if (!c) return false
-  const [, manager, script] = c
+  // Tokenize instead of one nested-quantifier regex (CodeQL js/redos): manager,
+  // optional "run", script name, then only flag-shaped tokens.
+  const tokens = cmd.trim().split(/\s+/)
+  const manager = tokens.shift()
+  if (!Object.hasOwn(BUILTIN_BY_MANAGER, manager)) return false
+  if (tokens[0] === 'run') tokens.shift()
+  const script = tokens.shift()
+  if (!script || !/^[A-Za-z0-9:._-]+$/.test(script)) return false
+  if (!tokens.every((t) => /^--?[\w=-]+$/.test(t))) return false
   return scripts.has(script) || BUILTIN_ALL.has(script) || BUILTIN_BY_MANAGER[manager].has(script)
 }
 
@@ -174,7 +185,7 @@ export function checkContent(content, { label, scripts, claudeMd, maxLines: budg
   }
   const headings = [...stripFences(content).matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => m[1])
   if (!headings.some((h) => headingRe.test(h))) {
-    problems.push(`${label}: no section heading matching /${headingRe.source}/ — the ask-first boundaries must be visible every session`)
+    problems.push(`${label}: no section heading containing "${headingRe.source}" — the ask-first boundaries must be visible every session`)
   }
   for (const [family, re] of SECRET_PATTERNS) {
     if (re.test(content)) problems.push(`${label}: contains a secret-shaped value (${family}) — instruction files never hold credentials`)
@@ -216,6 +227,63 @@ function checkFile(target, opts = { fenced, maxLines, requireHeading }) {
     maxLines: opts.maxLines,
     requireHeading: opts.requireHeading,
   })
+}
+
+// Self-test helper: a scratch directory, or null (loudly) when the sandbox forbids temp writes.
+function scratchDir(prefix, caseName) {
+  try {
+    return fs.mkdtempSync(path.join(os.tmpdir(), prefix))
+  } catch (err) {
+    console.error(`SELF-TEST SKIPPED: ${caseName} (no temp write access: ${err.code || err.message})`)
+    return null
+  }
+}
+
+// CLI-level case for the --require-heading sink: the option must reach the
+// matcher as literal text. A regex-looking value that would match as a pattern
+// must NOT match, and must not crash. Guards against reintroducing new RegExp().
+function cliHeadingCase(good) {
+  const dir = scratchDir('agents-md-cli-', 'CLI heading case')
+  if (!dir) return { skipped: true, failed: false }
+  let cli
+  try {
+    fs.writeFileSync(path.join(dir, 'AGENTS.md'), good)
+    cli = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--require-heading', 'B.undaries', 'AGENTS.md'], { cwd: dir, encoding: 'utf8', timeout: 20000 })
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+  const ok = cli.status === 1 && (cli.stderr || '').includes('no section heading containing "B.undaries"')
+  if (!ok) console.error(`SELF-TEST FAIL: CLI --require-heading literal — expected exit 1 with a literal heading miss, got status ${cli.status}${cli.error ? ` (${cli.error.code})` : ''}: ${(cli.stderr || '').slice(0, 300)}`)
+  return { skipped: false, failed: !ok }
+}
+
+// Filesystem case: package.json and CLAUDE.md discovery beside the target, through
+// checkFile with explicit options and with the CLI's default options.
+function filesystemDiscoveryCase(good) {
+  const dir = scratchDir('agents-md-', 'filesystem discovery')
+  if (!dir) return { skipped: true, failed: false }
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ scripts: { dev: 'next dev' } }))
+  fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# CLAUDE.md\n\nnotes only\n')
+  fs.writeFileSync(path.join(dir, 'AGENTS.md'), good.replace('## Conventions', '- Dev: `npm run dev`\n\n## Conventions'))
+  const cwd = process.cwd()
+  let explicit = []
+  let viaDefaults = []
+  try {
+    process.chdir(dir)
+    explicit = checkFile('AGENTS.md', { fenced: false, maxLines: 150, requireHeading: /Boundaries/i })
+    // Default-options path, as the CLI calls it (a flatMap(checkFile) once passed the index as opts).
+    // Skipped under --self-test --fenced, where the module-level flag would change the meaning.
+    viaDefaults = fenced ? explicit : checkFile('AGENTS.md')
+  } finally {
+    process.chdir(cwd)
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+  const ok = explicit.length === 2 && explicit.some((p) => /restates/.test(p)) && explicit.some((p) => /CLAUDE\.md/.test(p)) && viaDefaults.length === explicit.length
+  if (!ok) {
+    console.error(`SELF-TEST FAIL: filesystem discovery — expected a restated-script problem and a CLAUDE.md import problem via both option paths, got ${explicit.length}/${viaDefaults.length}`)
+    for (const p of explicit) console.error(`  - ${p}`)
+  }
+  return { skipped: false, failed: !ok }
 }
 
 function runSelfTest() {
@@ -271,6 +339,12 @@ Project X does Y. State: building. Priority: ship Z.
     { name: 'no package.json skips rule 4', content: good.replace('## Conventions', '- Dev: `npm run dev`\n\n## Conventions'), opts: { ...base, scripts: null }, expect: 0 },
     { name: 'missing boundaries', content: good.replace('## Boundaries', '## Notes'), opts: base, expect: 1 },
     { name: 'custom required heading', content: good.replace('## Boundaries', '## Agent Defaults'), opts: { ...base, requireHeading: /Agent Defaults/i }, expect: 0 },
+    { name: 'heading option is literal text, not a regex', content: good.replace('## Boundaries', '## Boundaries (ask-first)'), opts: { ...base, requireHeading: headingMatcher('boundaries (ASK-first)') }, expect: 0 },
+    { name: 'heading option literal does not match as a pattern', content: good, opts: { ...base, requireHeading: headingMatcher('B.undaries') }, expect: 1 },
+    // 28 repetitions: the former nested-quantifier regex needs ~2 s here (exponential), the
+    // tokenizer microseconds — so a backtracking regression fails the 500 ms budget instead of hanging.
+    { name: 'pathological flag string is judged in linear time', content: good.replace('## Conventions', '- Dev: `npm run dev ' + '-- -'.repeat(28) + '`\n\n## Conventions'), opts: base, expect: 0, maxMs: 500 },
+    { name: 'valid flags still count as restatement', content: good.replace('## Conventions', '- Dev: `npm run dev --turbo --port=3001`\n\n## Conventions'), opts: base, expect: 1 },
     { name: 'over budget', content: good + '- filler\n'.repeat(200), opts: base, expect: 1 },
     { name: 'secret: GitHub classic', content: good + '\n- token: ghp_abcdefghijklmnopqrstuvwxyz0123\n', opts: base, expect: 1 },
     { name: 'secret: GitHub fine-grained', content: good + '\n- token: github_pat_11ABCDEFG0abcdefghijklmnop\n', opts: base, expect: 1 },
@@ -289,7 +363,13 @@ Project X does Y. State: building. Priority: ship Z.
   ]
   let failed = 0
   for (const c of cases) {
+    const started = process.hrtime.bigint()
     const problems = checkContent(c.content, c.opts)
+    const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6
+    if (c.maxMs !== undefined && elapsedMs > c.maxMs) {
+      failed += 1
+      console.error(`SELF-TEST FAIL: ${c.name} — took ${elapsedMs.toFixed(1)} ms, budget ${c.maxMs} ms (a backtracking regex has probably returned)`)
+    }
     if (problems.length !== c.expect) {
       failed += 1
       console.error(`SELF-TEST FAIL: ${c.name} — expected ${c.expect}, got ${problems.length}`)
@@ -297,42 +377,11 @@ Project X does Y. State: building. Priority: ship Z.
     }
   }
   // Filesystem path: package.json + CLAUDE.md discovery through checkFile.
-  let total = cases.length + 1
-  let tmp = null
-  try {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agents-md-'))
-  } catch (err) {
-    // A read-only sandbox cannot write temp files; report the skip loudly rather than
-    // failing the run — CI runners can always write, so the case still runs there.
-    console.error(`SELF-TEST SKIPPED: filesystem discovery (no temp write access: ${err.code || err.message})`)
-    total -= 1
-  }
-  if (tmp) {
-    fs.writeFileSync(path.join(tmp, 'package.json'), JSON.stringify({ scripts: { dev: 'next dev' } }))
-    fs.writeFileSync(path.join(tmp, 'CLAUDE.md'), '# CLAUDE.md\n\nnotes only\n')
-    fs.writeFileSync(path.join(tmp, 'AGENTS.md'), good.replace('## Conventions', '- Dev: `npm run dev`\n\n## Conventions'))
-    const cwd = process.cwd()
-    let fsProblems = []
-    try {
-      process.chdir(tmp)
-      fsProblems = checkFile('AGENTS.md', { fenced: false, maxLines: 150, requireHeading: /Boundaries/i })
-      // Default-options path, as the CLI calls it (a flatMap(checkFile) once passed the index as opts).
-      // Skipped under --self-test --fenced, where the module-level flag would change the meaning.
-      const viaDefaults = fenced ? fsProblems : checkFile('AGENTS.md')
-      if (viaDefaults.length !== fsProblems.length) {
-        failed += 1
-        console.error(`SELF-TEST FAIL: default options — expected ${fsProblems.length} problem(s), got ${viaDefaults.length}`)
-      }
-    } finally {
-      process.chdir(cwd)
-      fs.rmSync(tmp, { recursive: true, force: true })
-    }
-    const ok = fsProblems.length === 2 && fsProblems.some((p) => /restates/.test(p)) && fsProblems.some((p) => /CLAUDE\.md/.test(p))
-    if (!ok) {
-      failed += 1
-      console.error(`SELF-TEST FAIL: filesystem discovery — expected a restated-script problem and a CLAUDE.md import problem, got ${fsProblems.length}`)
-      for (const p of fsProblems) console.error(`  - ${p}`)
-    }
+  let total = cases.length + 2
+  for (const run of [cliHeadingCase, filesystemDiscoveryCase]) {
+    const result = run(good)
+    if (result.skipped) total -= 1
+    if (result.failed) failed += 1
   }
   if (failed) {
     console.error(`check-agents-md self-test: ${failed}/${total} case(s) failed`)
