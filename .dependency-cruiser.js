@@ -155,7 +155,7 @@ module.exports = {
     // not enter the graph as a second copy of src. When it is absent the same
     // imports show up as unresolvable modules named by their raw specifier
     // ("../dist/src/x.js"), hence the second alternative — the graph is
-    // identical with or without a build (176 modules either way, 2026-09-13).
+    // identical with or without a build (2026-09-13: 409 dependencies either way; 176 modules locally, 173 in CI where relayer/node_modules is absent and viem/zod/vitest resolve once from the root).
     exclude: { path: ["^\\.next", "^contracts", "^(relayer/|\\.\\./)dist/", "^supabase"] },
     tsConfig: { fileName: "tsconfig.json" },
     tsPreCompilationDeps: true,
