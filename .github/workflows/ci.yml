@@ -20,17 +20,20 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # Node 24 bundles npm 11, matching local dev, so the lockfile npm 11
+      # wrote installs as-is. (Node 22 bundles npm 10, which refuses it; until
+      # 2026-09-13 this job worked around that with an unpinned
+      # `npm install -g npm@11` — a networked global install that ran BEFORE
+      # the supply-chain guard below. Removed; the version assertion is next.)
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
-      # Runner Node 22 bundles npm 10.x, which refuses this lockfile now that
-      # local npm 11 (re)wrote it — npm 11 dedupes the nested @swc/helpers
-      # pin that npm 10 requires as its own entry (the same next/next-intl
-      # trap Fanbet documents in its ci.yml). Pin CI to npm 11 to match local
-      # dev. First live CI run of this branch caught it (2026-08-27).
-      - name: Pin npm to v11 (match local dev)
-        run: npm install -g npm@11
+      - name: Toolchain (assert bundled npm 11)
+        run: |
+          node --version
+          npm --version
+          npm --version | grep -q '^11\.' || { echo "expected the npm 11 bundled with Node 24"; exit 1; }
       - name: Lockfile integrity (lockfile-lint)
         # Runs BEFORE npm ci on purpose: a poisoned lockfile must be rejected
         # before anything installs or executes. npx fetches lockfile-lint
