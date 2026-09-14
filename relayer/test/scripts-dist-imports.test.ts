@@ -18,14 +18,16 @@ const scripts = readdirSync(scriptsDir).filter((f) => f.endsWith('.mjs'));
 
 // `import { a, b as c } from '../dist/src/x.js'` (either quote style) — the
 // scripts use static named imports only. Fail-closed: every string literal
-// that starts with `../dist/` — single, double or backtick quoted, complete
-// or a bare `'../dist/'` prefix about to be concatenated — must be one of
-// these, so a default, namespace or side-effect import, a dynamic
-// `import()`, a `require`, a template literal or a built-up specifier fails
-// the count check below instead of passing unparsed. A specifier the test
-// cannot check statically is out of the gate by construction, never silently.
+// that mentions `dist/` at all — single, double or backtick quoted, a
+// complete specifier or any piece of one (`'../dist/'`, `'dist/src/x.js'`)
+// — must be one of these, so a default, namespace or side-effect import, a
+// dynamic `import()`, a `require`, a template literal or a specifier built
+// from pieces fails the count check below instead of passing unparsed. This
+// is static analysis: a specifier assembled from fragments none of which
+// contains `dist/` is beyond it — the scripts have no computed imports, and
+// one would be a reviewed change to production automation.
 const NAMED_DIST_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*(['"])(\.\.\/dist\/[^'"`]+)\2/gm;
-const ANY_DIST_LITERAL = /(['"`])\.\.\/dist\/[^'"`]*\1/g;
+const ANY_DIST_LITERAL = /(['"`])[^'"`]*\bdist\/[^'"`]*\1/g;
 
 const namedImports = (clause: string) =>
   clause
@@ -55,6 +57,7 @@ describe('dist-import parser — fail-closed on every form it does not understan
       'const x = require("../dist/src/x.js");',
       'const x = await import(`../dist/src/nope.js`);',
       "const x = await import('../dist/' + name);",
+      "const x = await import('../' + 'dist/src/nope.js');",
     ]) {
       expect(parsed(src), src).toBe(0);
       expect(literals(src), src).toBe(1);
