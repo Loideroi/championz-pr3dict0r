@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- known debt: 459 counted lines vs budget 400 since PR #98 (2026-09-12); expires 2026-10-31; split tracked in docs/REVIEW_TIERS.md */
 import type { Fixture, MatchResult } from './source.js';
 import { verdictFor, type PrevRun, type TeamStrength, type Verdict } from './strength.js';
 
@@ -487,6 +488,7 @@ function callFor(t: T, facts: MatchFacts, verdict: Verdict): string {
   return verdict.homeGroundDecides ? t.callEdgeHome(team) : t.callEdge(team);
 }
 
+// eslint-disable-next-line complexity -- known debt: complexity 20 vs budget 15 (2026-09-12); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
 export function renderInsight(facts: MatchFacts, locale: InsightLocale): string {
   const t = TEMPLATES[locale];
   const fmtForm = (form: string[]) =>
