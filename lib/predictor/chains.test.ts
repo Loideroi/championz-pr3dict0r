@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { PublicClient } from "viem";
+import {
+  HttpRequestError,
+  InvalidInputRpcError,
+  InvalidParamsRpcError,
+  UnknownRpcError,
+  type PublicClient,
+} from "viem";
 import {
   chainFor,
   CHAIN_MAINNET,
@@ -8,6 +14,7 @@ import {
   LOG_SCAN_CHUNK,
   LOG_SCAN_MIN_CHUNK,
   rpcCandidatesFor,
+  rpcErrorDetail,
   scanLogs,
 } from "./chains";
 
@@ -83,35 +90,82 @@ describe("scanLogs", () => {
     expect(logs).toEqual(seen.map(([a, b]) => `${a}-${b}`));
   });
 
-  it("halves the chunk when the endpoint refuses a window, until it fits", async () => {
+  it("halves the chunk when the node refuses a window, until it fits — still contiguous", async () => {
     const cap = 50_000n; // publicnode's measured cap
+    const latest = 1_000_000n;
     const sizes = new Set<bigint>();
-    const logs = await scanLogs(clientAt(1_000_000n), 0n, async (a, b) => {
+    const accepted: [bigint, bigint][] = [];
+    const logs = await scanLogs(clientAt(latest), 0n, async (a, b) => {
       const size = b - a + 1n;
       sizes.add(size);
-      if (size > cap) throw new Error("exceed maximum block range: 50000");
+      if (size > cap) throw new UnknownRpcError(new Error("exceed maximum block range: 50000"));
+      accepted.push([a, b]);
       return [a];
     });
     expect(sizes.has(LOG_SCAN_CHUNK)).toBe(true);
-    expect([...sizes].filter((s) => s <= cap).length).toBeGreaterThan(0);
-    expect(logs).toHaveLength(Number(1_000_001n / cap) + 1);
+    expect(logs).toHaveLength(Number((latest + 1n) / cap) + 1); // exactly the 50k pass, not 25k
     expect(logs[0]).toBe(0n);
+    accepted.sort((x, y) => (x[0] < y[0] ? -1 : 1));
+    expect(accepted[0][0]).toBe(0n);
+    expect(accepted.at(-1)?.[1]).toBe(latest);
+    for (let i = 1; i < accepted.length; i++) expect(accepted[i][0]).toBe(accepted[i - 1][1] + 1n);
   });
 
   it("gives up below the minimum chunk so the caller can move to the next RPC", async () => {
     // Ankr: 1,000-block cap — never reachable by halving from 200k above the floor.
-    const fetch = vi.fn(async () => {
-      throw new Error("Block range is too large");
+    const fetchRange = vi.fn(async () => {
+      throw new InvalidParamsRpcError(new Error("Block range is too large"));
     });
-    await expect(scanLogs(clientAt(500_000n), 0n, fetch)).rejects.toThrow("Block range is too large");
+    await expect(scanLogs(clientAt(500_000n), 0n, fetchRange)).rejects.toThrow("Block range is too large");
     // 200k → 100k → 50k → 25k, then stop: four rounds of at most four in-flight windows.
     expect(LOG_SCAN_CHUNK / LOG_SCAN_MIN_CHUNK).toBe(8n);
-    expect(fetch.mock.calls.length).toBeLessThanOrEqual(16);
+    expect(fetchRange.mock.calls.length).toBeLessThanOrEqual(16);
+  });
+
+  it("does not halve on a transport failure — a smaller window cannot fix a 429", async () => {
+    const fetchRange = vi.fn(async () => {
+      throw new HttpRequestError({ url: "https://rpc.example", status: 429, details: "rate limited" });
+    });
+    await expect(scanLogs(clientAt(500_000n), 0n, fetchRange)).rejects.toBeInstanceOf(HttpRequestError);
+    expect(fetchRange.mock.calls.length).toBeLessThanOrEqual(4); // one round, then propagate
+  });
+
+  it("keeps at most four windows in flight, including while a round fails and retries", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const fetchRange = async (a: bigint, b: bigint) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, a === 0n ? 1 : 5)); // first window fails fast
+      inFlight--;
+      if (b - a + 1n > 100_000n) throw new UnknownRpcError(new Error("range too large"));
+      return [a];
+    };
+    const logs = await scanLogs(clientAt(LOG_SCAN_CHUNK * 3n - 1n), 0n, fetchRange);
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(logs).toHaveLength(6); // 600k blocks at 100k
   });
 
   it("returns nothing when the deploy block is past the head", async () => {
-    const fetch = vi.fn(async () => [1]);
-    expect(await scanLogs(clientAt(10n), 11n, fetch)).toEqual([]);
-    expect(fetch).not.toHaveBeenCalled();
+    const fetchRange = vi.fn(async () => [1]);
+    expect(await scanLogs(clientAt(10n), 11n, fetchRange)).toEqual([]);
+    expect(fetchRange).not.toHaveBeenCalled();
+  });
+});
+
+describe("rpcErrorDetail", () => {
+  it("prefers the node's own message over viem's generic -32000 summary", () => {
+    // rpc.chiliz.com answers a too-wide range with -32000; this is the 502 text production showed.
+    const err = new InvalidInputRpcError(
+      new Error("requested block range too large: 2258204 blocks, limit is 250000"),
+    );
+    expect(err.shortMessage.split("\n")[0]).toBe("Missing or invalid parameters.");
+    expect(rpcErrorDetail(err)).toBe("requested block range too large: 2258204 blocks, limit is 250000");
+  });
+
+  it("falls back to the first line of the message, and stringifies non-errors", () => {
+    expect(rpcErrorDetail(new Error("boom\nURL: https://secret.example/key"))).toBe("boom");
+    expect(rpcErrorDetail("plain")).toBe("plain");
+    expect(rpcErrorDetail(undefined)).toBe("undefined");
   });
 });

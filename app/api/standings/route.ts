@@ -26,6 +26,7 @@ import {
   isSupportedChain,
   readBatch,
   rpcCandidatesFor,
+  rpcErrorDetail,
   scanLogs,
 } from "@/lib/predictor/chains";
 import {
@@ -99,6 +100,14 @@ async function loadEntrants(client: PublicClient, chainId: number): Promise<Map<
 }
 
 /**
+ * The candidate that last completed a scan, tried first from then on. Same
+ * lifetime as `memo`: a cache miss on a warm lambda otherwise re-pays the
+ * configured endpoint's refusals (Ankr: four halving rounds) before reaching
+ * the one that can answer.
+ */
+let preferredRpc: string | undefined;
+
+/**
  * The season-wide log scan is the one query a Chiliz RPC can refuse: every
  * public endpoint caps the `eth_getLogs` block range, and Ankr's free tier —
  * what production is configured with — caps it at 1,000 blocks, too few to
@@ -110,31 +119,25 @@ async function scanEntrants(
   chainId: number,
 ): Promise<{ client: PublicClient; wallets: Map<string, boolean> }> {
   const candidates = rpcCandidatesFor(chainId);
+  const ordered =
+    preferredRpc && candidates.includes(preferredRpc)
+      ? [preferredRpc, ...candidates.filter((url) => url !== preferredRpc)]
+      : candidates;
   let lastError: unknown;
-  for (const url of candidates) {
+  for (const url of ordered) {
     const client = createPublicClient({
       chain: chainFor(chainId),
       transport: http(url),
     }) as PublicClient;
     try {
-      return { client, wallets: await loadEntrants(client, chainId) };
+      const wallets = await loadEntrants(client, chainId);
+      preferredRpc = url;
+      return { client, wallets };
     } catch (err) {
       lastError = err;
     }
   }
-  throw new Error(`no RPC could scan entrants (tried ${candidates.length}): ${rpcDetail(lastError)}`);
-}
-
-/**
- * viem summarises every `-32602` as "Missing or invalid parameters."; the
- * endpoint's own message ("requested block range too large … limit is 250000")
- * is what a reader needs, and viem keeps it on `details`.
- */
-function rpcDetail(err: unknown): string {
-  if (!(err instanceof Error)) return String(err);
-  const details = (err as { details?: unknown }).details;
-  const text = typeof details === "string" && details.length > 0 ? details : err.message;
-  return text.split("\n")[0];
+  throw new Error(`no RPC could scan entrants (tried ${ordered.length}): ${rpcErrorDetail(lastError)}`);
 }
 
 const big = (v: unknown): bigint => (typeof v === "bigint" ? v : BigInt(Number(v ?? 0)));

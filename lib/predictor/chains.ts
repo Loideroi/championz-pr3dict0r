@@ -9,6 +9,7 @@
  * {@link readBatch}.
  */
 import { chiliz, spicy } from "viem/chains";
+import { RpcError } from "viem";
 import type { Chain, PublicClient } from "viem";
 
 export const CHAIN_MAINNET = chiliz.id; // 88888
@@ -75,14 +76,17 @@ const LOG_SCAN_CONCURRENCY = 4;
 
 /**
  * Fetch logs from `fromBlock` to the current head in fixed-size block windows,
- * in order. A window the endpoint refuses halves the chunk and retries the
- * whole scan, down to {@link LOG_SCAN_MIN_CHUNK}; past that the error
- * propagates so the caller can move to the next RPC candidate.
+ * in order. A window the node answers with a JSON-RPC error halves the chunk
+ * and retries the whole scan, down to {@link LOG_SCAN_MIN_CHUNK}; past that,
+ * and on any transport failure (HTTP status, timeout), the error propagates so
+ * the caller can move to the next RPC candidate. Range caps carry no shared
+ * code or wording across endpoints, so "the node refused" is the trigger — a
+ * smaller window cannot fix a 401 or a 429, so those are never retried here.
  */
 export async function scanLogs<T>(
   client: PublicClient,
   fromBlock: bigint,
-  fetch: (fromBlock: bigint, toBlock: bigint) => Promise<T[]>,
+  fetchRange: (fromBlock: bigint, toBlock: bigint) => Promise<T[]>,
   chunk = LOG_SCAN_CHUNK,
 ): Promise<T[]> {
   const latest = await client.getBlockNumber();
@@ -92,20 +96,36 @@ export async function scanLogs<T>(
     windows.push([from, to < latest ? to : latest]);
   }
   const out: T[][] = new Array(windows.length);
-  try {
-    for (let i = 0; i < windows.length; i += LOG_SCAN_CONCURRENCY) {
-      const slice = windows.slice(i, i + LOG_SCAN_CONCURRENCY);
-      const results = await Promise.all(slice.map(([from, to]) => fetch(from, to)));
-      results.forEach((r, j) => {
-        out[i + j] = r;
-      });
+  for (let i = 0; i < windows.length; i += LOG_SCAN_CONCURRENCY) {
+    const slice = windows.slice(i, i + LOG_SCAN_CONCURRENCY);
+    // allSettled: every in-flight window finishes before a retry starts, so
+    // the concurrency ceiling holds through failures too.
+    const settled = await Promise.allSettled(slice.map(([from, to]) => fetchRange(from, to)));
+    const failed = settled.find((s): s is PromiseRejectedResult => s.status === "rejected");
+    if (failed) {
+      const smaller = chunk / 2n;
+      if (failed.reason instanceof RpcError && smaller >= LOG_SCAN_MIN_CHUNK) {
+        return scanLogs(client, fromBlock, fetchRange, smaller);
+      }
+      throw failed.reason;
     }
-  } catch (err) {
-    const smaller = chunk / 2n;
-    if (smaller < LOG_SCAN_MIN_CHUNK) throw err;
-    return scanLogs(client, fromBlock, fetch, smaller);
+    settled.forEach((s, j) => {
+      out[i + j] = (s as PromiseFulfilledResult<T[]>).value;
+    });
   }
   return out.flat();
+}
+
+/**
+ * The endpoint's own words for an RPC failure. viem summarises every `-32000`
+ * as "Missing or invalid parameters." and keeps the node's message
+ * ("requested block range too large … limit is 250000") on `details`.
+ */
+export function rpcErrorDetail(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const details = (err as { details?: unknown }).details;
+  const text = typeof details === "string" && details.length > 0 ? details : err.message;
+  return text.split("\n")[0];
 }
 
 /** Multicall3 caps out well before this; 40 keeps heavy views inside gas. */
