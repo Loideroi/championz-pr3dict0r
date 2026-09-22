@@ -9,7 +9,7 @@
  * {@link readBatch}.
  */
 import { chiliz, spicy } from "viem/chains";
-import { RpcError } from "viem";
+import { RpcError, RpcRequestError } from "viem";
 import type { Chain, PublicClient } from "viem";
 
 export const CHAIN_MAINNET = chiliz.id; // 88888
@@ -82,6 +82,9 @@ const LOG_SCAN_CONCURRENCY = 4;
  * the caller can move to the next RPC candidate. Range caps carry no shared
  * code or wording across endpoints, so "the node refused" is the trigger — a
  * smaller window cannot fix a 401 or a 429, so those are never retried here.
+ * viem types a standard code as an `RpcError` subclass and leaves a
+ * provider-specific one (Ankr's -32062) as the raw `RpcRequestError`; both
+ * are the node speaking.
  */
 export async function scanLogs<T>(
   client: PublicClient,
@@ -104,7 +107,8 @@ export async function scanLogs<T>(
     const failed = settled.find((s): s is PromiseRejectedResult => s.status === "rejected");
     if (failed) {
       const smaller = chunk / 2n;
-      if (failed.reason instanceof RpcError && smaller >= LOG_SCAN_MIN_CHUNK) {
+      const refused = failed.reason instanceof RpcError || failed.reason instanceof RpcRequestError;
+      if (refused && smaller >= LOG_SCAN_MIN_CHUNK) {
         return scanLogs(client, fromBlock, fetchRange, smaller);
       }
       throw failed.reason;

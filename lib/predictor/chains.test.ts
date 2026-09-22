@@ -3,6 +3,7 @@ import {
   HttpRequestError,
   InvalidInputRpcError,
   InvalidParamsRpcError,
+  RpcRequestError,
   UnknownRpcError,
   type PublicClient,
 } from "viem";
@@ -112,14 +113,28 @@ describe("scanLogs", () => {
   });
 
   it("gives up below the minimum chunk so the caller can move to the next RPC", async () => {
-    // Ankr: 1,000-block cap — never reachable by halving from 200k above the floor.
+    // Ankr: 1,000-block cap, answered with the provider-specific code -32062 —
+    // viem leaves that as a raw RpcRequestError, which must still count as a refusal.
     const fetchRange = vi.fn(async () => {
-      throw new InvalidParamsRpcError(new Error("Block range is too large"));
+      throw new RpcRequestError({
+        body: {},
+        error: { code: -32062, message: "Block range is too large" },
+        url: "https://rpc.ankr.com/chiliz",
+      });
     });
     await expect(scanLogs(clientAt(500_000n), 0n, fetchRange)).rejects.toThrow("Block range is too large");
     // 200k → 100k → 50k → 25k, then stop: four rounds of at most four in-flight windows.
     expect(LOG_SCAN_CHUNK / LOG_SCAN_MIN_CHUNK).toBe(8n);
+    expect(fetchRange.mock.calls.length).toBeGreaterThan(4); // it did halve past round one
     expect(fetchRange.mock.calls.length).toBeLessThanOrEqual(16);
+  });
+
+  it("treats a standard-code refusal (-32602) the same way", async () => {
+    const fetchRange = vi.fn(async () => {
+      throw new InvalidParamsRpcError(new Error("Block range is too large"));
+    });
+    await expect(scanLogs(clientAt(500_000n), 0n, fetchRange)).rejects.toThrow("Block range is too large");
+    expect(fetchRange.mock.calls.length).toBeGreaterThan(4);
   });
 
   it("does not halve on a transport failure — a smaller window cannot fix a 429", async () => {
