@@ -26,6 +26,7 @@ import {
   isSupportedChain,
   readBatch,
   rpcCandidatesFor,
+  scanLogs,
 } from "@/lib/predictor/chains";
 import {
   toRowJson,
@@ -86,12 +87,9 @@ async function loadProfiles(
 
 /** Entrants, from the only enumeration the contract offers: the Entered log. */
 async function loadEntrants(client: PublicClient, chainId: number): Promise<Map<string, boolean>> {
-  const logs = await client.getLogs({
-    address: PREDICTOR_ADDRESS,
-    event: ENTERED_EVENT,
-    fromBlock: deployBlockFor(chainId),
-    toBlock: "latest",
-  });
+  const logs = await scanLogs(client, deployBlockFor(chainId), (fromBlock, toBlock) =>
+    client.getLogs({ address: PREDICTOR_ADDRESS, event: ENTERED_EVENT, fromBlock, toBlock }),
+  );
   const wallets = new Map<string, boolean>(); // address → holds a Full Season pass
   for (const log of logs) {
     const wallet = String(log.args.wallet).toLowerCase();
@@ -101,11 +99,12 @@ async function loadEntrants(client: PublicClient, chainId: number): Promise<Map<
 }
 
 /**
- * The season-wide log scan is the one query a Chiliz RPC can refuse: Ankr's
- * free tier — what production is configured with — caps `eth_getLogs` at 1,000
- * blocks. So try the endpoints in order and keep the client that could answer,
- * rather than assuming the configured one can. Contract reads then run on the
- * same client, which is also the one the timings were measured on.
+ * The season-wide log scan is the one query a Chiliz RPC can refuse: every
+ * public endpoint caps the `eth_getLogs` block range, and Ankr's free tier —
+ * what production is configured with — caps it at 1,000 blocks, too few to
+ * chunk. So scan in chunks, try the endpoints in order, and keep the client
+ * that could answer rather than assuming the configured one can. Contract
+ * reads then run on the same client.
  */
 async function scanEntrants(
   chainId: number,
@@ -123,8 +122,19 @@ async function scanEntrants(
       lastError = err;
     }
   }
-  const detail = lastError instanceof Error ? lastError.message.split("\n")[0] : String(lastError);
-  throw new Error(`no RPC could scan entrants (tried ${candidates.length}): ${detail}`);
+  throw new Error(`no RPC could scan entrants (tried ${candidates.length}): ${rpcDetail(lastError)}`);
+}
+
+/**
+ * viem summarises every `-32602` as "Missing or invalid parameters."; the
+ * endpoint's own message ("requested block range too large … limit is 250000")
+ * is what a reader needs, and viem keeps it on `details`.
+ */
+function rpcDetail(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const details = (err as { details?: unknown }).details;
+  const text = typeof details === "string" && details.length > 0 ? details : err.message;
+  return text.split("\n")[0];
 }
 
 const big = (v: unknown): bigint => (typeof v === "bigint" ? v : BigInt(Number(v ?? 0)));
@@ -138,13 +148,15 @@ const big = (v: unknown): bigint => (typeof v === "bigint" ? v : BigInt(Number(v
  */
 async function poolAtFreeze(client: PublicClient, chainId: number, stage: number): Promise<bigint | null> {
   try {
-    const logs = await client.getLogs({
-      address: PREDICTOR_ADDRESS,
-      event: STAGE_FROZEN_EVENT,
-      args: { stage },
-      fromBlock: deployBlockFor(chainId),
-      toBlock: "latest",
-    });
+    const logs = await scanLogs(client, deployBlockFor(chainId), (fromBlock, toBlock) =>
+      client.getLogs({
+        address: PREDICTOR_ADDRESS,
+        event: STAGE_FROZEN_EVENT,
+        args: { stage },
+        fromBlock,
+        toBlock,
+      }),
+    );
     const last = logs.at(-1);
     return last?.args.pool === undefined ? null : last.args.pool;
   } catch {
