@@ -131,6 +131,11 @@ describe('checkRepoActivity', () => {
   it('is quiet for a commit dated in the future (clock skew)', () => {
     expect(checkRepoActivity(after(-1))).toBeNull();
   });
+
+  it('is quiet when the commit time is not a number', () => {
+    expect(checkRepoActivity({ nowSec: commit + 90 * 86400, lastCommitSec: Number.NaN })).toBeNull();
+    expect(checkRepoActivity({ nowSec: commit, lastCommitSec: Number.NEGATIVE_INFINITY })).toBeNull();
+  });
 });
 
 describe('checkUnfrozenStage', () => {

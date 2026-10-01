@@ -684,10 +684,12 @@ Copied from the redesign repo's proven setup, adapted:
   (`mark.verdegaal@gmail.com`). Public repo preferred (free unlimited Actions minutes
   for the relayer); contract + relayer live in-repo (`contracts/`, `relayer/`).
   ⚠️ Note: GitHub Actions scheduled workflows auto-disable after 60 days without repo
-  activity, and scheduled runs do not count as activity — the relayer's own cron
-  does not keep it alive. The mainnet sentinel warns the ops chat from day 46
-  without a commit on main (`schedule_expiry`); the fix is a real change landing on
-  main. Automated keep-alive commits or API pings breach GitHub's terms — don't.
+  activity. GitHub's docs don't define "activity"; the relayer's own cron runs
+  can't be what keeps it alive (the rule would never fire), so a commit on main is
+  the safe reading. The mainnet sentinel warns the ops chat from day 46 without a
+  commit on main (`schedule_expiry`); the fix is a real change landing on main.
+  Don't automate keep-alives: GitHub staff disabled the keepalive-workflow action as
+  a terms-of-service violation for doing exactly that.
 - **Vercel:** project in the **Loideroi personal (Hobby) account**. Hobby limits
   respected: daily crons only (relayer is on GitHub Actions), 100 GB transfer,
   non-commercial use. Env vars mirror `.env.example`.

@@ -154,8 +154,12 @@ issues.push(
 // 3a. Repo activity — GitHub's 60-day schedule cutoff (set on one chain only)
 const lastCommitSec = Number(LAST_COMMIT_AT);
 if (lastCommitSec > 0) {
+  console.log(`repo-activity: last commit ${new Date(lastCommitSec * 1000).toISOString()}`);
   const quiet = checkRepoActivity({ nowSec: Math.floor(Date.now() / 1000), lastCommitSec });
   if (quiet) issues.push(quiet);
+} else if (LAST_COMMIT_AT !== undefined) {
+  // set but unusable (e.g. `git log` failed) — say so, don't pass as healthy
+  console.log(`repo-activity: check skipped — LAST_COMMIT_AT=${JSON.stringify(LAST_COMMIT_AT)}`);
 }
 
 // 3b. Unfrozen fully-played stage (--deep: iterates matches; daily tick only)

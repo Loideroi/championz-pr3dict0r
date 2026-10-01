@@ -31,6 +31,9 @@ jobs:
     # `workflow_run` matches on the workflow NAME, so any run called
     # "oracle-bot" would start this job with the oracle key — including one
     # defined in a fork's pull request. Only the real file on main counts.
+    # This `if` is the ONLY defence here: a workflow_run run always executes
+    # on the default branch, so the `oracle` environment's main-only policy
+    # admits it whatever triggered it. Don't drop the guard.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.head_repository.full_name == github.repository &&

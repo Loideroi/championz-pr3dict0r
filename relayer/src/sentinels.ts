@@ -131,15 +131,16 @@ export const SCHEDULE_INACTIVITY_WARN_DAYS = 46;
 
 /**
  * The oracle runs on GitHub's `schedule` trigger, which GitHub switches off in
- * a public repo after 60 days with no repository activity — and scheduled runs
- * do not count as activity. Once disabled, nothing relays and nothing alerts
- * (this sentinel included). The remedy is a real change landing on main;
- * automated keep-alive commits or API pings breach GitHub's terms (the
- * keepalive-workflow action was disabled for exactly that), so this only warns.
+ * a public repo after 60 days with no repository activity. The docs don't
+ * define "activity"; the cron's own runs can't be it (the rule would never
+ * fire), so a commit on main is the safe reading. Once disabled, nothing
+ * relays and nothing alerts (this sentinel included). The remedy is a real
+ * change landing on main — GitHub staff disabled the keepalive-workflow action
+ * as a terms violation for automating around this rule, so this only warns.
  */
 export function checkRepoActivity(opts: { nowSec: number; lastCommitSec: number }): SentinelIssue | null {
   const idleDays = Math.floor((opts.nowSec - opts.lastCommitSec) / 86400);
-  if (idleDays < SCHEDULE_INACTIVITY_WARN_DAYS) return null;
+  if (!Number.isFinite(idleDays) || idleDays < SCHEDULE_INACTIVITY_WARN_DAYS) return null;
   const left = SCHEDULE_INACTIVITY_LIMIT_DAYS - idleDays;
   return {
     type: 'schedule_expiry',
