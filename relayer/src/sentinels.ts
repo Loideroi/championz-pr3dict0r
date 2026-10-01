@@ -8,7 +8,8 @@
  *    is the runtime exploit tripwire.
  *  - site uptime: pr3dict0r.com + the profile API answering.
  *  - seasonal deadlines: entrant floor at risk near sales close; fixtures
- *    missing after the draw; a fully-played stage left unfrozen.
+ *    missing after the draw; a fully-played stage left unfrozen; the repo
+ *    going quiet long enough for GitHub to switch the oracle's schedule off.
  *
  * Pure decision logic + message composers only — all I/O lives in
  * scripts/sentinel.mjs and is deduped via clp_oracle_log (24h per type).
@@ -121,6 +122,30 @@ export function checkDeadlines(opts: {
   }
 
   return issues;
+}
+
+/** GitHub disables a public repo's scheduled workflows after this many days without repository activity. */
+export const SCHEDULE_INACTIVITY_LIMIT_DAYS = 60;
+/** Warn this many days ahead of the cutoff — two weeks to land a real change. */
+export const SCHEDULE_INACTIVITY_WARN_DAYS = 46;
+
+/**
+ * The oracle runs on GitHub's `schedule` trigger, which GitHub switches off in
+ * a public repo after 60 days with no repository activity — and scheduled runs
+ * do not count as activity. Once disabled, nothing relays and nothing alerts
+ * (this sentinel included). The remedy is a real change landing on main;
+ * automated keep-alive commits or API pings breach GitHub's terms (the
+ * keepalive-workflow action was disabled for exactly that), so this only warns.
+ */
+export function checkRepoActivity(opts: { nowSec: number; lastCommitSec: number }): SentinelIssue | null {
+  const idleDays = Math.floor((opts.nowSec - opts.lastCommitSec) / 86400);
+  if (idleDays < SCHEDULE_INACTIVITY_WARN_DAYS) return null;
+  const left = SCHEDULE_INACTIVITY_LIMIT_DAYS - idleDays;
+  return {
+    type: 'schedule_expiry',
+    headline: `⏰ SCHEDULE_EXPIRY — no commit on main for ${idleDays} days`,
+    detail: `GitHub disables this repo's scheduled workflows (the oracle, its heartbeat, these alerts) after ${SCHEDULE_INACTIVITY_LIMIT_DAYS} days without repository activity — ${left > 0 ? `about ${left} day(s) left` : 'the cutoff has passed: check Actions and re-enable oracle-bot'}. Land a real change on main (a pending Dependabot PR will do) to reset the clock.`,
+  };
 }
 
 /** A stage whose every match is completed should be frozen (else claims wait). */

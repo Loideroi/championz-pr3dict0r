@@ -9,6 +9,9 @@
  * --uptime  also probe pr3dict0r.com + the profile API (run on one chain only)
  * --deep    also iterate matches for the unfrozen-stage check (daily tick)
  *
+ * LAST_COMMIT_AT (unix seconds of main's tip; set on one chain only) enables
+ * the repo-activity check against GitHub's 60-day schedule cutoff.
+ *
  * Every issue dedupes via clp_oracle_log to ≤1 Telegram warning per type per
  * chain per 24h. Exits 0 — sentinels alert, they don't fail CI.
  */
@@ -16,6 +19,7 @@ import { createPublicClient, http } from 'viem';
 import {
   checkDeadlines,
   checkGovernance,
+  checkRepoActivity,
   checkSolvency,
   checkUnfrozenStage,
   checkUptime,
@@ -34,6 +38,7 @@ const {
   EXPECTED_IMPL,
   STAGE_FLOOR,
   SITE_URL,
+  LAST_COMMIT_AT,
   TELEGRAM_BOT_TOKEN,
   TELEGRAM_OPS_CHAT_ID,
   SUPABASE_URL,
@@ -145,6 +150,13 @@ issues.push(
     matchCount,
   }),
 );
+
+// 3a. Repo activity — GitHub's 60-day schedule cutoff (set on one chain only)
+const lastCommitSec = Number(LAST_COMMIT_AT);
+if (lastCommitSec > 0) {
+  const quiet = checkRepoActivity({ nowSec: Math.floor(Date.now() / 1000), lastCommitSec });
+  if (quiet) issues.push(quiet);
+}
 
 // 3b. Unfrozen fully-played stage (--deep: iterates matches; daily tick only)
 if (args.includes('--deep') && matchCount > 0 && matchCount <= 250) {
