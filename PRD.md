@@ -688,8 +688,8 @@ Copied from the redesign repo's proven setup, adapted:
   can't be what keeps it alive (the rule would never fire), so a commit on main is
   the safe reading. The mainnet sentinel warns the ops chat from day 46 without a
   commit on main (`schedule_expiry`); the fix is a real change landing on main.
-  Don't automate keep-alives: GitHub staff disabled the keepalive-workflow action as
-  a terms-of-service violation for doing exactly that.
+  Don't automate keep-alives: GitHub staff disabled the keepalive-workflow action,
+  whose whole purpose was doing that, citing a terms-of-service violation.
 - **Vercel:** project in the **Loideroi personal (Hobby) account**. Hobby limits
   respected: daily crons only (relayer is on GitHub Actions), 100 GB transfer,
   non-commercial use. Env vars mirror `.env.example`.

@@ -11,7 +11,7 @@ boundaries belong to the human.
 |---|---|---|
 | `contracts/**` (sources, tests, configs, scripts, lockfile) | 3 | On-chain prediction pools and settlement — value-moving |
 | `relayer/**` (incl. its lockfile) | 3 | Oracle relayer — the results it produces settle pools; wrong data is value-moving even when no key is held |
-| `.github/workflows/**` | 3 | CI is a merge gate; `oracle-bot.yml` and `matchday-watch.yml` are production automation holding the oracle key (`oracle` environment, main-only) |
+| `.github/workflows/**` | 3 | CI is a merge gate; `oracle-bot.yml` and `matchday-watch.yml` are production automation holding the oracle key (meant for the `oracle` environment, main-only — owner-created in repo settings) |
 | `supabase/**` (incl. `migrations/**`) | 3 | Production data schema and config — migrations are named Tier 3 in the contract |
 | `app/api/**` | 3 | Server-side routes |
 | `middleware.ts` and any edge/proxy module owning CSP, geo-restriction, or security-header policy | 3 | Production security enforcement (Fanbet reviewer-finding parity, 2026-08-27) |

@@ -135,8 +135,8 @@ export const SCHEDULE_INACTIVITY_WARN_DAYS = 46;
  * define "activity"; the cron's own runs can't be it (the rule would never
  * fire), so a commit on main is the safe reading. Once disabled, nothing
  * relays and nothing alerts (this sentinel included). The remedy is a real
- * change landing on main — GitHub staff disabled the keepalive-workflow action
- * as a terms violation for automating around this rule, so this only warns.
+ * change landing on main — GitHub staff disabled the keepalive-workflow action,
+ * built to automate around this rule, citing a terms violation; so this only warns.
  */
 export function checkRepoActivity(opts: { nowSec: number; lastCommitSec: number }): SentinelIssue | null {
   const idleDays = Math.floor((opts.nowSec - opts.lastCommitSec) / 86400);
