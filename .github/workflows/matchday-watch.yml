@@ -35,7 +35,7 @@ jobs:
     # on the default branch, so the `oracle` environment's main-only policy
     # admits it whatever triggered it. Don't drop the guard.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.head_repository.full_name == github.repository &&
        github.event.workflow_run.head_branch == 'main' &&
        github.event.workflow_run.path == '.github/workflows/oracle-bot.yml')

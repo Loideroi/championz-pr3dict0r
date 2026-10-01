@@ -145,7 +145,7 @@ export function checkRepoActivity(opts: { nowSec: number; lastCommitSec: number 
   return {
     type: 'schedule_expiry',
     headline: `⏰ SCHEDULE_EXPIRY — no commit on main for ${idleDays} days`,
-    detail: `GitHub disables this repo's scheduled workflows (the oracle, its heartbeat, these alerts) after ${SCHEDULE_INACTIVITY_LIMIT_DAYS} days without repository activity — ${left > 0 ? `about ${left} day(s) left` : 'the cutoff has passed: check Actions and re-enable oracle-bot'}. Land a real change on main (a pending Dependabot PR will do) to reset the clock.`,
+    detail: `GitHub disables this repo's scheduled workflows (the oracle, its heartbeat, these alerts) after ${SCHEDULE_INACTIVITY_LIMIT_DAYS} days without repository activity — ${left > 0 ? `about ${left} day(s) left` : 'the cutoff is reached and the disable is imminent: land a commit now, and re-enable oracle-bot if Actions already shows it disabled'}. Land a real change on main (a pending Dependabot PR will do) to reset the clock.`,
   };
 }
 

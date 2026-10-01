@@ -122,10 +122,10 @@ describe('checkRepoActivity', () => {
     expect(issue?.detail).toContain(`about ${SCHEDULE_INACTIVITY_LIMIT_DAYS - SCHEDULE_INACTIVITY_WARN_DAYS} day(s) left`);
   });
 
-  it('says the cutoff has passed from day 60 on', () => {
+  it('says the cutoff is reached from day 60 on', () => {
     expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_LIMIT_DAYS - 1))?.detail).toContain('about 1 day(s) left');
-    expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_LIMIT_DAYS))?.detail).toContain('cutoff has passed');
-    expect(checkRepoActivity(after(90))?.detail).toContain('re-enable oracle-bot');
+    expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_LIMIT_DAYS))?.detail).toContain('cutoff is reached');
+    expect(checkRepoActivity(after(90))?.detail).toContain('re-enable oracle-bot if Actions already shows it disabled');
   });
 
   it('is quiet for a commit dated in the future (clock skew)', () => {
