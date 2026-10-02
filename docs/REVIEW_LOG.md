@@ -2,6 +2,133 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-10-01 — PR #113 `chore/oracle-workflow-hardening` (oracle workflows: main-only environment secrets, manual_results injection fix, fork-proof watcher, 60-day schedule warning)
+
+**Scope.** Follow-up to a public-repo review (the repo has been public since creation; this repo's Actions minutes bill at $0, and no secrets are in the tree or its 281-commit history). The admin panel needed no change: every action is an `onlyOwner` contract call. The two workflows that hold the oracle key did need hardening.
+- `.github/workflows/oracle-bot.yml` and `matchday-watch.yml`:
+  - Both jobs run in an `oracle` environment (`deployment: false`), so a main-only deployment-branch policy can gate the secrets.
+  - Explicit `permissions: contents: read` and `persist-credentials: false`.
+  - `TELEGRAM_OPS_CHAT_ID` is read as `secrets.X || vars.X`, because step env is printed in the public run log.
+- `oracle-bot.yml`: `manual_results` goes through `env:` instead of being spliced into a single-quoted `printf`. The mainnet sentinel step passes `LAST_COMMIT_AT` (`git log -1 --format=%ct`).
+- `matchday-watch.yml`:
+  - Job `if` admits only `.github/workflows/oracle-bot.yml` on `main` of this repo, or a dispatch from `main`. `workflow_run` matches by name, so a fork-PR workflow named "oracle-bot" could otherwise start the job, which holds the secrets.
+  - Concurrency `oracle-bot` moves to job level, so a rejected run never queues in the group.
+- `relayer/src/sentinels.ts` adds `checkRepoActivity`, which raises `schedule_expiry` from day 46 without a commit on main. Warn-only: the planned API keep-alive was dropped after finding that GitHub staff disabled the keepalive-workflow action as a terms violation.
+- `relayer/scripts/sentinel.mjs` wires it in and logs the commit time, or a skip line when the value is unusable.
+- Tests: `relayer/test/sentinels.test.ts` (+4 cases) and `lib/admin/health.test.ts` (severity pin).
+- Docs: PRD.md §18 + PRD.html mirror corrected (the old text said a commit-free schedule "is fine"); `docs/REVIEW_TIERS.md` floor row updated.
+
+Commits `ab0b0de` → `ccc11f4` → `551bd80` → `3ca8b6d`; +149/−24, 9 files.
+
+**Tier.** 3 — `.github/workflows/**`, `relayer/**`, `docs/REVIEW_TIERS.md` (floor map). Declared 3 in the PR template.
+
+**Roles and models.**
+- **Author:** Claude Code interactive, `claude-opus-5-5` (Opus 5.5).
+- **Reviewer 1 (cross-vendor): not run.** OpenAI Codex CLI 0.144.1 `gpt-5.6-sol` hit the whole Codex account's usage limit. The Fallback Table step, `gpt-5.6-terra`, refused too ("try again at Oct 3rd, 2026 7:47 PM").
+  - The Model Selection Fallback Table says a Tier 3 review then waits for the reset or bought credits, never a same-vendor Reviewer 1.
+  - **Owner-directed deviation, 2026-10-01** ("use opus 5.5 untill codex is available"). Interim Reviewer 1 is a fresh-context Claude Code subagent, `claude-opus-5-5`. It had no author reasoning and no R2 findings, but it is the **same vendor and the same model as the author**, so its independence is weaker than the contract's cross-vendor rule.
+  - The Codex pass is still owed. See Gate.
+- **Reviewer 2 (fresh context):** Claude Code subagents, `claude-fable-5-1`.
+  - Pass 1 at `ab0b0de`.
+  - Pass 2 at `ccc11f4` was a *new* fresh-context instance, because pass 1's agent could not be resumed once its worktree was removed. It received pass 1's findings as its checklist.
+
+**Verdicts.**
+- R2 pass 1 (`ab0b0de`): **pass-with-minors** — 3 Minor, 3 Nit. Fixed in `ccc11f4`.
+- R2 pass 2 (`ccc11f4`): every pass-1 finding resolved or accepted; **pass-with-minors** — 3 new Nit (docs) plus the missing log entry. Fixed in `551bd80` and by this entry.
+- Interim R1 (`551bd80`): **pass-with-minors** — 2 Minor, 4 Nit. Fixed in `3ca8b6d`.
+- Interim R1 re-check (`3ca8b6d`): **pass-with-minors** — Nits 3 and 5 resolved; the dispositions of Minor 1 and Nits 4 and 6 acceptable. Minor 2 is acceptable once its verification step dispatches **oracle-bot** and expects an environment-protection error: the new dispatch guard makes a matchday-watch dispatch "skipped" before the environment is ever checked. Reworded under Gate and in PR #113.
+
+Tally: 0 Blocker / 0 Major / 5 Minor / 10 Nit (+1 process item).
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Minor | R2 | `sentinel.mjs`: a failed `git log` leaves `LAST_COMMIT_AT` empty and the check skips silently — unset and healthy look the same in the log | Fixed (`ccc11f4`): logs the commit time when valid, and `check skipped — LAST_COMMIT_AT="…"` when set but unusable. R2 pass 2: resolved |
+| Minor | R2 | `checkRepoActivity` not NaN-safe ("NaN days") | Fixed (`ccc11f4`): `Number.isFinite` guard + NaN/−Infinity test. R2 pass 2: resolved |
+| Minor | R2 | PRD stated "cron runs don't count" and "breaches GitHub's terms" as GitHub facts; the docs never define activity | Fixed (`ccc11f4`, `551bd80`): attributed — "activity" is undefined, a commit on main is the safe reading, and keepalive-workflow was "disabled by GitHub Staff … terms of service" (R2 verified live). R2 pass 2: resolved |
+| Minor | R1 | `oracle` environment doesn't exist yet; auto-creation under `deployment: false` is undocumented, and reviewers, a wait timer or a protection app on it would stall or fail every oracle tick | **Accepted as a gate condition**: the owner creates `oracle` before merge — main-only branch policy, **no** required reviewers, wait timer or custom rule. Secrets move only after one green scheduled run. Recorded in PR #113 and under Gate |
+| Minor | R1 | Branch policy under `deployment: false` is not demonstrated for this repo (the docs list only timer, reviewers and apps) | **Accepted as a gate verification step** (corrected on R1 re-check): after setup, dispatch **oracle-bot** (not matchday-watch, whose `if` now skips non-main dispatches before the environment check) from a non-main branch. The job must *fail* with an environment-protection error ("… is not allowed to deploy to oracle"), not be skipped. Before merge only this PR branch carries the `environment:` block, so the test runs from it |
+| Nit | R2 | Comments implied the environment policy protects the watcher; `workflow_run` always runs on the default branch, so the job `if` is the only defence | Fixed (`ccc11f4`): comment says so and "don't drop the guard". R2 pass 2: resolved |
+| Nit | R2 | Headline says "on main" but measures the checked-out ref | **Accepted, no change**: production ticks are `schedule` (main's tip); only a non-main dispatch differs, refused once the env policy exists; worst case is one deduped DM. R2 pass 2: acceptable |
+| Nit | R2 | `alertSeverity` gives `schedule_expiry` the default `warn` by omission | Fixed (`ccc11f4`): pinned in `health.test.ts`. R2 pass 2: resolved |
+| Nit | R2 (pass 2) | PRD.html mirror still stated "cron runs do not count" as bare fact | Fixed (`551bd80`) |
+| Nit | R2 (pass 2) | "disabled … for doing exactly that" infers GitHub's reason | Fixed (`551bd80`): "whose whole purpose was doing that, citing a terms-of-service violation" |
+| Nit | R2 (pass 2) | REVIEW_TIERS row describes the `oracle` environment in the present tense | Fixed (`551bd80`): "meant for … owner-created in repo settings" |
+| Nit | R1 | `workflow_dispatch` admitted from any ref (the `if` is the only gate until the env policy exists) | Fixed (`3ca8b6d`): dispatch must have `github.ref == 'refs/heads/main'` |
+| Nit | R1 | Move the no-network repo-activity check above the RPC reads, so an RPC outage doesn't suppress it | **Declined**: `sentinel.mjs` delivers alerts only at its end, so a top-level RPC throw aborts delivery wherever the check sits |
+| Nit | R1 | Day-60 text "the cutoff has passed" is sent by a scheduled run that is still alive | Fixed (`3ca8b6d`): "cutoff is reached and the disable is imminent … re-enable oracle-bot if Actions already shows it disabled"; test updated |
+| Nit | R1 | Pre-existing: a cancelled (superseded pending) oracle-bot still starts a watcher, which can bump a newer pending relay | **Deferred**: changes pre-existing bootstrap behaviour outside this PR's intent. Open question: whether a job that hits `timeout-minutes` also reports `conclusion: cancelled` (if so, filtering would skip the watcher after a timed-out relay). R1 re-check: deferral acceptable — GitHub documents `timeout-minutes` as the time before GitHub "automatically cancels" the job, and reports show `conclusion: cancelled` for timeouts, so a cancelled filter would skip the watcher after a timed-out relay |
+| Process | R2 (pass 2) | No `docs/REVIEW_LOG.md` entry on the branch | Fixed: this entry, same PR |
+
+**Checked.**
+- **R2 pass 1:**
+  - typecheck, lint (11 dated exceptions, none expired), `npm test` 224, `test:relayer` 180, `dup` 0.85 %.
+  - `git log -1 --format=%ct` from `relayer/` in a depth-1 checkout.
+  - NaN probe on the built module.
+  - `gh api` oracle-bot runs: `path`, `head_branch` and `head_repository` confirmed. Repo has three secrets at repo level and `TELEGRAM_OPS_CHAT_ID` as a var; environments are Preview and Production only.
+  - GitHub docs on `deployment: false`, env auto-creation, branch policies matched against `GITHUB_REF`, concurrency.
+  - keepalive-workflow repo page.
+- **R2 pass 2:**
+  - `npm ci`; typecheck, lint, test 224, `test:relayer` 181, `dup` 0.85 %, `deadcode:ci`.
+  - YAML parse of both workflows.
+  - All five `LAST_COMMIT_AT` cases simulated.
+  - Secrets referenced per workflow (oracle-bot 16, matchday-watch 4, ci/codeql 0).
+- **Interim R1:**
+  - `npm ci` (root + relayer); typecheck, lint, arch, `deadcode:ci`, test 224, `test:relayer` 181, `dup` 0.85 %; relayer typecheck + build.
+  - `checkRepoActivity` exercised at 45.99/46/59.5/60/61 days and ±Infinity.
+  - `bash -e` behaviour of a failing command substitution in an env prefix.
+  - GitHub docs: concurrency (deadlock detection across workflow/job level, which proves a shared namespace), environments, `deployment: false`, March 2026 and Nov 2025 changelogs.
+- **Author:**
+  - All gates on every commit.
+  - `sentinel.mjs` run end to end against Spicy with a clean env: `LAST_COMMIT_AT` 50 days back gives one `schedule_expiry`, "about 10 day(s) left"; unset gives 0 issues; empty gives the skip line.
+  - `checkRepoActivity` against main's real tip: null today, fires on 2026-11-08.
+  - js-yaml structure assertions on both workflows.
+  - Snyk code scan on `relayer/` at `ab0b0de`: 0 issues in the changed files (13 Low, all pre-existing).
+
+**verification-gap:**
+- No test covers the workflow mechanics: environment binding, `deployment: false`, job-level concurrency, the job `if` guard, `permissions`, `persist-credentials`, `MANUAL_RESULTS` via env, the `git log` → `LAST_COMMIT_AT` wiring. The `sentinel.mjs` glue was simulated, not tested. CI runs no actionlint or zizmor.
+- The environment's branch policy can only be shown after the owner creates it (gate step 2). The first post-merge cron tick and the first `workflow_run` hand-off are the live proof.
+- Snyk was not re-run on `ccc11f4`–`3ca8b6d`: the Snyk MCP lost its login on reconnect. Those commits add a `Number.isFinite` guard, log lines and comments.
+- "Activity = a commit on main" is a proxy for GitHub's undefined term. A wrong guess costs a daily DM, never an oracle failure.
+
+**named-set:**
+- `alertSeverity` special-cases the info and critical types; `schedule_expiry` takes the default `warn`, now pinned.
+- `LAST_COMMIT_AT` is set on the mainnet sentinel step only. The Spicy step stays silent by design, since dedupe is per chain and setting both would double the alert.
+- The `secrets||vars` fallback covers only `TELEGRAM_OPS_CHAT_ID`. `TELEGRAM_CHANNEL_ID` and `SUPABASE_URL` are public values.
+- Environment, permissions and `persist-credentials` cover both secret-holding workflows. `ci.yml` and `codeql.yml` reference no secrets or vars, so nothing is stranded.
+- The guard covers both watcher triggers. The cancelled-conclusion member stays silent (deferred row).
+
+**Missing.** Reviewers looked for and did not find: `GITHUB_TOKEN` or octokit use in `relayer/` (none, so `contents: read` is safe); git-URL dependencies (none); workflow linting in CI (none, noted above); a written env-before-merge runbook (now in PR #113 and under Gate).
+
+**Dismissed.**
+- *`deployment` is not a real key* — documented (GitHub control-deployments; March 2026 changelog). It is incompatible only with custom protection-rule apps.
+- *Workflow-level and job-level groups don't exclude each other* — groups are repo-wide by name. GitHub detects deadlocks between a top-level workflow and a job in the same group.
+- *The folded `if` breaks the expression* — newlines are whitespace to the expression lexer.
+- *The watcher never bootstraps because `path` is missing from the event* — present in real run payloads and octokit's webhook example. The last five watcher runs would all be admitted.
+- *Secrets disappear between merge and env setup* — repo-level secrets stay readable to an environment job, and an environment secret only takes precedence when one exists.
+- *Remaining `${{ }}` splicing* — `github.event.schedule`, `event_name` and `steps.span.outputs.end` are repo-defined, not attacker-set.
+- *Masking regression* — a set secret is masked; the var path is today's exposure, not a new one.
+- *Over-warning if GitHub counts non-main pushes* — errs in the safe direction.
+
+**Disputes.** None.
+
+**Risk brief (interim R1, for the owner).**
+- **What changed:** this PR moves the oracle and watcher onto a main-only `oracle` environment, gives them read-only token permissions, closes a shell injection in `manual_results`, and stops fork or non-main runs named "oracle-bot" from starting the watcher. It also adds a day-46 Telegram warning ahead of GitHub's 60-day schedule cutoff.
+- **What holds:** the two relayers still never run at the same time, and the new guard admits every real scheduled run and dispatch on main.
+- **Main risk — ordering:** create the empty `oracle` environment (branch policy only, no reviewers or custom rules) before merging, and move the secrets after a green scheduled run. Reviewers or a protection app on it would stall or fail every oracle run.
+- **Residual risk is low:** the guard and the environment setup are not covered by tests, so do one manual check that a non-main dispatch is refused.
+
+**Gate.** Owner go/no-go pending. Final head `3ca8b6d` plus this entry. Preconditions:
+1. Owner creates the `oracle` environment: deployment branches = `main` only; no required reviewers, wait timer or custom protection rule.
+2. Owner runs **oracle-bot** via workflow_dispatch from this PR branch (pre-merge it is the only branch whose workflow carries `environment: oracle`). Pass = the `relay` job fails with an environment-protection error ("Branch … is not allowed to deploy to oracle"). "Skipped" or a normal relay = fail.
+3. CI green on the final head.
+
+**Codex Reviewer 1 still owed** (account resets 2026-10-03 19:47):
+- Run on this PR's head, or on the merge sha if merged first.
+- Append to this entry within 48 h of availability.
+- A Blocker or Major from it is handled as a post-merge finding: fix forward or revert.
+
+Merge is the owner's click.
+
 ## 2026-09-22 — PR #111 `fix/standings-log-scan-chunks` (/standings 502: every Chiliz RPC now caps eth_getLogs; scan in chunks)
 
 **Scope.** Production `/standings` returned `502 — no RPC could scan entrants (tried 2): Missing or invalid parameters.` The route's season-wide `eth_getLogs` (deploy block → head, ~2.26M blocks) stopped being answerable: `rpc.chiliz.com` now caps the range at 250,000 blocks (it answered from genesis until September; viem reports its `-32000` as the generic "Missing or invalid parameters."), Ankr — production's configured RPC — at 1,000, publicnode at 50,000 (all measured 2026-09-22 with a viem probe). `lib/predictor/chains.ts` (+`scanLogs()`: 200k-block windows, four in flight via `Promise.allSettled`, halves on a node refusal — `RpcError` or raw `RpcRequestError` — down to 25k, propagates transport failures at once; +`rpcErrorDetail()`), `app/api/standings/route.ts` (both log reads through `scanLogs`; module-level `preferredRpc` memo; 502 detail carries the node's own message), `lib/predictor/chains.test.ts` (+9 tests), `.scratch/championz-predictor/issues/11-freeze-claims-trophy.md` (dated follow-up note). Three commits `aa25808` → `3c374e5` → `ad92af4`; +~230/−30 hand-written lines, 4 files. Not in scope, recorded on issue 11: `app/admin/AdminPanel.tsx` `computeRanked()` scans `Entered` from block 0 in the browser and will hit the same cap — value-moving freeze input, separate Tier 3 PR due before the Stage 1 freeze.
