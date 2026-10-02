@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   checkDeadlines,
   checkGovernance,
+  checkRepoActivity,
   checkSolvency,
   checkUnfrozenStage,
   checkUptime,
   composeSentinelAlert,
   DRAW_DAY_UTC,
+  SCHEDULE_INACTIVITY_LIMIT_DAYS,
+  SCHEDULE_INACTIVITY_WARN_DAYS,
 } from '../src/sentinels.js';
 
 const OWNER = '0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8';
@@ -102,6 +105,36 @@ describe('checkDeadlines', () => {
     expect(
       checkDeadlines({ ...base, nowSec: DRAW_DAY_UTC + 3600, matchCount: 144 }),
     ).toEqual([]);
+  });
+});
+
+describe('checkRepoActivity', () => {
+  const commit = 1_800_000_000;
+  const after = (days: number) => ({ nowSec: commit + days * 86400, lastCommitSec: commit });
+
+  it('stays quiet until the warning threshold, then names the idle days', () => {
+    expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_WARN_DAYS - 1))).toBeNull();
+    // 45.9 days still floors to 45 — quiet.
+    expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_WARN_DAYS - 0.1))).toBeNull();
+    const issue = checkRepoActivity(after(SCHEDULE_INACTIVITY_WARN_DAYS));
+    expect(issue?.type).toBe('schedule_expiry');
+    expect(issue?.headline).toContain(`${SCHEDULE_INACTIVITY_WARN_DAYS} days`);
+    expect(issue?.detail).toContain(`about ${SCHEDULE_INACTIVITY_LIMIT_DAYS - SCHEDULE_INACTIVITY_WARN_DAYS} day(s) left`);
+  });
+
+  it('says the cutoff is reached from day 60 on', () => {
+    expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_LIMIT_DAYS - 1))?.detail).toContain('about 1 day(s) left');
+    expect(checkRepoActivity(after(SCHEDULE_INACTIVITY_LIMIT_DAYS))?.detail).toContain('cutoff is reached');
+    expect(checkRepoActivity(after(90))?.detail).toContain('re-enable oracle-bot if Actions already shows it disabled');
+  });
+
+  it('is quiet for a commit dated in the future (clock skew)', () => {
+    expect(checkRepoActivity(after(-1))).toBeNull();
+  });
+
+  it('is quiet when the commit time is not a number', () => {
+    expect(checkRepoActivity({ nowSec: commit + 90 * 86400, lastCommitSec: Number.NaN })).toBeNull();
+    expect(checkRepoActivity({ nowSec: commit, lastCommitSec: Number.NEGATIVE_INFINITY })).toBeNull();
   });
 });
 
