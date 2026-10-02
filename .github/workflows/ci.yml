@@ -129,7 +129,7 @@ jobs:
           npm ci --no-audit --no-fund
           npx hardhat compile
           npx hardhat test
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install slither (pinned)
