@@ -2,6 +2,65 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-10-08 — PR #115 `chore/s49-cleanup-clause` (S49: post-merge branch cleanup clause and stacked-PR retarget rule)
+
+**Scope.** `AGENTS.md` only (+3/−2 lines, Boundaries), bringing the LLM Wiki permission ladder's Post-Merge Branch Cleanup (D54, amended D56) into force here; the ladder covers a repository once the filled-in clause of the wiki's `templates/project-agents.md` is in its instruction file on the default branch (wiki queue row S49).
+- Merges bullet: the template's stacked-PR retarget rule (retarget first, on the owner's OK; the one merge-commit exception), with `Loideroi/championz-pr3dict0r` filled in.
+- Pushes bullet: remote branch deletes leave the ask-first list (no agent deletes one, even when asked); other remote deletes stay ask-first or denied.
+- New bullet: the filled clause (local head branch, remote-tracking ref and worktrees of a merged PR; never after a squash or rebase merge; the post-merge `git ls-remote --exit-code` check; never a remote delete) and the permission-denial sentence (D57).
+- Spec: the clause text is the wiki template's at `655e18e` (lines 34–35), dual-reviewed in the wiki's own PRs #142, #150 and #156; this PR fills its placeholders, so no separate plan review was run.
+
+Commits `be02e52` → `6fabce5` (round-1 fold) → `aa8a7e4` (round-2 fold), the reviewed sha; this entry is a log-only commit on top.
+
+**Tier.** 3 — `AGENTS.md` is an agent instruction file (`docs/REVIEW_TIERS.md` floor). The change lets agents delete local branches without asking, so it is a permission change and never eligible for an owner waiver. Confirmed by both reviewers.
+
+**Roles and models.**
+- **Author:** Claude Code interactive, `claude-opus-5-5`.
+- **Reviewer 1 (cross-vendor):** OpenAI Codex CLI 0.144.1, `gpt-5.6-sol`, reasoning effort high, read-only sandbox. Its sandbox had no network, so it checked the GitHub facts against the author's recorded reads and the repository.
+- **Reviewer 2 (fresh context, no author reasoning, no R1 findings on its first pass):** Claude Code subagent, `claude-opus-5-5`, with live read-only GitHub reads. Writes the risk brief.
+
+**Verdicts.**
+- Round 1 (`be02e52`): R1 **pass-with-minors** (1 Minor); R2 **fail** (1 Major, 2 Minor, 1 Nit). Folded in `6fabce5`.
+- Round 2 (`6fabce5`): R1 **pass**; R2 **pass-with-minors** (2 new Nit). Folded in `aa8a7e4` and in this entry's heading.
+- Round 3 (`aa8a7e4`): R1 **pass**; R2 **pass**.
+
+Verdict: R1 pass, R2 pass at `aa8a7e4` (final).
+
+Tally: 0 Blocker / 1 Major / 2 Minor / 3 Nit (unique findings; R1-1 is R2-1, raised by R1 as a Minor).
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Major | R2 (R1 as Minor) | "yes since 2026-07-03" and "on from the start" over-claimed: prompt head deletes since PR #1 fit both the setting and a `--delete-branch` merge, and the wiki's probe record calls the first deletion events "any cause, so not the setting's start"; the phrase also explained away the missing owner pre-check | Fixed (`6fabce5`): "yes, switch date unknown", with the evidence and both causes named; no pre-check recorded, so the owner confirms the S49 re-check below with the GO. R1 and R2 re-checked: resolved |
+| Minor | R2 | Dropping "deletes" left remote tag deletes unmentioned, though the settings still ask on them | Fixed (`6fabce5`): "force-pushes and other remote deletes are ask-first or denied". Resolved |
+| Minor | R2 | "the S49 survey checked these" pointed at no readable record | Fixed (`6fabce5`): points at this entry, whose S49 re-check paragraph both reviewers checked as drafted. Resolved |
+| Nit | R2 | "three minutes after the repository was created" (it was 2.5) | Fixed (`6fabce5`): phrase removed |
+| Nit | R2 (round 2) | "within 3 s by the merging login" lost "of its merge" | Fixed (`aa8a7e4`). Resolved |
+| Nit | R2 (round 2) | "the S49 entry" must be findable: no heading names an S-row | Fixed: this heading names S49. Resolved on that condition |
+
+**S49 re-check (2026-10-08; read-only GitHub reads and git, by the author; checked by both reviewers: reviewer 2 live against GitHub, reviewer 1 against this record and the repository, its sandbox having no network).** These are the facts the new `AGENTS.md` cleanup clause fills in. The owner confirms them with this PR's GO, because no pre-check was recorded when the setting went on.
+- **Setting.** `delete_branch_on_merge` is true (observed 2026-10-08). The switch date is unknown: all 80 merged PRs (#1, 2026-07-03, to #113, 2026-10-02) had their head deleted 0–3 s after the merge by the merging login (`HeadRefDeletedEvent`), which the setting and a `gh pr merge --delete-branch` merge both produce. No merged PR's head branch is still on `origin`.
+- **Branches that deploy, release or publish automation tracks: `main` only.** All 61 Vercel Production deployments the API lists are commits on `main`'s first-parent history; Preview deployments are per-branch builds; the `oracle` environment's deployment-branch policy admits `main` only. No `vercel.json`, no release workflow; only `main` is protected; no rulesets.
+- **Side effects of deleting a branch: none.** Workflows at `6b47a1f`: `ci` (pull_request; push to `main`), `codeql` (push and pull_request to `main`; weekly schedule), `matchday-watch` (workflow_run of oracle-bot; dispatch), `oracle-bot` (schedule; dispatch): no `delete` trigger and no `push` trigger that matches another branch. No repository webhooks. `supabase/` holds migrations only (no per-branch database). Dependabot targets the default branch.
+- **Stacked PRs.** 25 open, all based on `main`.
+- **Merge methods.** Merge, squash and rebase are allowed; 78 of the 80 merges were squash or rebase (one-parent merge commits), so the ladder's ancestor check keeps most merged heads locally.
+
+**Checked:**
+- **R1:** the full diff in focused paragraph passes (stacked-PR rule, push and delete permissions, cleanup authority) every round; the template lines 34–35, the ladder's Post-Merge Branch Cleanup, Remote branch and Permission Denials sections, and the Telescope precedent in ≤150-line passes; `AGENTS.md`, the `CLAUDE.md` import, `CONTRIBUTING.md`, `docs/REVIEW_TIERS.md`, `.claude/settings.json`, Dependabot, `supabase/` and each workflow; the recorded reads (80 deletion events, 61 Production deployment shas against `main`'s first-parent history); `node scripts/check-agents-md.mjs AGENTS.md` and `git diff --check`; provenance and consistency sweeps.
+- **R2:** five focused passes per round over the 3-line diff (each changed line against the template, the ladder and `.claude/settings.json`; every asserted fact live against GitHub; consistency with the other instruction files); word diff against the template at wiki `655e18e`; live reads: repository settings, environments and the `oracle` branch policy, all Production deployments (one page), webhooks, rulesets, protected branches, open-PR bases, `HeadRefDeletedEvent` on all 80 merged PRs, live heads; the drafted re-check paragraph fact by fact and its fit with `scripts/lint-review-log.mjs`; `check-agents-md`; provenance sweep (every added claim observed and dated, stated as unknown, or pointing at this record) and consistency sweep.
+- **Author:** `check-agents-md`; word diff against the template; every fill re-read live; this entry linted (`node scripts/lint-review-log.mjs docs/REVIEW_LOG.md`).
+
+**verification-gap:** no test or CI check would fail if this text were wrong: `check-agents-md` checks structure, not facts or fidelity to the template and the ladder. GitHub-side facts (the setting, deployments, integrations, open-PR bases) can drift without CI noticing; the owner's GO confirms them as of this PR.
+
+**named-set:** merge methods: all three are addressed (the retarget exception and the local cleanup apply only after a merge commit; squash and rebase heads are kept locally). Remote deletes: a branch delete is never an agent's; tag and other remote deletes stay ask-first or denied. Deleters: the setting, `--delete-branch`, an old merge gate (none is vendored here), a workflow, an app, a hand delete. Environments: Production, Preview and `oracle` are all addressed.
+
+**Missing:** a recorded switch date for the setting (GitHub keeps none) and any owner pre-check from when it went on; live GitHub verification by R1 (no network in its sandbox; R2 verified live). Noted for the owner, out of this PR's scope: line 25's "stacked judges/gate PRs; merge the three in order" is stale (the gate PRs merged in September and no PR is stacked now); and R2 observed GitHub retargeting #86 and #89 on 2026-09-09, 2–3 s after their bases (#85, #88) were squash- or rebase-merged, local evidence for a retarget case the wiki ladder still marks unverified.
+
+**Dismissed:** none. **Disputes:** none.
+
+**Risk brief (R2's round-1 and round-3 briefs, joined, for the owner).** This change adds three things to the Boundaries section: the wiki's post-merge clean-up rule (agents may delete merged local branches and worktrees, and never delete a remote branch), the rule that a permission denial is final, and the rule to retarget a stacked PR before its base merges. The wording follows the wiki template faithfully, and the facts that matter today hold: the auto-delete setting is on, only `main` deploys, and deleting a branch has no side effects. In practice the local clean-up will rarely run, because 78 of 80 past merges here were squash or rebase merges, and the rule then keeps the local branches. The clause now states only what was observed, says the switch date and pre-check are unrecorded, and asks you to confirm the re-check with this PR's GO. Residual risk is low and procedural: nothing mechanical checks this text, and remote deletes rely on behavior plus the settings' ask prompts.
+
+**Gate.** Owner go/no-go pending, on reviewed sha `aa8a7e4` plus this log-only entry; CI green on the final head. Merge is the owner's click. After the merge: check with `git ls-remote --exit-code` that GitHub removed `chore/s49-cleanup-clause`, then the local clean-up under the new clause.
+
 ## 2026-10-01 — PR #113 `chore/oracle-workflow-hardening` (oracle workflows: main-only environment secrets, manual_results injection fix, fork-proof watcher, 60-day schedule warning)
 
 **Scope.** Follow-up to a public-repo review (the repo has been public since creation; this repo's Actions minutes bill at $0, and no secrets are in the tree or its 281-commit history). The admin panel needed no change: every action is an `onlyOwner` contract call. The two workflows that hold the oracle key did need hardening.
