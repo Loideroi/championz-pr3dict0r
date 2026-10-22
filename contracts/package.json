@@ -10,10 +10,10 @@
     "test:gate": "node --test scripts/check-slither.test.mjs"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "@openzeppelin/hardhat-upgrades": "^3.2.0",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@openzeppelin/hardhat-upgrades": "^4.1.0",
     "dotenv": "^16.4.5",
-    "hardhat": "^2.26.0",
+    "hardhat": "^3.17.0",
     "typescript": "^5"
   },
   "dependencies": {
