@@ -29,36 +29,43 @@ Review depth per tier, reviewer independence, PR size caps, and merge gates:
 see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md` — **inside the
 PR it reviews**, not in a trailing docs PR.
 
-## Review Gate (`.github/workflows/review-gate.yml`, added 2026-09-11)
+## Review Gate (`.github/workflows/review-gate.yml`, designed 2026-09-11, on `main` since PR #104, 2026-11-17)
 
-A required status check on every PR (owner click to enroll it in branch protection,
-see Named Follow-Ups). `scripts/review-gate.mjs` fails a PR whose body has no
+A status check on every PR; it blocks only once the owner enrolls it as a required
+check in branch protection (see Named Follow-Ups). It runs its own `--self-test` first. `scripts/review-gate.mjs` fails a PR whose body has no
 `Declared tier: N` line, whose counted changed lines (excl. the three lockfiles and
 `linguist-generated` paths as declared in the **base** tree's `.gitattributes` — a PR
 cannot mark its own files) exceed 500 without the `size-waiver` label, or whose
 `docs/REVIEW_LOG.md` gains no new, complete entry about the PR (dated on/after the
 judge cutoff, non-exempt heading shape, fields checked with the judge's own rules,
-labeled tier — `**Tier.** N` / `raised to Tier N` — equal to the declared tier, older entries append-only; a text-typed file git reports as binary fails the gate outright).
+a labeled tier — `**Tier.** N` / `raised to Tier N`; an entry with none fails — equal to the declared tier (a tier inside an HTML comment in the body does not count), older entries append-only; a text-typed file git reports as binary fails the gate outright).
 **Recovery from a wrong heading** (append-only has no in-band edit): the owner authors a
 correction PR with an `EXCEPTION RECORD` entry naming the wrong and right headings; the
 gate fails that PR by design. Because `main` has enforce-admins, there is no admin bypass:
 the owner temporarily un-requires the `review-gate` check, merges, re-requires it, and
 records that toggle inside the same `EXCEPTION RECORD` entry (the next escape audit reads
-it). Never rewrite the old entry in a feature PR.
-`scripts/lint-review-log.mjs` then checks the entry's fields, and
-`scripts/check-agents-md.mjs` keeps `AGENTS.md` within the admission test. The
+it). Never rewrite the old entry in a feature PR. **Owner emergency fix** (no time for the
+tier's reviewers): the same toggle — un-require, merge, re-require — recorded in an
+`EXCEPTION RECORD` entry in the next PR, and the skipped reviews run afterwards as a
+post-merge review in that entry. **Coverage boundary:** `pull_request` runs the PR's own
+copy of the workflow and of `scripts/review-gate.mjs`, so a PR can weaken the gate that
+judges it; only the Tier 3 floor on `.github/**` and `scripts/**` catches that. The two
+process judges (`scripts/lint-review-log.mjs` for the entry's fields,
+`scripts/check-agents-md.mjs` for `AGENTS.md`) run in `ci.yml`'s `app` job. The
 `size-waiver` label is only valid with the human waiver recorded in the log entry as a
 `Size waiver:` field naming the owner, an affirmative decision word (approved / waived /
-granted / go, with no rejected / denied / pending wording), a real date, and a rationale
+granted / go, with no rejected / denied / pending, contracted ("hasn't"), deferred ("will decide")
+or conditional ("only after", "unless", "until") wording), a real date, and a rationale
 (the gate checks the shape, not the truth of it). Entry headings follow
 `## YYYY-MM-DD — PR #N <title>` / `PRs #N, #M and #K <title>`: the subject numbers are the
 run right after `PR`, so a reference later in the title is not a subject; whether the reviews actually ran is beyond any gate — the
 monthly escape audit checks that.
-Dependabot PRs hit this gate too and cannot satisfy it in place (Dependabot force-pushes
-its branch on rebase, dropping added commits, and `dependabot/*` is not an allowed push
-prefix): an agent reviews the bump at Tier 3 (this map), then opens a replacement PR with
-the same lockfile change plus the tier line and log entry, and the Dependabot PR is closed
-— which is the intended cost.
+Dependabot PRs hit this gate too. `dependabot/*` is not an allowed agent push prefix, so
+the working path is a replacement PR: an agent reviews the bump at Tier 3 (this map), opens
+a PR with the same lockfile change (cherry-picked) plus the tier line and log entry, and
+closes the Dependabot PR as superseded (as PR #131 did for twelve of them). The owner can
+instead push the log entry onto the Dependabot branch and edit its body (Dependabot stops
+rebasing a branch someone else has pushed to). Either way, that is the intended cost.
 
 ## Gate Baselines (ratchet — may shrink, never grow)
 

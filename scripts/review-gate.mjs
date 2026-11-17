@@ -64,7 +64,9 @@ const EXEMPT_HEADING_RE = /\b(ESCAPE AUDIT|OWNER WAIVER|EXCEPTION RECORD)\b/i;
 const HEADING_DATE_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
 
 export function declaredTier(body) {
-  const m = (body ?? "").match(/Declared tier\**\s*:\s*\**\s*([123])(?!\d)/i);
+  // A tier hidden in an HTML comment (invisible in the rendered body) never counts.
+  const visible = (body ?? "").replace(/<!--[\s\S]*?(-->|$)/g, "");
+  const m = visible.match(/Declared tier\**\s*:\s*\**\s*([123])(?!\d)/i);
   return m ? Number(m[1]) : null;
 }
 
@@ -84,17 +86,36 @@ const TEXT_EXT_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|md|mdx|sql|sol|yml|yaml|css|s
 // Real binary types that may legitimately be skipped.
 const BINARY_EXT_RE = /\.(png|jpe?g|gif|webp|avif|ico|icns|bmp|woff2?|ttf|otf|eot|pdf|wasm|zip|gz|tgz|mp[34]|webm|ogg|wav|mov)$/i;
 
-// numstat: "<added>\t<deleted>\t<path>" per line; binary files show "-\t-".
+// `git diff --numstat -z -M`: "<a>\t<d>\t<path>\0" per file, or for a rename
+// "<a>\t<d>\t\0<src>\0<dst>\0". Returns [{ a, d, path }] with the destination
+// path verbatim (no " => " parsing, so a file named "x => y.json" cannot pose
+// as a generated path).
+export function parseNumstatZ(out) {
+  const fields = out.split("\0");
+  const recs = [];
+  for (let i = 0; i < fields.length; i += 1) {
+    const f = fields[i];
+    if (!f) continue;
+    const [a, d, ...rest] = f.split("\t");
+    const p = rest.join("\t");
+    if (p) recs.push({ a, d, path: p });
+    else { recs.push({ a, d, path: fields[i + 2] }); i += 2; }
+  }
+  return recs;
+}
+
+// numstat: "<added>\t<deleted>\t<path>" per line (text form, rename paths via
+// destPath), or the [{ a, d, path }] records of parseNumstatZ; binary files show "-\t-".
 // Returns { counted, skipped, refused }: refused names text-typed paths git
 // called binary — the caller fails the gate on any of them.
 export function countChangedLines(numstat, isGenerated) {
   let counted = 0;
   const skipped = [];
   const refused = [];
-  for (const line of numstat.split("\n")) {
-    if (!line.trim()) continue;
-    const [a, d, ...rest] = line.split("\t");
-    const path = destPath(rest.join("\t"));
+  const recs = Array.isArray(numstat)
+    ? numstat
+    : numstat.split("\n").filter((l) => l.trim()).map((l) => { const [a, d, ...rest] = l.split("\t"); return { a, d, path: destPath(rest.join("\t")) }; });
+  for (const { a, d, path } of recs) {
     if (a === "-" || d === "-") {
       if (TEXT_EXT_RE.test(path) || !BINARY_EXT_RE.test(path)) {
         refused.push(path);
@@ -188,7 +209,7 @@ export function logEntryIsNew(baseLog, headLog, prNumber, cutoff = LOG_CUTOFF) {
 // "Size waiver: 2026-09-12", "Size waiver: none", and "owner rejected ..."
 // are not waivers. The gate checks the record's shape, not its truth.
 const WAIVER_YES = /\b(approved|approves|waived|waives|granted|grants|go)\b/i;
-const WAIVER_NO = /\b(not|no|never|un)[\s-]*(approved|waived|granted|authori[sz]ed)\b|\b(rejected|rejects|denied|denies|declined|declines|pending|refused|refuses|withheld|awaiting|tbd|todo)\b/i;
+const WAIVER_NO = /\b(not|no|never|un)[\s-]*(approved|waived|granted|authori[sz]ed)\b|\b(rejected|rejects|denied|denies|declined|declines|pending|refused|refuses|withheld|awaiting|tbd|todo)\b|n['’]t\b|\b(will|to)\s+decide\b|\b(only\s+after|unless|until|provided\s+that)\b/i;
 export function hasSizeWaiver(entry) {
   if (!entry) return false;
   const m = entry.body.match(/(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:]\**\s*([^\n]*)/i);
@@ -243,6 +264,12 @@ function runSelfTest() {
   check("tier 30 is not a tier", declaredTier("Declared tier: 30"), null);
   check("empty body", declaredTier(""), null);
   check("missing body", declaredTier(undefined), null);
+  check("tier hidden in an HTML comment does not count", declaredTier("<!-- Declared tier: 1 -->\n- Declared tier: 3"), 3);
+  check("only a hidden tier is no tier", declaredTier("<!-- Declared tier: 1 -->"), null);
+  check("unterminated comment hides the rest", declaredTier("<!-- note\nDeclared tier: 1"), null);
+  check("unlabeled logged tier fails", tierMismatch(3, null) !== null, true);
+  check("equal labeled tier passes", tierMismatch(3, 3), null);
+  check("mismatched labeled tier fails", tierMismatch(1, 3) !== null, true);
   // 2. size counting
   const gen = new Set(["public/insights/en.json"]);
   const isGen = (p) => gen.has(p);
@@ -273,6 +300,12 @@ function runSelfTest() {
   check("bare rename resolves to destination", destPath("old.md => new.md"), "new.md");
   check("plain path untouched", destPath("app/page.tsx"), "app/page.tsx");
   check("empty numstat counts zero", countChangedLines("", isGen).counted, 0);
+  // -z numstat: a path literally containing " => " is taken verbatim, never rewritten
+  const zRecs = parseNumstatZ("900\t0\tx => public/insights/a.json\0" + "3\t1\t\0lib/old.ts\0lib/new.ts\0" + "-\t-\tpublic/font.woff2\0");
+  check("-z keeps a literal ' => ' path verbatim", zRecs[0].path, "x => public/insights/a.json");
+  check("-z rename pair resolves to the destination", zRecs[1].path, "lib/new.ts");
+  check("-z binary record parsed", zRecs[2], { a: "-", d: "-", path: "public/font.woff2" });
+  check("-z literal ' => ' path is counted, not hidden as generated", countChangedLines(zRecs, (p) => p.startsWith("public/insights/")).counted, 904);
   // 3. log entry
   const FULL = "\n\n**Tier.** 2. Author `claude-opus-5`; R1 `gpt-5.6-sol`; R2 `claude-opus-5`.\n**Verdicts.** R1 pass; R2 pass. Tally: 0 Blocker / 0 Major / 0 Minor / 0 Nit.\n**Checked.** ran the suite, read every file, reuse search done.\n**verification-gap:** every change has a failing-capable test.\n**named-set:** the status enum is fully handled.\n**Dismissed.** none.\n**Missing.** looked for a rollback path; none needed.\n";
   const baseLog = "# Review Log\n\n## 2026-09-10 — PR #91 (other)\n\nbody\n";
@@ -333,6 +366,9 @@ function runSelfTest() {
   check("owner waived passes", w("**Size waiver.** owner waived the cap 2026-09-12 — split judged riskier than one review"), true);
   check("approved but awaiting second reviewer fails (pending word)", w("Size waiver: owner approved 2026-09-12, awaiting R2; generated fixtures dominate"), false);
   check("bold-label form passes", w("- **Size waiver:** owner Mark approved, 2026-09-12: 640 lines, split judged riskier than one review"), true);
+  check("contraction 'hasn't approved' fails", w("Size waiver: owner hasn't approved 2026-11-17 — generated fixtures dominate the diff"), false);
+  check("deferred 'will decide; go only after split' fails", w("Size waiver: owner will decide; go ahead only after a split 2026-11-17 — fixtures"), false);
+  check("conditional 'approved unless' fails", w("Size waiver: owner approved 2026-11-17 unless R2 objects — judge and self-test are one concern"), false);
   check("waiver in another entry does not carry over", hasSizeWaiver(prEntry(log + "\n## 2026-09-12 — PR #13\n\nbody\n", 13)), false);
   if (failures.length) {
     for (const f of failures) console.error(`SELF-TEST FAIL: ${f}`);
@@ -342,7 +378,7 @@ function runSelfTest() {
   console.log(`review-gate self-test passed (${cases} cases, judge proven red-capable).`);
 }
 
-function main() {
+function readEnv() {
   const { PR_NUMBER, PR_BODY, PR_LABELS, BASE_SHA, HEAD_SHA } = process.env;
   const prNumber = Number(PR_NUMBER);
   if (!Number.isInteger(prNumber) || prNumber <= 0 || !BASE_SHA || !HEAD_SHA) {
@@ -350,63 +386,80 @@ function main() {
     process.exit(2);
   }
   const labels = (PR_LABELS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const failures = [];
+  return { prNumber, body: PR_BODY, labels, baseSha: BASE_SHA, headSha: HEAD_SHA };
+}
 
-  // 1. tier
-  const tier = declaredTier(PR_BODY);
-  if (tier === null) {
-    failures.push('tier: PR body has no "Declared tier: N" line (fill the PR template; never `gh pr create --fill`)');
-  } else {
-    console.log(`review-gate: tier declared ${tier}`);
-  }
+// 1. tier
+function checkTier(body, failures) {
+  const tier = declaredTier(body);
+  if (tier === null) failures.push('tier: PR body has no "Declared tier: N" line (fill the PR template; never `gh pr create --fill`)');
+  else console.log(`review-gate: tier declared ${tier}`);
+  return tier;
+}
 
-  // 2. size
-  const base = git(["merge-base", BASE_SHA, HEAD_SHA]).trim();
-  const numstat = git(["diff", "--numstat", "-M", base, HEAD_SHA]);
-  const paths = numstat.split("\n").filter(Boolean).map((l) => destPath(l.split("\t").slice(2).join("\t")));
-  const generated = generatedSet(paths, base);
-  const { counted, skipped, refused } = countChangedLines(numstat, (p) => generated.has(p));
+// 2. size: counted lines, with text-typed "binary" files refused unless deleted
+function measureSize(base, headSha, failures) {
+  const recs = parseNumstatZ(git(["diff", "--numstat", "-z", "-M", base, headSha]));
+  const generated = generatedSet(recs.map((x) => x.path), base);
+  const { counted, skipped, refused } = countChangedLines(recs, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
   // A deleted git-binary file cannot hide anything (it has no lines in the head tree).
-  const deleted = new Set(git(["diff", "--name-only", "--diff-filter=D", base, HEAD_SHA]).split("\n").filter(Boolean));
+  const deleted = new Set(git(["diff", "--name-only", "--diff-filter=D", base, headSha]).split("\n").filter(Boolean));
   for (const p of refused) {
     if (deleted.has(p)) console.log(`review-gate: not counted — ${p} (binary, deleted)`);
     else failures.push(`size: ${p} is reported binary by git (a NUL byte in a text-typed file hides its lines from this cap and from GitHub's diff) — remove the byte or the file`);
   }
   console.log(`review-gate: ${counted} changed lines counted (cap ${LINE_CAP})`);
-  // 3. same-PR log entry: new in this PR, log append-only
-  const showLog = (sha) => {
-    const r = spawnSync("git", ["show", `${sha}:${LOG_PATH}`], { encoding: "utf8" });
-    if (r.status === 0) return r.stdout;
-    if (/does not exist in|exists on disk, but not in/.test(r.stderr)) return ""; // absent file = empty log
-    console.error(`review-gate: git show ${sha}:${LOG_PATH} failed: ${r.stderr.trim()} (shallow fetch? the workflow needs fetch-depth: 0)`);
-    process.exit(2);
-  };
-  const logCheck = logEntryIsNew(showLog(base), showLog(HEAD_SHA), prNumber);
-  const entry = logCheck.ok ? logCheck.entry : null;
+  return counted;
+}
+
+function showLog(sha) {
+  const r = spawnSync("git", ["show", `${sha}:${LOG_PATH}`], { encoding: "utf8" });
+  if (r.status === 0) return r.stdout;
+  if (/does not exist in|exists on disk, but not in/.test(r.stderr)) return ""; // absent file = empty log
+  console.error(`review-gate: git show ${sha}:${LOG_PATH} failed: ${r.stderr.trim()} (shallow fetch? the workflow needs fetch-depth: 0)`);
+  process.exit(2);
+}
+
+// The logged tier must be present (labeled) and equal the declared one.
+export function tierMismatch(tier, logged) {
+  if (logged === null) return 'the review-log entry has no labeled tier ("**Tier.** N") — label it so it can be compared with the declared tier';
+  if (tier !== null && logged !== tier) return `PR body declares Tier ${tier} but the review-log entry's highest tier is ${logged} — the floor/reviewer raise wins; update the "Declared tier" line to ${logged}`;
+  return null;
+}
+
+// 3. same-PR log entry: new in this PR, log append-only, tier labeled and equal
+function checkLog(base, headSha, prNumber, tier, failures) {
+  const logCheck = logEntryIsNew(showLog(base), showLog(headSha), prNumber);
   if (!logCheck.ok) {
     failures.push(`log: ${logCheck.reason} (append this PR's own review-log entry to ${LOG_PATH} before asking for the merge)`);
-  } else {
-    console.log(`review-gate: ${LOG_PATH} entry "${entry.heading.slice(0, 60)}" added for #${prNumber}`);
-    const logged = entryTier(entry);
-    if (tier !== null && logged !== null && logged !== tier) {
-      failures.push(`tier: PR body declares Tier ${tier} but the review-log entry's highest tier is ${logged} — the floor/reviewer raise wins; update the "Declared tier" line to ${logged}`);
-    }
+    return null;
   }
+  console.log(`review-gate: ${LOG_PATH} entry "${logCheck.entry.heading.slice(0, 60)}" added for #${prNumber}`);
+  const mismatch = tierMismatch(tier, entryTier(logCheck.entry));
+  if (mismatch) failures.push(`tier: ${mismatch}`);
+  return logCheck.entry;
+}
 
-  // 4. size cap, with the waiver bound to this PR's own entry
-  if (counted > LINE_CAP) {
-    if (!labels.includes(WAIVER_LABEL)) {
-      failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap (excl. lockfiles/generated); split the PR, or label ${WAIVER_LABEL} AND record the human waiver as a dated "Size waiver:" field in this PR's log entry`);
-    } else if (!hasSizeWaiver(entry)) {
-      failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap and the ${WAIVER_LABEL} label has no dated "Size waiver:" field in this PR's ${LOG_PATH} entry — the label alone is not a waiver`);
-    } else {
-      console.log(`review-gate: over the cap; ${WAIVER_LABEL} label backed by the dated Size waiver field in the #${prNumber} entry`);
-    }
-  } else if (tier === 3 && counted > TIER3_AIM) {
-    console.log(`review-gate: WARN Tier 3 aims for <=${TIER3_AIM} hand-written lines (${counted} counted)`);
+// 4. size cap, with the waiver bound to this PR's own entry
+function checkCap(counted, labels, entry, tier, prNumber, failures) {
+  if (counted <= LINE_CAP) {
+    if (tier === 3 && counted > TIER3_AIM) console.log(`review-gate: WARN Tier 3 aims for <=${TIER3_AIM} hand-written lines (${counted} counted)`);
+    return;
   }
+  if (!labels.includes(WAIVER_LABEL)) failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap (excl. lockfiles/generated); split the PR, or label ${WAIVER_LABEL} AND record the human waiver as a dated "Size waiver:" field in this PR's log entry`);
+  else if (!hasSizeWaiver(entry)) failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap and the ${WAIVER_LABEL} label has no dated "Size waiver:" field in this PR's ${LOG_PATH} entry — the label alone is not a waiver`);
+  else console.log(`review-gate: over the cap; ${WAIVER_LABEL} label backed by the dated Size waiver field in the #${prNumber} entry`);
+}
 
+function main() {
+  const env = readEnv();
+  const failures = [];
+  const tier = checkTier(env.body, failures);
+  const base = git(["merge-base", env.baseSha, env.headSha]).trim();
+  const counted = measureSize(base, env.headSha, failures);
+  const entry = checkLog(base, env.headSha, env.prNumber, tier, failures);
+  checkCap(counted, env.labels, entry, tier, env.prNumber, failures);
   if (failures.length) {
     for (const f of failures) console.error(`review-gate: FAIL ${f}`);
     process.exit(1);
