@@ -24,7 +24,7 @@
     "lodash": "^4.18.0",
     "adm-zip": "^0.6.1",
     "undici": "^6.29.1",
-    "serialize-javascript": "^7.0.5",
+    "serialize-javascript": "^7.1.3",
     "tmp": "^0.2.6",
     "@ethersproject/providers": {
       "ws": "^8.21.0"
