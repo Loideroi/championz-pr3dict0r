@@ -12,15 +12,18 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // separate workspaces with their own toolchains
+    // contracts/ is its own toolchain (Hardhat + Solidity). relayer/ is linted
+    // from here since 2026-09-12 (same budgets, same exception policy) — its
+    // Node ESM TypeScript needs no relayer node_modules for these rules.
     "contracts/**",
-    "relayer/**",
+    // relayer build output (gitignored; `npm --prefix relayer run build`)
+    "relayer/dist/**",
   ]),
   {
     // Complexity budgets (architecture fitness functions). Wired warn-only
     // 2026-08-27; BLOCKING since 2026-09-11 (guardrail-complete decision):
     // `npm run lint` runs with --max-warnings 0, so any finding fails CI.
-    // The five pre-existing over-budget functions carry a one-line
+    // The ten pre-existing over-budget functions (five app, five relayer) carry a one-line
     // `eslint-disable-next-line complexity -- ... expires YYYY-MM-DD` exception
     // each, listed in docs/REVIEW_TIERS.md; scripts/check-lint-exceptions.mjs
     // fails the build when an exception lacks an expiry or is past it, and
@@ -36,6 +39,28 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["**/*.test.*", "**/__tests__/**"],
+    rules: {
+      "max-lines": "off",
+    },
+  },
+  {
+    // The relayer is Node code with no React: the inherited React-hooks rules
+    // key on `use*` naming, not JSX, so a future `useCache()` helper would fail
+    // CI with a React message (R2 finding, PR #100). Off for this tree only;
+    // every other inherited rule stays on.
+    files: ["relayer/**"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+      "react-hooks/exhaustive-deps": "off",
+    },
+  },
+  {
+    // relayer/vendor/uefa-api-types.ts is a vendored copy of a third-party
+    // type-definition file (uefa-api v1.0.2, PRD §7.1) kept as our reference
+    // for the UEFA API shapes; it is never refactored, so the file-length
+    // budget does not apply to THIS FILE ONLY. Every other rule (and the
+    // inline-config ban) does.
+    files: ["relayer/vendor/uefa-api-types.ts"],
     rules: {
       "max-lines": "off",
     },

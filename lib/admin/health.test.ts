@@ -163,6 +163,7 @@ describe("alerts", () => {
     expect(alertSeverity("governance_drift")).toBe("critical");
     expect(alertSeverity("site_down_homepage")).toBe("critical");
     expect(alertSeverity("low_balance")).toBe("warn");
+    expect(alertSeverity("schedule_expiry")).toBe("warn");
     expect(alertSeverity("t75_reminder")).toBe("info");
   });
 

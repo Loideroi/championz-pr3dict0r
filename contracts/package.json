@@ -5,7 +5,9 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy:spicy": "hardhat run scripts/deploy.ts --network spicy"
+    "deploy:spicy": "hardhat run scripts/deploy.ts --network spicy",
+    "slither": "node scripts/check-slither.mjs --run",
+    "test:gate": "node --test scripts/check-slither.test.mjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
