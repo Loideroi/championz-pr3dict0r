@@ -23,20 +23,42 @@ on:
     types: [completed]
   workflow_dispatch:
 
-# Deliberately shares oracle-bot's concurrency group: one oracle key, one
-# nonce sequence, so the two must never relay at the same time. A watcher
-# holding the group blocks scheduled oracle-bot runs, which is the correct
-# trade — the watcher is already running the same relay, far more often.
-concurrency:
-  group: oracle-bot
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
   watch:
+    # `workflow_run` matches on the workflow NAME, so any run called
+    # "oracle-bot" would start this job with the oracle key — including one
+    # defined in a fork's pull request. Only the real file on main counts.
+    # This `if` is the ONLY defence here: a workflow_run run always executes
+    # on the default branch, so the `oracle` environment's main-only policy
+    # admits it whatever triggered it. Don't drop the guard.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.path == '.github/workflows/oracle-bot.yml')
+    # Deliberately shares oracle-bot's concurrency group: one oracle key, one
+    # nonce sequence, so the two must never relay at the same time. A watcher
+    # holding the group blocks scheduled oracle-bot runs, which is the correct
+    # trade — the watcher is already running the same relay, far more often.
+    # Job-level (groups are shared across workflow and job level) so a run the
+    # `if` rejects never queues in the group and bumps a pending relay.
+    concurrency:
+      group: oracle-bot
+      cancel-in-progress: false
+    # Same `oracle` environment as oracle-bot.yml (main-only secrets); see
+    # there for TELEGRAM_OPS_CHAT_ID's switchover fallback.
+    environment:
+      name: oracle
+      deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 340 # under the 6h job ceiling, with room for the tail
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -70,7 +92,7 @@ jobs:
           CHAIN_ID: "88888"
           ORACLE_MIN_CHZ: "20"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID || vars.TELEGRAM_OPS_CHAT_ID }}
           TELEGRAM_CHANNEL_ID: ${{ vars.TELEGRAM_CHANNEL_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

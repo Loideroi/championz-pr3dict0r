@@ -492,7 +492,7 @@ the UI copy to defuse fee anxiety.
   present / entry recorded) with a ~120s window — never await a tx receipt that may
   arrive via WalletConnect relay (predecessor `usePredictions.ts` pattern).
 - Never overwrite `window.ethereum`; pick from `window.ethereum.providers`.
-- Stack: wagmi v2 + viem v2 + **Reown AppKit**, with Socios.com Wallet surfaced via
+- Stack: wagmi v3 + viem v2 + **Reown AppKit**, with Socios.com Wallet surfaced via
   `explorerRecommendedWalletIds`. Test on Spicy (88882) before mainnet (88888).
 
 ## 12. Telegram
@@ -684,8 +684,12 @@ Copied from the redesign repo's proven setup, adapted:
   (`mark.verdegaal@gmail.com`). Public repo preferred (free unlimited Actions minutes
   for the relayer); contract + relayer live in-repo (`contracts/`, `relayer/`).
   ⚠️ Note: GitHub Actions scheduled workflows auto-disable after 60 days without repo
-  activity — the relayer's daily heartbeat commit-free schedule is fine during the
-  season, but set a calendar reminder for the winter break.
+  activity. GitHub's docs don't define "activity"; the relayer's own cron runs
+  can't be what keeps it alive (the rule would never fire), so a commit on main is
+  the safe reading. The mainnet sentinel warns the ops chat from day 46 without a
+  commit on main (`schedule_expiry`); the fix is a real change landing on main.
+  Don't automate keep-alives: GitHub staff disabled the keepalive-workflow action,
+  whose whole purpose was doing that, citing a terms-of-service violation.
 - **Vercel:** project in the **Loideroi personal (Hobby) account**. Hobby limits
   respected: daily crons only (relayer is on GitHub Actions), 100 GB transfer,
   non-commercial use. Env vars mirror `.env.example`.

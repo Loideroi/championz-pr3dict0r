@@ -14,6 +14,8 @@
     "dup": "jscpd app components hooks lib middleware.ts relayer/src --min-tokens 50 --ignore \"**/*.test.*,**/__tests__/**,**/test/**\" --threshold 1 --silent",
     "migrations:lint": "squawk supabase/migrations/*.sql",
     "test": "vitest run",
+    "check:agents": "node scripts/check-agents-md.mjs AGENTS.md",
+    "check:review-log": "node scripts/lint-review-log.mjs docs/REVIEW_LOG.md",
     "test:relayer": "npm --prefix relayer test",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -23,7 +25,7 @@
     "@reown/appkit-adapter-wagmi": "^1.8.21",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
-    "next": "16.3.4",
+    "next": "16.4.6",
     "next-intl": "^4.13.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",

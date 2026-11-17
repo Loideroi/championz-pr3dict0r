@@ -17,7 +17,7 @@
 - [ ] `npm test` green
 - [ ] `npm run check:i18n` green
 - [ ] Relayer touched → `npm run test:relayer` green
-- [ ] Contracts touched → `npx hardhat compile && npx hardhat test` green in `contracts/`
+- [ ] Contracts touched → `npx hardhat compile && npx hardhat test && npm run slither` green in `contracts/` (slither: a new High/Medium finding or a moved triaged one fails — re-triage in `slither-triage.json` with the reason and a SECURITY_FINDINGS.md reference)
 - [ ] Migrations touched → `npx squawk` green on the new files (squawk fails on ANY finding; a deliberate exception is a commented, justified `.squawk.toml` exclusion in this PR)
 - [ ] Behavior exercised, not just generated — state what you ran:
 
@@ -31,4 +31,4 @@ brief. -->
 - [ ] **This PR's entry is appended to `docs/REVIEW_LOG.md` in this PR** (tier, exact model ids, verdicts, findings table, `Checked:`, `Dismissed:`; Tier 2/3 also `verification-gap`, `named-set`, `Missing:`) — `node scripts/lint-review-log.mjs docs/REVIEW_LOG.md` green
 - [ ] Tier 3 → the reviewer-written risk brief and the behavioral verification script are in the log entry for the owner
 
-The merge is the owner's click. Agents do not run `gh pr merge`.
+The merge is the owner's click: an agent runs `gh pr merge` only on the owner's explicit GO, through the ask-first prompt (`AGENTS.md`, Boundaries).

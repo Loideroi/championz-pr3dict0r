@@ -132,54 +132,60 @@ export function splitEntries(text) {
   return entries
 }
 
-export function checkEntry(entry, sinceDate) {
+// Checks every entry must satisfy, as (test, message) pairs — a data table keeps
+// checkEntry's cyclomatic complexity inside the strictest project lint budget
+// this file is vendored into (complexity 15) while each rule stays readable.
+const BASE_CHECKS = [
+  [(t) => MODEL_ID_RE.test(t), 'no exact model id (record the session-header id, e.g. gpt-5.6-luna, claude-fable-5-1, gemini-3.7-flash, o4-mini)'],
+  [(t) => VERDICT_RE.test(t), 'no labeled verdict ("Verdict: pass | pass-with-minors | fail", or the verdict in bold)'],
+  [(t) => hasTally(t), 'no complete findings tally ("Tally: N Blocker / N Major / N Minor / N Nit" with all four counts, or a Sev table with its separator row)'],
+  [(t) => hasField(t, 'Checked'), 'no "Checked:" field with content — the explicit list of what was verified is mandatory'],
+  [(t) => hasField(t, 'Dismissed'), 'no "Dismissed:" field with content — list every dismissed/rebutted finding with its reason, or "none"'],
+]
+
+// Additional checks for Tier 2 and 3 entries.
+const TIER_2_3_CHECKS = [
+  [(t) => hasField(t, 'verification-gap'), 'lacks a "verification-gap:" field with content ("if this behavior broke, would any test fail?")'],
+  [(t) => hasField(t, 'named-set'), 'lacks a "named-set:" field with content (partial special-casing of an enum/status/flag set)'],
+  [(t) => hasField(t, 'Missing'), 'lacks a "Missing:" field with content (what the reviewer looked for and did not find)'],
+]
+
+// Highest tier mentioned wins (a reviewer's raise beats the author's declaration).
+function declaredTier(text) {
+  const tiers = [...text.matchAll(/\bTier\**\s*[.:]?\s*\**\s*([123])\b/gi)].map((m) => Number(m[1]))
+  return tiers.length ? Math.max(...tiers) : null
+}
+
+// Decides whether an entry is subject to the contract. Returns { skip, problem }:
+// undated or impossible-date headings skip with a problem; pre-cutoff entries
+// and exempt record shapes skip silently; everything else continues to the checks.
+function entryGate(entry, sinceDate) {
   const dateMatch = entry.heading.match(DATE_RE)
-  if (!dateMatch) return [`entry "${entry.heading}": heading carries no YYYY-MM-DD date`]
-  if (!isRealDate(dateMatch[1])) return [`entry "${entry.heading}": heading date ${dateMatch[1]} is not a real calendar date`]
-  if (dateMatch[1] < sinceDate) return []
-  if (EXEMPT_HEADING_RE.test(entry.heading)) return []
+  if (!dateMatch) return { skip: true, problem: `entry "${entry.heading}": heading carries no YYYY-MM-DD date` }
+  if (!isRealDate(dateMatch[1])) return { skip: true, problem: `entry "${entry.heading}": heading date ${dateMatch[1]} is not a real calendar date` }
+  if (dateMatch[1] < sinceDate || EXEMPT_HEADING_RE.test(entry.heading)) return { skip: true, problem: null }
+  return { skip: false, problem: null }
+}
+
+export function checkEntry(entry, sinceDate) {
+  const gate = entryGate(entry, sinceDate)
+  if (gate.skip) return gate.problem ? [gate.problem] : []
 
   const text = `${entry.heading}\n${entry.body}`
   const label = `entry "${entry.heading.slice(0, 70)}"`
   const problems = []
 
-  // Highest tier mentioned wins (a reviewer's raise beats the author's declaration).
-  const tiers = [...text.matchAll(/\bTier\**\s*[.:]?\s*\**\s*([123])\b/gi)].map((m) => Number(m[1]))
-  if (!tiers.length) problems.push(`${label}: no tier declared (write "Tier 1", "Tier 2", or "Tier 3")`)
-  const tier = tiers.length ? Math.max(...tiers) : null
+  const tier = declaredTier(text)
+  if (tier === null) problems.push(`${label}: no tier declared (write "Tier 1", "Tier 2", or "Tier 3")`)
 
-  if (!MODEL_ID_RE.test(text)) {
-    problems.push(`${label}: no exact model id (record the session-header id, e.g. gpt-5.6-luna, claude-fable-5-1, gemini-3.7-flash, o4-mini)`)
+  for (const [test, message] of BASE_CHECKS) {
+    if (!test(text)) problems.push(`${label}: ${message}`)
   }
-
-  if (!VERDICT_RE.test(text)) {
-    problems.push(`${label}: no labeled verdict ("Verdict: pass | pass-with-minors | fail", or the verdict in bold)`)
-  }
-
-  if (!hasTally(text)) {
-    problems.push(`${label}: no complete findings tally ("Tally: N Blocker / N Major / N Minor / N Nit" with all four counts, or a Sev table with its separator row)`)
-  }
-
-  if (!hasField(text, 'Checked')) {
-    problems.push(`${label}: no "Checked:" field with content — the explicit list of what was verified is mandatory`)
-  }
-
-  if (!hasField(text, 'Dismissed')) {
-    problems.push(`${label}: no "Dismissed:" field with content — list every dismissed/rebutted finding with its reason, or "none"`)
-  }
-
   if (tier === 2 || tier === 3) {
-    if (!hasField(text, 'verification-gap')) {
-      problems.push(`${label}: Tier ${tier} entry lacks a "verification-gap:" field with content ("if this behavior broke, would any test fail?")`)
-    }
-    if (!hasField(text, 'named-set')) {
-      problems.push(`${label}: Tier ${tier} entry lacks a "named-set:" field with content (partial special-casing of an enum/status/flag set)`)
-    }
-    if (!hasField(text, 'Missing')) {
-      problems.push(`${label}: Tier ${tier} entry lacks a "Missing:" field with content (what the reviewer looked for and did not find)`)
+    for (const [test, message] of TIER_2_3_CHECKS) {
+      if (!test(text)) problems.push(`${label}: Tier ${tier} entry ${message}`)
     }
   }
-
   return problems
 }
 
@@ -257,12 +263,24 @@ function runSelfTest() {
     { name: 'custom cutoff includes older entry', text: old, since: '2026-07-01', expect: 6 },
     { name: 'two entries, one broken', text: good1 + '\n' + good1.replace('- Dismissed: none.', ''), expect: 1 },
     { name: 'CRLF input', text: good1.replace(/\n/g, '\r\n'), expect: 0 },
+    { name: 'entry dated exactly on the cutoff is checked', text: good1.replace('[2026-09-20]', '[' + DEFAULT_SINCE + ']').replace('- Dismissed: none.', ''), expect: 1 },
+    { name: 'entry dated the day before the cutoff is skipped', text: good1.replace('[2026-09-20]', '[2026-09-11]').replace('- Dismissed: none.', ''), expect: 0 },
     { name: 'empty field followed by blank line and prose fails', text: good1.replace('- Checked: ran lint, read all three files, reuse search for an existing helper (none).', '- Checked:\n\nUnrelated closing prose about the change.'), expect: 1 },
     { name: 'malformed separator row fails', text: good3.replace('|---|---|---|---|', '|-- nonsense'), expect: 1 },
     { name: 'separator with wrong column count fails', text: good3.replace('|---|---|---|---|', '|---|---|'), expect: 1 },
     { name: 'aligned separator cells pass', text: good3.replace('|---|---|---|---|', '| :--- | :---: | --- | ---: |'), expect: 0 },
   ]
   let failed = 0
+  // Message text is part of the contract (CI output is what a reviewer reads):
+  // pin one base message and one Tier 2/3 message, prefix included.
+  const messageProbe = lintText(good3.replace('**Missing.** looked for a rollback path and a rate limit on the new route; neither exists — filed as follow-up.', '**Missing.**').replace('**Dismissed.** R1-3 (style) — rebutted: matches repo convention, R1 agreed.', ''), DEFAULT_SINCE).problems
+  const expectedMessages = ['no "Dismissed:" field with content', 'Tier 3 entry lacks a "Missing:" field with content']
+  for (const fragment of expectedMessages) {
+    if (!messageProbe.some((m) => m.includes(fragment))) {
+      failed += 1
+      console.error(`SELF-TEST FAIL: message text — expected a problem containing "${fragment}", got: ${JSON.stringify(messageProbe)}`)
+    }
+  }
   for (const c of cases) {
     const { problems } = lintText(c.text.replace(/\r\n?/g, '\n'), c.since || DEFAULT_SINCE)
     const ok = problems.length === c.expect
