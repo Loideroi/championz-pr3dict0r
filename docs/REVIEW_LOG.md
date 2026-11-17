@@ -4,7 +4,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 ## 2026-11-17 — PR #131 `chore/s100-security-upgrades` (S100: security upgrades for the open critical/high Dependabot alerts — next 16.4.6, zod 4.6.7, axios/cdp-sdk, contracts toolchain patches; Hardhat 2 kept)
 
-**Scope.** Owner-approved batch (2026-11-17, candidate 1 S100 question: "Recommended set"; Hardhat 3 declined). Three manifests, 8 hand-written lines outside the lockfiles. Root: next 16.3.4→16.4.6 (sharp 0.35.5), @coinbase/cdp-sdk 1.51.2→1.57.1 with axios 1.16.0→1.20.0 (entries carried from Dependabot #114's resolution; the package is optional, so `npm update` skips it), follow-redirects 1.16.3, source-map-js 1.2.2, vite 7.3.8. Relayer: zod 3.25.76→4.6.7 (major), vite 7.3.7, source-map-js 1.2.2 (Dependabot commits cherry-picked with `-x`). Contracts (dev toolchain): fast-uri 3.1.9, follow-redirects, handlebars 4.7.10, js-yaml 4.3.2/3.15.2 (cherry-picked); in-range axios 1.21.1 and brace-expansion 1.1.22/2.1.8/5.0.13; `overrides` lodash ^4.18.0 (global) and ws ^8.21.0 under `@ethersproject/providers` only. Covers alerts 13, 18, 24–26, 33, 37, 38, 50, 75, 76, 78, 79, 83, 84, 98, 115, 116, 121, 123, 132–136, 140, 147–149, 151, 154–157, 160, 161, 176–181, 185, 186. Declined by the owner for now (dev-only, Hardhat 3 migration): 7, 17, 23, 94, 97, 173, 188, 189. Supersedes Dependabot #129, #114, #121, #118, #123, #128, #122, #119, #126, #120, #117, #77. Commits `8493f93`…`4a2b480` (round 1) → `d7c2c70` (R1 fold), the reviewed sha; this entry is a log-only commit on top.
+**Scope.** Owner-approved batch (2026-11-17, candidate 1 S100 question: "Recommended set"; Hardhat 3 declined). Three manifests, 8 hand-written lines outside the lockfiles. Root: next 16.3.4→16.4.6 (sharp 0.35.5), @coinbase/cdp-sdk 1.51.2→1.57.1 with axios 1.16.0→1.20.0 (entries carried from Dependabot #114's resolution; the package is optional, so `npm update` skips it), follow-redirects 1.16.3, source-map-js 1.2.2, vite 7.3.8. Relayer: zod 3.25.76→4.6.7 (major), vite 7.3.7, source-map-js 1.2.2 (Dependabot commits cherry-picked with `-x`). Contracts (dev toolchain): fast-uri 3.1.9, follow-redirects, handlebars 4.7.10, js-yaml 4.3.2/3.15.2 (cherry-picked); in-range axios 1.21.1, brace-expansion 1.1.22/2.1.8/5.0.13 and (added on owner approval in round 3) undici 6.27.0→6.29.1 under `@openzeppelin/hardhat-upgrades`; `overrides` lodash ^4.18.0 (global) and ws ^8.21.0 under `@ethersproject/providers` only. Covers alerts 13, 18, 24–26, 33, 37, 38, 50, 75, 76, 78, 79, 83, 84, 98, 115, 116, 121, 123, 132–136, 140, 147–149, 151, 154–157, 160, 161, 173, 176–181, 185, 186. Declined by the owner for now (dev-only, Hardhat 3 migration): 7, 17, 23, 94, 97, 188, 189. Supersedes Dependabot #129, #114, #121, #118, #123, #128, #122, #119, #126, #120, #117, #77. Commits `8493f93`…`4a2b480` (round 1) → `d7c2c70` (R1 fold) → `662257d` (undici, owner-approved), plus a merge of `main` after #130 landed (review-log conflict only, resolved by re-inserting this entry); `662257d` is the reviewed sha.
 
 **Tier.** 3 — all three `package.json` and all three lockfiles; `relayer/**`; `contracts/**`. Confirmed by both reviewers.
 
@@ -16,8 +16,9 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 **Verdicts.**
 - Round 1 (`4a2b480`): R1 **pass-with-minors** (2 Minor, 1 Nit); R2 **pass-with-minors** (2 Minor, 2 Nit). R1 Minor 1 folded in `d7c2c70`.
 - Round 2 (`d7c2c70`, delta): R1 **pass**; R2 **pass-with-minors** (no new findings; the round-1 minors as dispositioned below).
+- Round 3 (`662257d`, delta: the undici bump): R1 and R2 results below.
 
-Verdict: R1 pass, R2 pass-with-minors at `d7c2c70` (final).
+Verdict: see Round 3 (final).
 
 Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` Nit was raised by both).
 
@@ -25,7 +26,7 @@ Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` N
 |---|---|---|---|
 | Minor | R1 | Hand-carried root lockfile left `debug`/`ms` flagged `dev`; axios 1.20 → https-proxy-agent → agent-base needs `debug` on the optional production path, so `npm ci --omit=dev` would drop it (latent: Vercel installs dev deps) | Fixed (`d7c2c70`): entries byte-identical to #114; R1 and R2 re-checked: resolved (R2's graph walk flags exactly these two at `4a2b480`, none at `d7c2c70`) |
 | Minor | R1 | `npm audit` still lists root zod 3.x (wallet libraries), a newer brace-expansion advisory and vitest/tinypool (dev) | Follow-up: none is an open Dependabot alert (the critical/high set re-read 2026-11-17: unchanged, 52); R2 found the root-zod alert 174 auto-dismissed. Next triage round |
-| Minor | R2 | Alert 173 (undici 6.27.0 nested under `@openzeppelin/hardhat-upgrades` 3.9.1, `^6.11.1`) is fixable in-range (6.29.1) without Hardhat 3 | Owner decision: outside the approved batch; put to the owner at the gate |
+| Minor | R2 | Alert 173 (undici 6.27.0 nested under `@openzeppelin/hardhat-upgrades` 3.9.1, `^6.11.1`) is fixable in-range (6.29.1) without Hardhat 3 | Fixed (`662257d`) on the owner’s approval (2026-11-17, "Add to #131"): only the nested copy moves; hardhat 2’s undici 5.29.0 (188/189) stays declined |
 | Minor | R2 | zod 4 `int()` rejects integers above 2^53 that zod 3 accepted | Accepted: on both match fixtures and 16 edge cases every other parse result is identical; unsafe integers now raise SOURCE_SCHEMA_CHANGED (fail loud), never a silently different push. Follow-up: a relayer test pinning it |
 | Nit | R1, R2 | `eslint-config-next` stays 16.3.4 while `next` is 16.4.6 | Accepted; lint green |
 | Nit | R2 | zod 4 issue messages are worded differently (SourceSchemaError / Telegram alert text) | Accepted: `.issues`/`path`/`message` API unchanged; cosmetic |
@@ -37,7 +38,7 @@ Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` N
 
 **verification-gap:** no run against the live UEFA feed or a deployed preview of the relayer; the zod probe covers recorded fixtures and synthetic edge cases. No test pins the zod 4 unsafe-integer rejection. Slither ran only in CI (Solidity and solc unchanged). Nothing mechanical fails if a future `npm install` drops the overrides; the Tier 3 floor on `contracts/package.json` is the control.
 
-**named-set:** alerts: all 52 open critical/high alerts are either covered here (44) or declined by the owner (8: 7, 17, 23, 94, 97, 173, 188, 189). Lockfiles: root, relayer, contracts — all three diffed. Override targets: lodash (global), ws (only under `@ethersproject/providers`; hardhat's ws 7.5.11 is outside alert 18's range).
+**named-set:** alerts: all 52 open critical/high alerts are either covered here (45) or declined by the owner (7: 7, 17, 23, 94, 97, 188, 189). Lockfiles: root, relayer, contracts — all three diffed. Override targets: lodash (global), ws (only under `@ethersproject/providers`; hardhat's ws 7.5.11 is outside alert 18's range).
 
 **Missing:** looked for and did not find (R1, R2): a non-registry `resolved` URL or missing integrity; an unexplained package change; app code importing the relayer's zod; zod `default`/`catch`/`coerce`/`passthrough` semantics in the relayer schemas; a gate, `.npmrc` or settings change.
 
@@ -45,7 +46,47 @@ Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` N
 
 **Risk brief (R2).** This upgrades Next to 16.4.6 and sharp, moves the relayer's feed validator from zod 3 to 4, and patches axios, lodash, ws and similar packages, mostly in dev toolchains. The one path that could change what reaches the chain is relayer parsing, and on real fixtures it parses identically; a malformed feed now fails slightly more strictly, not more loosely. After the merge, watch the first relayer runs for SOURCE_SCHEMA_CHANGED alerts (the wording will look different) and the Vercel production build and middleware behaviour.
 
-**Gate.** Owner go/no-go pending, on reviewed sha `d7c2c70` plus this log-only entry; merges after #130 (then this branch is updated from `main` and CI re-runs green). Merge is the owner's click. After the merge: close the 12 superseded Dependabot PRs with a reason and comment the owner's Hardhat 3 decline on #127/#110.
+**Gate.** Owner go/no-go pending, on reviewed sha `662257d` plus the `main` merge and this log-only entry; merges after #130 (then this branch is updated from `main` and CI re-runs green). Merge is the owner's click. After the merge: close the 12 superseded Dependabot PRs with a reason and comment the owner's Hardhat 3 decline on #127/#110.
+
+## 2026-11-17 — PR #130 `chore/lint-exception-redate` (re-date the 11 lint exceptions to 2027-01-31; main's `app` check red since 2026-11-01)
+
+**Scope.** Expiry dates only: the 11 time-bounded ESLint exceptions (10 `complexity`, 1 `max-lines` on `relayer/src/insights.ts`) move from `expires 2026-10-31` to `expires 2027-01-31` in their directive comments and in `docs/REVIEW_TIERS.md` (11 table rows plus the two baseline rows, which gain a re-date note). +24/−24 across 11 files. Why: `scripts/check-lint-exceptions.mjs` fails every `app` run since 2026-11-01 (all 11 expired 2026-10-31), and with strict required checks no PR could merge, including the S100 security upgrades. Owner decision 2026-11-17 (candidate 1, S100/S101 batch question): "Re-date to 2027-01-31". Reviewed sha `e885dc7`; this entry is a log-only commit on top.
+
+**Tier.** 3 — touches `app/api/**`, `relayer/**`, `lib/profile/service.ts` (auth/secrets kernel row) and `docs/REVIEW_TIERS.md`. Confirmed by both reviewers.
+
+**Roles and models.**
+- **Author:** Claude Code interactive, `claude-opus-5-5`.
+- **Reviewer 1:** owner-directed interim stand-in for Codex (2026-11-17, "use opus 5.5 for the review"): fresh-context Claude Code subagent, `claude-opus-5-5`, Codex's brief, no author reasoning, no R2 findings. **Deviation:** same vendor and model as the author; the Codex CLI `gpt-5.6-sol` run was refused at its account usage limit (reset 2026-11-18 16:28). Codex R1 still owed within 48 h of the reset; a Blocker/Major from it is handled as a post-merge finding.
+- **Reviewer 2 (fresh context):** Claude Code subagent, `claude-opus-5-5`, read-only, ran ESLint and the checker in the author's clean checkout. Writes the risk brief.
+
+**Verdicts.** R1 **pass-with-minors** (1 Minor, 2 Nit) at `e885dc7`; R2 **pass-with-minors** (1 Minor, 1 Nit) at `e885dc7`. Verdict: pass-with-minors, both reviewers, at `e885dc7` (final).
+
+Tally: 0 Blocker / 0 Major / 2 Minor / 3 Nit (unique).
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Minor | R1 | PR body named R1 as Codex `gpt-5.6-sol`; the R1 that ran is the interim Opus stand-in | Fixed: PR body edited; deviation recorded above |
+| Minor | R2 | REVIEW_TIERS points at a `docs/REVIEW_LOG.md` entry the reviewed commit does not contain | Fixed: this entry, in the same PR |
+| Nit | R1 | Body said "22 changed lines"; the diff is +24/−24 (11 directives + 13 REVIEW_TIERS lines) | Fixed in the PR body |
+| Nit | R1 | REVIEW_TIERS rows 38 and 39 word the re-date note differently | Accepted as cosmetic; not folded, to keep the reviewed sha |
+| Nit | R2 | "Measurements unchanged" is the PR's own claim | Both reviewers re-measured independently (below) |
+
+**Checked:**
+- **R1:** full `git diff 5339044 e885dc7`; `scripts/check-lint-exceptions.mjs` (horizon 180 days, logic last changed in #100); grep of every suppression directive (exactly 11 dated, `2026-10-31` left only in checker test fixtures and the REVIEW_TIERS notes); `eslint --no-inline-config -f json` on the 10 files → 51/32/27/26/19/37/20/20/17/17 and 459 lines; checker with `LINT_EXCEPTIONS_TODAY` 2026-11-17 (OK, 11 exceptions / 154 files), 2027-01-31 (OK), 2027-02-01 (fails); the PR body.
+- **R2:** the same diff and grep independently; the same ESLint re-measurement (identical numbers, exactly 11 findings); the checker on the same three dates (same results); REVIEW_TIERS rows against the code (file, function, number).
+- **Author:** `npm run lint`, `typecheck`, `arch` (123 modules / 299 dependencies), `deadcode:ci`, `dup` (0.85%), `check:i18n`, `npm test` (19 files / 224 tests), `npm run test:relayer` (15 files / 181 tests); this entry linted with `node scripts/lint-review-log.mjs docs/REVIEW_LOG.md`.
+
+**verification-gap:** none for the change itself: the checker is the mechanical control and both reviewers proved it red-capable on 2027-02-01. Not run by the reviewers: the full gate suite (comment-only diff; the author ran it). Nothing mechanical stops a future PR from re-dating again; the REVIEW_TIERS rule (reviewed PR that says why) is the control.
+
+**named-set:** the 11 exceptions are the complete set of dated suppressions in the linted tree (both reviewers grepped; `reportUnusedDisableDirectives: error` would fail a stale one). Rules: `complexity` ×10, `max-lines` ×1.
+
+**Missing:** looked for and did not find (R1, R2): a new or widened suppression; a change to the checker, `eslint.config.mjs` or `.github`; an expired date left in linted code; drift in any measurement.
+
+**Dismissed:** none. **Disputes:** none.
+
+**Risk brief (R2).** This PR re-dates all 11 recorded lint exceptions from 2026-10-31 to 2027-01-31 and updates the matching REVIEW_TIERS rows; nothing else changed, and every recorded complexity and line count still holds. The `app` check turns red again on 2027-02-01 unless the debt is burned down or re-approved in another reviewed PR, so schedule the refactors (or the next re-date) before then.
+
+**Gate.** Owner go/no-go pending, on reviewed sha `e885dc7` plus this log-only entry; CI green on the final head. Merge is the owner's click, and this PR merges before the S100 security-upgrades PR and the S101 rebases.
 
 ## 2026-10-08 — PR #115 `chore/s49-cleanup-clause` (S49: post-merge branch cleanup clause and stacked-PR retarget rule)
 
