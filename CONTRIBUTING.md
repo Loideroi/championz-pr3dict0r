@@ -28,7 +28,8 @@ Then, before anyone asks for a merge:
    ids, verdicts, findings table, `Checked:`, `Dismissed:`; Tier 2/3 also
    `verification-gap`, `named-set`, `Missing:`). `node scripts/lint-review-log.mjs
    docs/REVIEW_LOG.md` must pass.
-4. **The owner merges.** Agents never run `gh pr merge`, and an owner's "merge it" on an
+4. **The owner merges.** An agent runs `gh pr merge` only on the owner's explicit GO,
+   through the ask-first prompt, and an owner's "merge it" on an
    unreviewed PR is a request to run steps 1–3 first, not a waiver.
 
 The `review-gate` CI check enforces the tier line, the size cap (label `size-waiver`

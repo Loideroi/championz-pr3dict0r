@@ -18,7 +18,7 @@ boundaries belong to the human.
 | Any module that constructs, signs, or submits chain transactions, and Reown/AppKit wallet configuration (`lib/wagmi/**`, `app/providers.tsx`) | 3 | Signing surface — path-independent catch-all |
 | `lib/supabase/**`, `lib/telegram/**`, `lib/profile/verify.ts`, `lib/profile/rate-limit.ts` — and any module handling secrets, privileged service clients, or authentication/signature verification | 3 | Auth/secrets kernel (reviewer finding 2026-08-27): the service-role Supabase client, ERC-1271/EOA wallet verification, and account linking are the contract's "auth, permissions, secrets handling" — path-independent catch-all applies to new modules of this kind |
 | `scripts/**` | 3 | `check-i18n-parity.mjs` is gate tooling; catch-all: any script that signs, deploys, or mutates production data is Tier 3 regardless of name |
-| `.github/**` (non-workflows), `.npmrc` (all three roots), `eslint.config.mjs`, `.dependency-cruiser.js`, `knip.jsonc`, `.squawk.toml`, `contracts/slither.config.json`, `contracts/slither-triage.json`, `next.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `postcss.config.mjs` | 3 | Guardrail / build / deploy config — editing these can silence a gate. A new `slither-triage.json` entry is an accepted security finding: it needs the exact expression, the reason, and a SECURITY_FINDINGS.md cross-reference in the same PR |
+| `.github/**` (non-workflows), `.npmrc` (all three roots), `.gitattributes`, `eslint.config.mjs`, `.dependency-cruiser.js`, `knip.jsonc`, `.squawk.toml`, `contracts/slither.config.json`, `contracts/slither-triage.json`, `next.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `postcss.config.mjs` | 3 | Guardrail / build / deploy config — editing these can silence a gate; `.gitattributes` decides which paths the review-gate size cap ignores as generated. A new `slither-triage.json` entry is an accepted security finding: it needs the exact expression, the reason, and a SECURITY_FINDINGS.md cross-reference in the same PR |
 | `package.json`, `contracts/package.json`, `relayer/package.json` | 3 | Own the gate scripts; editing them can silence every gate |
 | `package-lock.json`, `contracts/package-lock.json`, `relayer/package-lock.json` | 3 | Precedent: chilitize adjudication 2026-08-25, mirrored on Fanbet with explicit owner confirmation 2026-08-27 (supply chain feeding CI; no reviewer credibly reads a lockfile blob — detection is mechanical or nothing). Deliberately stricter than the contract's Tier 1 dependency-patch row; owner confirmation for this repo recorded at the 2026-08-27 wiring gate |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/**`, `docs/REVIEW_TIERS.md`, `docs/REVIEW_LOG.md` | 3 | Agent instruction files and the review process itself |
@@ -26,7 +26,46 @@ boundaries belong to the human.
 | **Anything not listed above** (incl. `app/**` pages, `components/**`, `hooks/**`, `lib/**`, `messages/**`, `content/**`) | 2 | Default floor until mapped — an unlisted path is never Tier 1 by omission; add a row when a new surface appears |
 
 Review depth per tier, reviewer independence, PR size caps, and merge gates:
-see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md`.
+see the wiki contract. Log every reviewed PR in `docs/REVIEW_LOG.md` — **inside the
+PR it reviews**, not in a trailing docs PR.
+
+## Review Gate (`.github/workflows/review-gate.yml`, designed 2026-09-11, on `main` since PR #104, 2026-11-17)
+
+A status check on every PR; it blocks only once the owner enrolls it as a required
+check in branch protection (see Named Follow-Ups). It runs its own `--self-test` first. `scripts/review-gate.mjs` fails a PR whose body has no
+`Declared tier: N` line, whose counted changed lines (excl. the three lockfiles and
+`linguist-generated` paths as declared in the **base** tree's `.gitattributes` — a PR
+cannot mark its own files) exceed 500 without the `size-waiver` label, or whose
+`docs/REVIEW_LOG.md` gains no new, complete entry about the PR (dated on/after the
+judge cutoff, non-exempt heading shape, fields checked with the judge's own rules,
+a labeled tier — `**Tier.** N`, `Tier: N` or `raised to Tier N`, or `(Tier N` in the heading; an entry with none fails — equal to the declared tier (text the rendered page hides — an HTML comment, a link-reference line — does not count in the body or the log, and two visible `Declared tier` lines that disagree are no declaration), older entries append-only, each base heading as often as before; a text-typed file git reports as binary fails the gate outright).
+**Recovery from a wrong heading** (append-only has no in-band edit): the owner authors a
+correction PR with an `EXCEPTION RECORD` entry naming the wrong and right headings; the
+gate fails that PR by design. Because `main` has enforce-admins, there is no admin bypass:
+the owner temporarily un-requires the `review-gate` check, merges, re-requires it, and
+records that toggle inside the same `EXCEPTION RECORD` entry (the next escape audit reads
+it). Never rewrite the old entry in a feature PR. **Owner emergency fix** (no time for the
+tier's reviewers): the same toggle — un-require, merge, re-require — recorded in an
+`EXCEPTION RECORD` entry in the next PR, and the skipped reviews run afterwards as a
+post-merge review in that entry. **Coverage boundary:** `pull_request` runs the PR's own
+copy of the workflow and of `scripts/review-gate.mjs`, so a PR can weaken the gate that
+judges it; only the Tier 3 floor on `.github/**` and `scripts/**` catches that. The two
+process judges (`scripts/lint-review-log.mjs` for the entry's fields,
+`scripts/check-agents-md.mjs` for `AGENTS.md`) run in `ci.yml`'s `app` job. The
+`size-waiver` label is only valid with the human waiver recorded in the log entry as a
+`Size waiver:` field in the template's form — it opens with `owner approved` / `owner waived` /
+`owner granted` and a real `YYYY-MM-DD` date, then a rationale of 20+ characters with no
+negative, pending, contracted ("hasn't"), deferred or conditional ("if", "once", "unless",
+"until", "only after", "revoked", "no-go") wording (the gate checks the shape, not the truth of it). Entry headings follow
+`## YYYY-MM-DD — PR #N <title>` / `PRs #N, #M and #K <title>`: the subject numbers are the
+run right after `PR`, so a reference later in the title is not a subject; whether the reviews actually ran is beyond any gate — the
+monthly escape audit checks that.
+Dependabot PRs hit this gate too. `dependabot/*` is not an allowed agent push prefix, so
+the working path is a replacement PR: an agent reviews the bump at Tier 3 (this map), opens
+a PR with the same lockfile change (cherry-picked) plus the tier line and log entry, and
+closes the Dependabot PR as superseded (as PR #131 did for twelve of them). The owner can
+instead push the log entry onto the Dependabot branch and edit its body (Dependabot stops
+rebasing a branch someone else has pushed to). Either way, that is the intended cost.
 
 ## Gate Baselines (ratchet — may shrink, never grow)
 
@@ -68,4 +107,5 @@ An expiry may be extended only in a reviewed PR that says why; the checker fails
 - ~~**Contracts security scanning**~~ **Done 2026-09-13** (PR #105): slither 0.11.4 in the `contracts` required check, blocking on new or stale High/Medium findings via `scripts/check-slither.mjs` + `slither-triage.json`. Not added: solhint (no config exists; a new tool) and Foundry (no Foundry project here).
 - ~~**CI npm bootstrap**~~ **Done 2026-09-13** (PR #106): the `app` job runs on Node 24 (bundled npm 11, asserted by a `grep` step) and the pre-guard `npm install -g npm@11` is gone. Still floating within Node 24 / npm 11 minor and patch releases (setup-node major pin only) — that is a toolchain pin, not a supply-chain guard; the lockfile-lint + `npm ci` guard is unchanged. Locked devDependencies checked for Node 24 support: next 16.3.4 (`>=20.9`), vitest 3.2.7, eslint 9.39.4, typescript 5.9.3, jscpd 5.0.16, dependency-cruiser 18.2.0 (`^24`), knip 6.32.2 (`>=22.12`), squawk-cli 2.63.0 (binary wrapper). Other jobs stay on Node 22 (separate lockfiles that install under npm 10; the relayer's `engines` is `>=22`; the production workflows `oracle-bot.yml` / `matchday-watch.yml` are untouched). **Vercel is deliberately outside this change:** the production build's Node major is selected in the Vercel dashboard (no root `engines.node` here) and moving it is a separate deployment-runtime decision — the owner confirms the preview build log at the gate.
 - **Vercel Node major alignment** (named follow-up, 2026-09-13): CI now tests the app on Node 24 while the Vercel production build uses the dashboard-selected major (no `engines.node` in the repo). Confirm the setting and move it to 24 in lockstep, or add `engines.node` to `package.json` (which Vercel honours) — a separate Tier 3 PR, because it changes the production runtime.
+- **Enroll `review-gate` as a required status check** on `main` (owner click or `gh api` on owner instruction, as with the 2026-08-28 checks). Until then the check runs but does not block.
 - **Dependabot alerts + automated security fixes**: repo Settings → Security & analysis (owner click; the CodeQL workflow covers scanning, this covers advisories).

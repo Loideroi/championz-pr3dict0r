@@ -1,0 +1,49 @@
+name: Review gate
+
+# The review contract's merge preconditions as a status check (designed
+# 2026-09-11 after the 2026-09-09 escapes in docs/REVIEW_LOG.md; on main since
+# PR #104, 2026-11-17): tier declared, size cap, this PR's own review-log entry
+# present and complete. `edited`/`labeled`/`unlabeled` re-run it when the body
+# or the size-waiver label changes. Dependency-free: node only. The two process
+# judges (lint-review-log, check-agents-md) run in ci.yml's `app` job, not here.
+#
+# Coverage boundary: `pull_request` runs the PR's OWN copy of this workflow and
+# of scripts/review-gate.mjs, so a PR can weaken the gate that judges it. That
+# is caught only by the Tier 3 floor on `.github/**` and `scripts/**` (two
+# reviewers + the owner's gate), not by this check.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Gate self-test (red-capable cases)
+        run: node scripts/review-gate.mjs --self-test
+      - name: Tier declared, size cap, same-PR review-log entry
+        # The body and labels reach the script through env, never through
+        # shell interpolation, so PR text cannot inject commands.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/review-gate.mjs
