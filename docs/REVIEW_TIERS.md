@@ -38,7 +38,7 @@ check in branch protection (see Named Follow-Ups). It runs its own `--self-test`
 cannot mark its own files) exceed 500 without the `size-waiver` label, or whose
 `docs/REVIEW_LOG.md` gains no new, complete entry about the PR (dated on/after the
 judge cutoff, non-exempt heading shape, fields checked with the judge's own rules,
-a labeled tier — `**Tier.** N` / `raised to Tier N`; an entry with none fails — equal to the declared tier (a tier inside an HTML comment in the body does not count), older entries append-only; a text-typed file git reports as binary fails the gate outright).
+a labeled tier — `**Tier.** N`, `Tier: N` or `raised to Tier N`, or `(Tier N` in the heading; an entry with none fails — equal to the declared tier (text the rendered page hides — an HTML comment, a link-reference line — does not count in the body or the log, and two visible `Declared tier` lines that disagree are no declaration), older entries append-only, each base heading as often as before; a text-typed file git reports as binary fails the gate outright).
 **Recovery from a wrong heading** (append-only has no in-band edit): the owner authors a
 correction PR with an `EXCEPTION RECORD` entry naming the wrong and right headings; the
 gate fails that PR by design. Because `main` has enforce-admins, there is no admin bypass:
@@ -53,10 +53,10 @@ judges it; only the Tier 3 floor on `.github/**` and `scripts/**` catches that. 
 process judges (`scripts/lint-review-log.mjs` for the entry's fields,
 `scripts/check-agents-md.mjs` for `AGENTS.md`) run in `ci.yml`'s `app` job. The
 `size-waiver` label is only valid with the human waiver recorded in the log entry as a
-`Size waiver:` field naming the owner, an affirmative decision word (approved / waived /
-granted / go, with no rejected / denied / pending, contracted ("hasn't"), deferred ("will decide")
-or conditional ("only after", "unless", "until") wording), a real date, and a rationale
-(the gate checks the shape, not the truth of it). Entry headings follow
+`Size waiver:` field in the template's form — it opens with `owner approved` / `owner waived` /
+`owner granted` and a real `YYYY-MM-DD` date, then a rationale of 20+ characters with no
+negative, pending, contracted ("hasn't"), deferred or conditional ("if", "once", "unless",
+"until", "only after", "revoked", "no-go") wording (the gate checks the shape, not the truth of it). Entry headings follow
 `## YYYY-MM-DD — PR #N <title>` / `PRs #N, #M and #K <title>`: the subject numbers are the
 run right after `PR`, so a reference later in the title is not a subject; whether the reviews actually ran is beyond any gate — the
 monthly escape audit checks that.

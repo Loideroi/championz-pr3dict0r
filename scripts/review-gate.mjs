@@ -5,8 +5,9 @@
 // cannot reach the owner's merge click without:
 //
 //   1. A declared tier: the PR body carries the template line
-//      "Declared tier: N" with N in 1..3 (an untouched template comment does
-//      not count). Reviewers confirm or raise the tier; the floor map in
+//      "Declared tier: N" with N in 1..3 (text GitHub hides when rendering —
+//      an HTML comment, a link-reference line — does not count, and two
+//      visible lines that disagree are no declaration). Reviewers confirm or raise the tier; the floor map in
 //      docs/REVIEW_TIERS.md beats the declaration.
 //   2. The size cap: additions + deletions between the merge-base and the head,
 //      excluding the three lockfiles and paths carrying the `linguist-generated`
@@ -23,11 +24,15 @@
 //      the base tree must not hold one; every base heading must survive and
 //      every base entry body may only be appended to (re-check outcomes), never
 //      edited. The entry's fields are then checked here with the judge's own
-//      checkEntry, and its highest "Tier N" must equal the declared tier (a
-//      reviewer's raise means the PR body is updated, not ignored).
+//      checkEntry, and its highest LABELED tier ("**Tier.** N", "Tier: N",
+//      "raised to Tier N", or "(Tier N" in the heading) must equal the
+//      declared tier; an entry with no labeled tier fails (a reviewer's raise
+//      means the PR body is updated, not ignored). HTML comments are removed
+//      from both logs first: what the rendered log hides never counts.
 //   4. When over the cap with the `size-waiver` label, the PR's own log entry
 //      (the one whose heading names it, in the head tree) must carry a
-//      "Size waiver:" field with a date — the recorded human waiver the
+//      "Size waiver:" field in the template's form "owner approved|waived|
+//      granted YYYY-MM-DD: <rationale>" — the recorded human waiver the
 //      contract requires; the label alone never passes.
 //
 // Coverage boundary — what this judge cannot see: whether the reviews actually
@@ -38,11 +43,11 @@
 // and whether the "Size waiver:" field names a real owner decision (the
 // escape audit reads it).
 //
-//   env: PR_NUMBER PR_BODY PR_LABELS (comma-separated) BASE_SHA HEAD_SHA
+//   env: PR_NUMBER PR_BODY PR_LABELS (JSON array of names) BASE_SHA HEAD_SHA
 //   node scripts/review-gate.mjs            # in CI
 //   node scripts/review-gate.mjs --self-test
 //
-// Adopted 2026-09-11 after the 2026-09-09 escapes (docs/REVIEW_LOG.md): 26 PRs
+// Designed 2026-09-11 (on main since PR #104, 2026-11-17) after the 2026-09-09 escapes (docs/REVIEW_LOG.md): 26 PRs
 // merged with no tier line, no review, and no log entry while CI was green.
 
 import { spawnSync } from "node:child_process";
@@ -58,16 +63,22 @@ export const LOG_PATH = "docs/REVIEW_LOG.md";
 // The three real lockfiles only — a basename match anywhere let lib/x/package-lock.json hide lines.
 const LOCKFILE_RE = /^(contracts\/|relayer\/)?package-lock\.json$/;
 // Same cutoff and exempt shapes as scripts/lint-review-log.mjs (not exported there;
-// keep in step when re-copying the judge — the workflow passes the same --since).
+// keep in step with its DEFAULT_SINCE when re-copying the judge).
 export const LOG_CUTOFF = "2026-09-12";
 const EXEMPT_HEADING_RE = /\b(ESCAPE AUDIT|OWNER WAIVER|EXCEPTION RECORD)\b/i;
 const HEADING_DATE_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
 
+// What GitHub hides when rendering never counts: HTML comments (an unterminated
+// one hides the rest) and markdown link-reference lines such as "[//]: # (...)".
+export function stripHtmlComments(text) {
+  return (text ?? "").replace(/<!--[\s\S]*?(-->|$)/g, "");
+}
+const LINK_REF_LINE_RE = /^[ \t]*\[[^\]]*\]:[ \t].*$/gm;
+
 export function declaredTier(body) {
-  // A tier hidden in an HTML comment (invisible in the rendered body) never counts.
-  const visible = (body ?? "").replace(/<!--[\s\S]*?(-->|$)/g, "");
-  const m = visible.match(/Declared tier\**\s*:\s*\**\s*([123])(?!\d)/i);
-  return m ? Number(m[1]) : null;
+  const visible = stripHtmlComments(body).replace(LINK_REF_LINE_RE, "");
+  const tiers = new Set([...visible.matchAll(/Declared tier\**\s*:\s*\**\s*([123])(?!\d)/gi)].map((m) => Number(m[1])));
+  return tiers.size === 1 ? [...tiers][0] : null; // none, or visible lines that disagree
 }
 
 // numstat paths for renames look like "old => new" or "dir/{old => new}/file";
@@ -164,22 +175,50 @@ export function isRealDate(s) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-// The entry's tier, read from LABELED forms only — "**Tier.** N", "Tier: N",
-// "(Tier N)" in the heading, or "raised to Tier N" — never from prose such as
-// "no Tier 3 paths were touched". Highest labeled value wins (a reviewer's
-// raise beats the author's declaration).
+// The entry's tier, read from LABELED forms only — "**Tier.** N", "Tier: N" or
+// "raised to Tier N" anywhere, "(Tier N" in the heading only — never from prose
+// such as "no Tier 3 paths were touched" or "(Tier 3 paths: none)". Highest
+// labeled value wins (a reviewer's raise beats the author's declaration).
+const TIER_LABEL_RE = /(?:\*\*Tier\.?\*\*\s*|\bTier\s*[.:]\s*\**\s*|\braised\s+to\s+Tier\s+)([123])\b/gi;
+const TIER_HEADING_RE = /\(\s*Tier\s+([123])\b/gi;
 export function entryTier(entry) {
-  const text = `${entry.heading}\n${entry.body}`;
-  const re = /(?:\*\*Tier\.?\*\*\s*|\bTier\s*[.:]\s*\**\s*|\(\s*Tier\s+|\braised\s+to\s+Tier\s+)([123])\b/gi;
-  const tiers = [...text.matchAll(re)].map((m) => Number(m[1]));
+  const tiers = [
+    ...`${entry.heading}\n${entry.body}`.matchAll(TIER_LABEL_RE),
+    ...entry.heading.matchAll(TIER_HEADING_RE),
+  ].map((m) => Number(m[1]));
   return tiers.length ? Math.max(...tiers) : null;
+}
+
+// heading -> bodies in order (a heading may repeat; a Map keyed by heading kept
+// only the last copy, so an edited entry plus a pasted original passed).
+function entriesByHeading(log) {
+  const m = new Map();
+  for (const e of splitEntries(log)) m.set(e.heading, [...(m.get(e.heading) ?? []), e.body]);
+  return m;
+}
+
+// Every base entry survives in the head log, as often as before, its body only
+// appended to (a re-check outcome); returns the first problem or null.
+function appendOnlyProblem(baseLog, headLog) {
+  const headBy = entriesByHeading(headLog);
+  const bad = { lost: [], copied: [], edited: [] };
+  for (const [heading, bodies] of entriesByHeading(baseLog)) {
+    const heads = headBy.get(heading) ?? [];
+    if (heads.length !== bodies.length) bad[heads.length < bodies.length ? "lost" : "copied"].push(heading);
+    else if (bodies.some((b, i) => !heads[i].trimEnd().startsWith(b.trimEnd()))) bad.edited.push(heading);
+  }
+  const why = { copied: "existing heading(s) appear more often than before — a pasted copy can hide an edited entry", lost: "existing heading(s) changed or removed — the log is append-only", edited: "existing entry body edited (only appending, e.g. a re-check outcome, is allowed)" };
+  const kind = ["copied", "lost", "edited"].find((k) => bad[k].length);
+  return kind ? `${why[kind]}: ${bad[kind].map((h) => `"${h.slice(0, 50)}"`).join(", ")}` : null;
 }
 
 // The entry must be NEW in this PR, dated on/after the cutoff, not exempt-shaped,
 // and the log append-only: no entry about the PR in the base tree, one in the
 // head tree, every base heading still present, every base body only appended
 // to. Then the judge's own field check runs on that entry.
-export function logEntryIsNew(baseLog, headLog, prNumber, cutoff = LOG_CUTOFF) {
+export function logEntryIsNew(rawBaseLog, rawHeadLog, prNumber, cutoff = LOG_CUTOFF) {
+  const baseLog = stripHtmlComments(rawBaseLog);
+  const headLog = stripHtmlComments(rawHeadLog);
   if (prEntry(baseLog, prNumber)) return { ok: false, reason: `an entry about #${prNumber} already existed before this PR` };
   const entry = prEntry(headLog, prNumber);
   if (!entry) return { ok: false, reason: `no "## ..." entry about #${prNumber} in the head tree` };
@@ -187,41 +226,45 @@ export function logEntryIsNew(baseLog, headLog, prNumber, cutoff = LOG_CUTOFF) {
   if (!date || !isRealDate(date)) return { ok: false, reason: `entry "${entry.heading.slice(0, 50)}" has no real YYYY-MM-DD date in its heading` };
   if (date < cutoff) return { ok: false, reason: `entry "${entry.heading.slice(0, 50)}" is dated before the ${cutoff} judge cutoff — a backdated heading does not count` };
   if (EXEMPT_HEADING_RE.test(entry.heading)) return { ok: false, reason: `entry "${entry.heading.slice(0, 50)}" uses an exempt heading shape (escape audit / owner waiver / exception record) — a PR's own entry may not` };
-  const headByHeading = new Map(splitEntries(headLog).map((e) => [e.heading, e.body]));
-  const lost = [];
-  const edited = [];
-  for (const b of splitEntries(baseLog)) {
-    if (!headByHeading.has(b.heading)) lost.push(b.heading);
-    else if (!headByHeading.get(b.heading).trimEnd().startsWith(b.body.trimEnd())) edited.push(b.heading);
-  }
-  if (lost.length) return { ok: false, reason: `existing heading(s) changed or removed — the log is append-only: ${lost.map((h) => `"${h.slice(0, 50)}"`).join(", ")}` };
-  if (edited.length) return { ok: false, reason: `existing entry body edited (only appending, e.g. a re-check outcome, is allowed): ${edited.map((h) => `"${h.slice(0, 50)}"`).join(", ")}` };
+  const appendOnly = appendOnlyProblem(baseLog, headLog);
+  if (appendOnly) return { ok: false, reason: appendOnly };
   const problems = checkEntry(entry, cutoff);
   if (problems.length) return { ok: false, reason: `entry fields incomplete — ${problems.join("; ")}` };
   return { ok: true, entry };
 }
 
-// "Size waiver:" / "**Size waiver.**" field = the recorded human waiver. It
-// must be an affirmative owner decision: the word "owner", an affirmative
-// decision word (approved / waived / granted / go), no negative or pending
-// word anywhere in the field (rejected, denied, declined, pending, "not
-// approved"...), a real YYYY-MM-DD date, and >= 20 characters of rationale.
-// "Size waiver: 2026-09-12", "Size waiver: none", and "owner rejected ..."
-// are not waivers. The gate checks the record's shape, not its truth.
-const WAIVER_YES = /\b(approved|approves|waived|waives|granted|grants|go)\b/i;
+// "Size waiver:" / "**Size waiver.**" field = the recorded human waiver, in the
+// template's own form: the field OPENS with "owner approved|waived|granted
+// [the cap] YYYY-MM-DD", the date is real, and the rest is a rationale of
+// >= 20 characters with no negative, pending or conditional word (rejected,
+// not, pending, unless, if, once, revoked, no-go, contractions...). An
+// allowlist grammar, not a word search: "owner no-go ...", "owner did not go
+// along ...", "owner 2026-11-17: a split would go badly" are not waivers. The
+// gate checks the record's shape, not its truth.
+const WAIVER_FORM = /^owner\s+(?:approved|waived|granted)(?:\s+the\s+cap)?\s+(\d{4}-\d{2}-\d{2})(?!\d)\s*(.*)$/i;
+const WAIVER_IF = /\bno-go\b|\b(if|once|revoked|vetoed|withdrawn|retracted|conditional|conditionally)\b/i;
 const WAIVER_NO = /\b(not|no|never|un)[\s-]*(approved|waived|granted|authori[sz]ed)\b|\b(rejected|rejects|denied|denies|declined|declines|pending|refused|refuses|withheld|awaiting|tbd|todo)\b|n['’]t\b|\b(will|to)\s+decide\b|\b(only\s+after|unless|until|provided\s+that)\b/i;
+export function waiverProblem(entry) {
+  if (!entry) return "this PR has no review-log entry to hold the waiver";
+  const m = stripHtmlComments(entry.body).match(/(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:]\**\s*([^\n]*)/i);
+  if (!m) return 'no "Size waiver:" field in this PR\'s entry';
+  const w = m[2].trim().match(WAIVER_FORM);
+  if (!w) return 'the "Size waiver:" field must open with "owner approved|waived|granted YYYY-MM-DD" (template form)';
+  if (!isRealDate(w[1])) return `the waiver date ${w[1]} is not a real date`;
+  if (WAIVER_NO.test(w[2]) || WAIVER_IF.test(w[2])) return "the waiver rationale carries a negative, pending or conditional word (a contraction counts) — a conditional approval is not a waiver";
+  if (w[2].replace(/[^A-Za-z0-9]+/g, " ").trim().length < 20) return "the waiver rationale is shorter than 20 characters";
+  return null;
+}
 export function hasSizeWaiver(entry) {
-  if (!entry) return false;
-  const m = entry.body.match(/(^|\n)\s*(?:[-*]\s*)?\**Size waiver\**\s*[.:]\**\s*([^\n]*)/i);
-  if (!m) return false;
-  const text = m[2];
-  const dates = [...text.matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)].map((x) => x[1]);
-  if (!dates.some(isRealDate)) return false;
-  if (!/\bowner\b/i.test(text)) return false;
-  if (WAIVER_NO.test(text)) return false;
-  if (!WAIVER_YES.test(text)) return false;
-  const rationale = text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, "").replace(/\bowner\b/gi, "").replace(WAIVER_YES, "").replace(/[^A-Za-z0-9]+/g, " ").trim();
-  return rationale.length >= 20;
+  return waiverProblem(entry) === null;
+}
+
+// PR_LABELS is the workflow's toJSON(labels.*.name); a comma join let a label
+// named "x,size-waiver" count as the waiver label. Anything else reads as no labels.
+export function parseLabels(raw) {
+  let v = [];
+  try { v = JSON.parse(raw || "[]"); } catch { /* not JSON: no labels */ }
+  return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
 }
 
 function git(args, input) {
@@ -235,15 +278,18 @@ function git(args, input) {
 
 // Attributes are read from the BASE tree (git >= 2.40 --source), never from the
 // PR's own checkout, so a PR cannot mark its files generated to dodge the cap.
+// NUL-delimited both ways (-z): without it check-attr unquotes an input line that
+// starts with '"' and C-quotes its output, so a verbatim path could be crafted to
+// equal the quoted form of another (generated) path.
+export function parseCheckAttrZ(out) {
+  const f = out.split("\0");
+  const set = new Set();
+  for (let i = 0; i + 2 < f.length; i += 3) if (f[i + 2] === "set" || f[i + 2] === "true") set.add(f[i]);
+  return set;
+}
 function generatedSet(paths, baseSha) {
   if (paths.length === 0) return new Set();
-  const out = git(["check-attr", `--source=${baseSha}`, "--stdin", "linguist-generated"], `${paths.join("\n")}\n`);
-  const set = new Set();
-  for (const line of out.split("\n")) {
-    const m = line.match(/^(.*): linguist-generated: (.*)$/);
-    if (m && (m[2] === "set" || m[2] === "true")) set.add(m[1]);
-  }
-  return set;
+  return parseCheckAttrZ(git(["check-attr", "-z", `--source=${baseSha}`, "--stdin", "linguist-generated"], `${paths.join("\0")}\0`));
 }
 
 function runSelfTest() {
@@ -267,6 +313,9 @@ function runSelfTest() {
   check("tier hidden in an HTML comment does not count", declaredTier("<!-- Declared tier: 1 -->\n- Declared tier: 3"), 3);
   check("only a hidden tier is no tier", declaredTier("<!-- Declared tier: 1 -->"), null);
   check("unterminated comment hides the rest", declaredTier("<!-- note\nDeclared tier: 1"), null);
+  check("tier hidden in a link-reference line does not count", declaredTier("[//]: # (Declared tier: 2)\n- Declared tier: 3"), 3);
+  check("two visible tiers that disagree are no declaration", declaredTier("- Declared tier: 2\n- Declared tier: 3"), null);
+  check("the same tier twice is one declaration", declaredTier("Declared tier: 3\n**Declared tier:** 3"), 3);
   check("unlabeled logged tier fails", tierMismatch(3, null) !== null, true);
   check("equal labeled tier passes", tierMismatch(3, 3), null);
   check("mismatched labeled tier fails", tierMismatch(1, 3) !== null, true);
@@ -333,6 +382,10 @@ function runSelfTest() {
   check("entryTier: 'raised to Tier N' beats the labeled field", entryTier({ heading: "x", body: "**Tier.** 2, reviewer raised to Tier 3" }), 3);
   check("entryTier: prose mention does not count", entryTier({ heading: "x", body: "**Tier.** 2 — no Tier 3 paths were touched" }), 2);
   check("entryTier: none", entryTier({ heading: "x", body: "no tier here" }), null);
+  check("entryTier: '(Tier N' in the body is prose", entryTier({ heading: "x", body: "**Tier.** 2 (Tier 3 paths: none)" }), 2);
+  check("append-only: edited entry plus a pasted original fails", logEntryIsNew(baseLog, appended.replace("\nbody\n", "\nrewritten\n") + "\n## 2026-09-10 — PR #91 (other)\n\nbody\n", 85).ok, false);
+  check("whole entry hidden in an HTML comment is no entry", logEntryIsNew(baseLog, baseLog + "\n<!--\n## 2026-09-12 — PR #85 (thing)" + FULL + "-->\n", 85).ok, false);
+  check("old entry wrapped in a comment counts as removed", logEntryIsNew(baseLog, appended.replace("## 2026-09-10", "<!--\n## 2026-09-10").replace("\nbody\n", "\nbody\n-->\n"), 85).ok, false);
   // 4. heading subject and waiver binding
   check("subject: PR #100 (follow-up to #999) is about #100 only", [...headingPrIds("2026-09-12 — PR #100 (follow-up to #999)")], [100]);
   check("subject: PRs #94 and #95 is about both", [...headingPrIds("2026-09-10 — PRs #94 and #95 (x)")].sort(), [94, 95]);
@@ -343,7 +396,7 @@ function runSelfTest() {
   check("subject: 'PRs #88 and #89 fix #85' stops at 'fix'", [...headingPrIds("PRs #88 and #89 fix #85")].sort(), [88, 89]);
   check("subject: en-dash range gives its endpoints", [...headingPrIds("PRs #85–#87 (x)")].sort(), [85, 87]);
   check("subject: 'PR' without a number", [...headingPrIds("PR template update")], []);
-  const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner go 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n\n## 2026-09-12 — PR #100 (follow-up to #999)\n\nbody\n";
+  const log = "# Review Log\n\n## 2026-09-12 — PR #12 (big)\n\n**Tier.** 2\n**Size waiver.** owner approved 2026-09-12: 640 lines, generated-fixture-heavy, split judged riskier.\n\n## 2026-09-10 — PR #91 (other)\n\nSize waiver: none\n\n## 2026-09-12 — PR #100 (follow-up to #999)\n\nbody\n";
   check("prEntry finds the heading about #12", prEntry(log, 12)?.heading, "2026-09-12 — PR #12 (big)");
   check("prEntry ignores #1 vs #12", prEntry(log, 1), null);
   check("prEntry returns null when absent", prEntry(log, 99), null);
@@ -353,9 +406,9 @@ function runSelfTest() {
   check("missing entry fails", hasSizeWaiver(null), false);
   const w = (t) => hasSizeWaiver({ heading: "x", body: `**Tier.** 2\n${t}\n` });
   check("date-only waiver fails", w("Size waiver: 2026-09-12"), false);
-  check("impossible date fails", w("Size waiver: owner go 2026-99-99, generated fixtures dominate the diff"), false);
+  check("impossible date fails", w("Size waiver: owner approved 2026-99-99, generated fixtures dominate the diff"), false);
   check("no owner attribution fails", w("Size waiver: go 2026-09-12, generated fixtures dominate the diff"), false);
-  check("owner + real date + rationale passes", w("Size waiver: owner go 2026-09-12 — generated fixtures dominate the diff"), true);
+  check("bare 'go' is not a decision word", w("Size waiver: owner go 2026-09-12 — generated fixtures dominate the diff"), false);
   check("owner + date but no rationale fails", w("Size waiver: owner 2026-09-12"), false);
   check("owner rejected fails", w("Size waiver: owner rejected 2026-09-12 because this oversized change must be split"), false);
   check("owner approval pending fails", w("Size waiver: owner approval pending 2026-09-12 because this oversized change must be split"), false);
@@ -365,7 +418,21 @@ function runSelfTest() {
   check("owner approved passes", w("Size waiver: owner approved 2026-09-12: generated fixtures dominate the diff"), true);
   check("owner waived passes", w("**Size waiver.** owner waived the cap 2026-09-12 — split judged riskier than one review"), true);
   check("approved but awaiting second reviewer fails (pending word)", w("Size waiver: owner approved 2026-09-12, awaiting R2; generated fixtures dominate"), false);
-  check("bold-label form passes", w("- **Size waiver:** owner Mark approved, 2026-09-12: 640 lines, split judged riskier than one review"), true);
+  check("bold-label form passes", w("- **Size waiver:** owner approved 2026-09-12: 640 lines, split judged riskier than one review"), true);
+  check("decision not opening the field fails", w("- **Size waiver:** owner Mark approved, 2026-09-12: 640 lines, split judged riskier than one review"), false);
+  check("'no-go' is not a waiver", w("Size waiver: owner no-go 2026-11-17 - split this into judge and docs pieces first"), false);
+  check("'did not go along' is not a waiver", w("Size waiver: owner did not go along with this on 2026-11-17, split it into two"), false);
+  check("no decision ('a split would go badly') fails", w("Size waiver: owner 2026-11-17: a split would go badly for the reviewers here"), false);
+  check("conditional 'approved if' fails", w("Size waiver: owner approved 2026-11-17 if R2 passes; judge and self-test are one concern"), false);
+  check("revoked approval fails", w("Size waiver: owner approved 2026-11-01, revoked 2026-11-17 after the split plan"), false);
+  check("'once approved' request fails", w("Size waiver: requested from owner 2026-11-17; once approved the judge stays whole"), false);
+  check("parenthetical source after the date passes", w('**Size waiver.** owner approved 2026-11-17 (S101 batch question, "Land all four"): judge and self-test are one concern'), true);
+  check("waiver hidden in an HTML comment fails", w("<!--\nSize waiver: owner approved 2026-09-12: generated fixtures dominate the diff\n-->"), false);
+  check("failure names the rule", waiverProblem({ heading: "x", body: "Size waiver: owner no-go 2026-11-17 split it into two parts" }), 'the "Size waiver:" field must open with "owner approved|waived|granted YYYY-MM-DD" (template form)');
+  check("labels: JSON array", parseLabels('["size-waiver","x"]'), ["size-waiver", "x"]);
+  check("labels: a comma inside one label is one label", parseLabels('["x,size-waiver"]').includes("size-waiver"), false);
+  check("labels: non-JSON reads as none", parseLabels("size-waiver"), []);
+  check("check-attr -z: a quoted-looking verbatim path is taken verbatim", [...parseCheckAttrZ('"public/insights/a\\tb.json"\0linguist-generated\0unspecified\0public/insights/en.json\0linguist-generated\0set\0')], ["public/insights/en.json"]);
   check("contraction 'hasn't approved' fails", w("Size waiver: owner hasn't approved 2026-11-17 — generated fixtures dominate the diff"), false);
   check("deferred 'will decide; go only after split' fails", w("Size waiver: owner will decide; go ahead only after a split 2026-11-17 — fixtures"), false);
   check("conditional 'approved unless' fails", w("Size waiver: owner approved 2026-11-17 unless R2 objects — judge and self-test are one concern"), false);
@@ -385,14 +452,14 @@ function readEnv() {
     console.error("review-gate: PR_NUMBER, BASE_SHA and HEAD_SHA are required (PR_BODY, PR_LABELS optional)");
     process.exit(2);
   }
-  const labels = (PR_LABELS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const labels = parseLabels(PR_LABELS);
   return { prNumber, body: PR_BODY, labels, baseSha: BASE_SHA, headSha: HEAD_SHA };
 }
 
 // 1. tier
 function checkTier(body, failures) {
   const tier = declaredTier(body);
-  if (tier === null) failures.push('tier: PR body has no "Declared tier: N" line (fill the PR template; never `gh pr create --fill`)');
+  if (tier === null) failures.push('tier: PR body has no single visible "Declared tier: N" line (none, or lines that disagree; fill the PR template; never `gh pr create --fill`)');
   else console.log(`review-gate: tier declared ${tier}`);
   return tier;
 }
@@ -404,7 +471,8 @@ function measureSize(base, headSha, failures) {
   const { counted, skipped, refused } = countChangedLines(recs, (p) => generated.has(p));
   for (const s of skipped) console.log(`review-gate: not counted — ${s}`);
   // A deleted git-binary file cannot hide anything (it has no lines in the head tree).
-  const deleted = new Set(git(["diff", "--name-only", "--diff-filter=D", base, headSha]).split("\n").filter(Boolean));
+  // -z: verbatim paths, the same form parseNumstatZ gives (no C-quoting to collide with).
+  const deleted = new Set(git(["diff", "-z", "--name-only", "--diff-filter=D", base, headSha]).split("\0").filter(Boolean));
   for (const p of refused) {
     if (deleted.has(p)) console.log(`review-gate: not counted — ${p} (binary, deleted)`);
     else failures.push(`size: ${p} is reported binary by git (a NUL byte in a text-typed file hides its lines from this cap and from GitHub's diff) — remove the byte or the file`);
@@ -448,8 +516,8 @@ function checkCap(counted, labels, entry, tier, prNumber, failures) {
     return;
   }
   if (!labels.includes(WAIVER_LABEL)) failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap (excl. lockfiles/generated); split the PR, or label ${WAIVER_LABEL} AND record the human waiver as a dated "Size waiver:" field in this PR's log entry`);
-  else if (!hasSizeWaiver(entry)) failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap and the ${WAIVER_LABEL} label has no dated "Size waiver:" field in this PR's ${LOG_PATH} entry — the label alone is not a waiver`);
-  else console.log(`review-gate: over the cap; ${WAIVER_LABEL} label backed by the dated Size waiver field in the #${prNumber} entry`);
+  else if (waiverProblem(entry)) failures.push(`size: ${counted} changed lines exceed the ${LINE_CAP} cap and the ${WAIVER_LABEL} label is not backed by a valid waiver in this PR's ${LOG_PATH} entry: ${waiverProblem(entry)} — the label alone is not a waiver`);
+  else console.log(`review-gate: over the cap; ${WAIVER_LABEL} label backed by the owner's Size waiver field in the #${prNumber} entry`);
 }
 
 function main() {
