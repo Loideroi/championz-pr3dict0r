@@ -54,3 +54,16 @@ trophy at `0xFe6112BFBA2Ec16ddA0E4b079865d7A7d0892F02`.**
 - **Remaining (human):** the real Stage 1 staging freeze can only run after the
   staging league locks (6 Jul) + results finalize — one `freezeStage` from the owner
   wallet then; claims + trophy mint exercisable on Spicy afterwards.
+
+**2026-09-22 — freeze input scan will fail on every public RPC (PR #111 R2 finding, deferred).**
+- Every Chiliz mainnet RPC now caps `eth_getLogs` (Ankr 1,000 blocks, publicnode
+  50,000, `rpc.chiliz.com` 250,000 — it answered from genesis until September). The
+  admin console's `computeRanked()` (`app/admin/AdminPanel.tsx`) still scans `Entered`
+  from block 0 in the browser, so the first real `freezeStage` attempt will throw
+  before the transaction is built. `/api/standings` was fixed in PR #111 with
+  `scanLogs()` (`lib/predictor/chains.ts`); the admin path is the same ~5-line reuse
+  with `deployBlockFor(chainId)` but sits on the value-moving freeze path, so it is a
+  separate Tier 3 PR.
+- **Due before the Stage 1 freeze** — i.e. before the last MD8 result clears its
+  24 h provisional window (MD8 date per the on-chain fixture calendar). Owner to put
+  a date on it; do not attempt a mainnet freeze from the console before it lands.

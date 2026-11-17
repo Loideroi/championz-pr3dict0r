@@ -11,7 +11,7 @@ boundaries belong to the human.
 |---|---|---|
 | `contracts/**` (sources, tests, configs, scripts, lockfile) | 3 | On-chain prediction pools and settlement — value-moving |
 | `relayer/**` (incl. its lockfile) | 3 | Oracle relayer — the results it produces settle pools; wrong data is value-moving even when no key is held |
-| `.github/workflows/**` | 3 | CI is a merge gate; `oracle-bot.yml` is production automation with repo secrets |
+| `.github/workflows/**` | 3 | CI is a merge gate; `oracle-bot.yml` and `matchday-watch.yml` are production automation holding the oracle key (meant for the `oracle` environment, main-only — owner-created in repo settings) |
 | `supabase/**` (incl. `migrations/**`) | 3 | Production data schema and config — migrations are named Tier 3 in the contract |
 | `app/api/**` | 3 | Server-side routes |
 | `middleware.ts` and any edge/proxy module owning CSP, geo-restriction, or security-header policy | 3 | Production security enforcement (Fanbet reviewer-finding parity, 2026-08-27) |
@@ -35,8 +35,8 @@ Guardrail-complete since 2026-09-11 (app tree), 2026-09-12 (relayer under the sa
 | Gate | Baseline (measured 2026-09-11 app, 2026-09-12 relayer) | Budget / enforcement |
 |---|---|---|
 | ESLint `complexity` (error ≥ 15; app tree + `relayer/`) | 10 over-budget functions (5 app, 5 relayer), each carrying a dated exception (below) | Blocking; `eslint --max-warnings 0`. New code stays under 15 — no new exceptions without a reviewer-approved, dated comment |
-| ESLint `max-lines` (error > 400; tests and the vendored `relayer/vendor/uefa-api-types.ts` exempt — a third-party type file we never refactor; every other rule still applies to it) | 1 file over budget with a dated exception: `relayer/src/insights.ts` (459 counted lines after PR #98 landed on 2026-09-12 while this PR was in review) | Blocking; the one exception expires 2026-10-31 — split the renderers out of `insights.ts` by then |
-| Lint exceptions (`scripts/check-lint-exceptions.mjs`, ESLint-API driven over the whole linted tree, tested in `scripts/check-lint-exceptions.test.ts`) | 11 (10 complexity + 1 max-lines), all `expires 2026-10-31` | Blocking: a suppression directive without a real `expires YYYY-MM-DD` date, past it, or more than 180 days out fails the build anywhere ESLint lints; inline config comments (`eslint rule: setting`, `global`, `globals`, `exported`, `eslint-env`) are forbidden outright because they bypass suppression tracking — detected by ESLint's own parser via a `noInlineConfig` pass, not a regex; `reportUnusedDisableDirectives: error` fails a stale directive once the function is fixed |
+| ESLint `max-lines` (error > 400; tests and the vendored `relayer/vendor/uefa-api-types.ts` exempt — a third-party type file we never refactor; every other rule still applies to it) | 1 file over budget with a dated exception: `relayer/src/insights.ts` (459 counted lines after PR #98 landed on 2026-09-12 while this PR was in review) | Blocking; the one exception expires 2027-01-31 (re-dated from 2026-10-31 in review, 2026-11-17) — split the renderers out of `insights.ts` by then |
+| Lint exceptions (`scripts/check-lint-exceptions.mjs`, ESLint-API driven over the whole linted tree, tested in `scripts/check-lint-exceptions.test.ts`) | 11 (10 complexity + 1 max-lines), all `expires 2027-01-31` (re-dated from 2026-10-31 in review on 2026-11-17: measurements unchanged, see `docs/REVIEW_LOG.md`) | Blocking: a suppression directive without a real `expires YYYY-MM-DD` date, past it, or more than 180 days out fails the build anywhere ESLint lints; inline config comments (`eslint rule: setting`, `global`, `globals`, `exported`, `eslint-env`) are forbidden outright because they bypass suppression tracking — detected by ESLint's own parser via a `noInlineConfig` pass, not a regex; `reportUnusedDisableDirectives: error` fails a stale directive once the function is fixed |
 | dependency-cruiser (`npm run arch`: app, components, hooks, lib, i18n, content, middleware.ts **and, since 2026-09-13, relayer/src, test, scripts, vendor**) | 0 violations over 412 dependencies / 177 modules locally, 174 in the CI `app` job (`relayer/node_modules` absent there, so viem/zod/vitest resolve once from the root — same graph; app 123 / 297 on 2026-09-11; relayer 54 / 111 on 2026-09-13 — 0 cycles, the two orphans being the exempted `scripts/bot-poll.mjs` and the vendored types; identical with or without a local `relayer/dist`) | Blocking: no cycles, no upward imports, no orphans outside framework entry files / relayer scripts / the vendored types, no runtime devDependency imports (relayer judged against `relayer/package.json`), no relayer import of a root-only package, no import between the two trees except `lib/admin/pipeline.lockstep.test.ts`, relayer `test/` imported by nothing, `vendor/` importing nothing (`ARCHITECTURE.md` → relayer layers) |
 | knip (`npm run deadcode:ci`: files, dependencies, unlisted, unresolved; two workspaces `.` and `relayer` since 2026-09-13) | 0 / 0 / 0 / 0 (informational via `npm run deadcode`: app 19 unused exports + 7 unused types; relayer 25 unused exports + 10 unused types + 1 duplicate export) | Blocking on the four high-signal categories (`unresolved` added 2026-09-13 at a measured 0 in both workspaces); exports/types are slow-burn, not gated. Known blind spots and where the gate lives instead: a root-listed package imported from `relayer/` (→ dependency-cruiser `relayer-no-unlisted-package`), an unresolved import into gitignored `relayer/dist` (→ `relayer/test/scripts-dist-imports.test.ts`, required `relayer` check) |
 | jscpd (`npm run dup`: app, components, hooks, lib, middleware.ts, relayer/src; tests excluded, min-tokens 50) | 9 exact clones, 0.86% duplicated lines | CI threshold **1%** (tightened from 2% on 2026-09-11) — ratchet down as clones consolidate |
@@ -47,17 +47,17 @@ Guardrail-complete since 2026-09-11 (app tree), 2026-09-12 (relayer under the sa
 
 | Function | File | Complexity 2026-09-11 | Expires |
 |---|---|---|---|
-| `EnterPanel` | `app/enter/EnterPanel.tsx` | 51 | 2026-10-31 |
-| `MatchRow` | `components/predict/MatchRow.tsx` | 32 | 2026-10-31 |
-| `saveProfile` | `lib/profile/service.ts` | 27 | 2026-10-31 |
-| `ProfileForm` | `components/profile/ProfileForm.tsx` | 26 | 2026-10-31 |
-| `POST` (Telegram webhook) | `app/api/telegram/webhook/route.ts` | 19 | 2026-10-31 |
-| `toMatchResult` (arrow) | `relayer/src/source.ts` | 37 | 2026-10-31 |
-| `renderInsight` | `relayer/src/insights.ts` | 20 | 2026-10-31 |
-| `relayOnce` | `relayer/src/relay.ts` | 20 | 2026-10-31 |
-| `diffOnchain` | `relayer/src/onchainVerify.ts` | 17 | 2026-10-31 |
-| `runsFromMatches` | `relayer/src/strength.ts` | 17 | 2026-10-31 |
-| *(file)* `insights.ts` — `max-lines` | `relayer/src/insights.ts` | 459 lines vs 400 | 2026-10-31 |
+| `EnterPanel` | `app/enter/EnterPanel.tsx` | 51 | 2027-01-31 |
+| `MatchRow` | `components/predict/MatchRow.tsx` | 32 | 2027-01-31 |
+| `saveProfile` | `lib/profile/service.ts` | 27 | 2027-01-31 |
+| `ProfileForm` | `components/profile/ProfileForm.tsx` | 26 | 2027-01-31 |
+| `POST` (Telegram webhook) | `app/api/telegram/webhook/route.ts` | 19 | 2027-01-31 |
+| `toMatchResult` (arrow) | `relayer/src/source.ts` | 37 | 2027-01-31 |
+| `renderInsight` | `relayer/src/insights.ts` | 20 | 2027-01-31 |
+| `relayOnce` | `relayer/src/relay.ts` | 20 | 2027-01-31 |
+| `diffOnchain` | `relayer/src/onchainVerify.ts` | 17 | 2027-01-31 |
+| `runsFromMatches` | `relayer/src/strength.ts` | 17 | 2027-01-31 |
+| *(file)* `insights.ts` — `max-lines` | `relayer/src/insights.ts` | 459 lines vs 400 | 2027-01-31 |
 
 An expiry may be extended only in a reviewed PR that says why; the checker fails the build the day after it passes.
 
