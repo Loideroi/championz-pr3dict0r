@@ -2,6 +2,53 @@
 
 Per-PR record required by the multi-agent code review contract (Loideroi LLM Wiki, `agent/contracts/multi-agent-code-review.md`): tier, reviewers with exact model IDs, findings by severity, dispositions, disputes.
 
+## 2026-11-17 — PR #131 `chore/s100-security-upgrades` (S100: security upgrades for the open critical/high Dependabot alerts — next 16.4.6, zod 4.6.7, axios/cdp-sdk, contracts toolchain patches; Hardhat 2 kept)
+
+**Scope.** Owner-approved batch (2026-11-17, candidate 1 S100 question: "Recommended set"; Hardhat 3 declined). Three manifests, 8 hand-written lines outside the lockfiles. Root: next 16.3.4→16.4.6 (sharp 0.35.5), @coinbase/cdp-sdk 1.51.2→1.57.1 with axios 1.16.0→1.20.0 (entries carried from Dependabot #114's resolution; the package is optional, so `npm update` skips it), follow-redirects 1.16.3, source-map-js 1.2.2, vite 7.3.8. Relayer: zod 3.25.76→4.6.7 (major), vite 7.3.7, source-map-js 1.2.2 (Dependabot commits cherry-picked with `-x`). Contracts (dev toolchain): fast-uri 3.1.9, follow-redirects, handlebars 4.7.10, js-yaml 4.3.2/3.15.2 (cherry-picked); in-range axios 1.21.1, brace-expansion 1.1.22/2.1.8/5.0.13 and (added on owner approval in round 3) undici 6.27.0→6.29.1 under `@openzeppelin/hardhat-upgrades`; `overrides` lodash ^4.18.0 (global) and ws ^8.21.0 under `@ethersproject/providers` only. Covers alerts 13, 18, 24–26, 33, 37, 38, 50, 75, 76, 78, 79, 83, 84, 98, 115, 116, 121, 123, 132–136, 140, 147–149, 151, 154–157, 160, 161, 173, 176–181, 185, 186. Declined by the owner for now (dev-only, Hardhat 3 migration): 7, 17, 23, 94, 97, 188, 189. Supersedes Dependabot #129, #114, #121, #118, #123, #128, #122, #119, #126, #120, #117, #77. Commits `8493f93`…`4a2b480` (round 1) → `d7c2c70` (R1 fold) → `662257d` (undici, owner-approved), plus a merge of `main` after #130 landed (review-log conflict only, resolved by re-inserting this entry); `662257d` is the reviewed sha.
+
+**Tier.** 3 — all three `package.json` and all three lockfiles; `relayer/**`; `contracts/**`. Confirmed by both reviewers.
+
+**Roles and models.**
+- **Author:** Claude Code interactive, `claude-opus-5-5`.
+- **Reviewer 1:** owner-directed interim stand-in for Codex (2026-11-17, "use opus 5.5 for the review"): fresh-context Claude Code subagent, `claude-opus-5-5`, no author reasoning, no R2 findings. **Deviation:** same vendor and model as the author; Codex CLI `gpt-5.6-sol` is at its account usage limit until 2026-11-18 16:28. Codex R1 still owed within 48 h of the reset; a Blocker/Major from it is handled as a post-merge finding.
+- **Reviewer 2 (fresh context):** Claude Code subagent, `claude-opus-5-5`, read-only, ran the suites and a zod 3-vs-4 parse probe. Writes the risk brief.
+
+**Verdicts.**
+- Round 1 (`4a2b480`): R1 **pass-with-minors** (2 Minor, 1 Nit); R2 **pass-with-minors** (2 Minor, 2 Nit). R1 Minor 1 folded in `d7c2c70`.
+- Round 2 (`d7c2c70`, delta): R1 **pass**; R2 **pass-with-minors** (no new findings; the round-1 minors as dispositioned below).
+- Round 3 (`662257d`, delta: the undici bump, plus the `main` merge `31ab595`): R1 **pass** (one lockfile key; registry URL and integrity match `npm view`; hardhat's undici 5.29.0 unchanged; the merge brings in only #130's lines); R2 **pass-with-minors** (same checks, `npm ls --all` clean, hardhat 55 passing, the merge's non-log diff byte-identical to #130; 1 new Nit on this entry, applied).
+
+Verdict: R1 pass, R2 pass-with-minors at `662257d` (final).
+
+Tally: 0 Blocker / 0 Major / 4 Minor / 3 Nit (unique; the `eslint-config-next` Nit was raised by both).
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Minor | R1 | Hand-carried root lockfile left `debug`/`ms` flagged `dev`; axios 1.20 → https-proxy-agent → agent-base needs `debug` on the optional production path, so `npm ci --omit=dev` would drop it (latent: Vercel installs dev deps) | Fixed (`d7c2c70`): entries byte-identical to #114; R1 and R2 re-checked: resolved (R2's graph walk flags exactly these two at `4a2b480`, none at `d7c2c70`) |
+| Minor | R1 | `npm audit` still lists root zod 3.x (wallet libraries), a newer brace-expansion advisory and vitest/tinypool (dev) | Follow-up: none is an open Dependabot alert (the critical/high set re-read 2026-11-17: unchanged, 52); R2 found the root-zod alert 174 auto-dismissed. Next triage round |
+| Minor | R2 | Alert 173 (undici 6.27.0 nested under `@openzeppelin/hardhat-upgrades` 3.9.1, `^6.11.1`) is fixable in-range (6.29.1) without Hardhat 3 | Fixed (`662257d`) on the owner’s approval (2026-11-17, "Add to #131"): only the nested copy moves; hardhat 2’s undici 5.29.0 (188/189) stays declined |
+| Minor | R2 | zod 4 `int()` rejects integers above 2^53 that zod 3 accepted | Accepted: on both match fixtures and 16 edge cases every other parse result is identical; unsafe integers now raise SOURCE_SCHEMA_CHANGED (fail loud), never a silently different push. Follow-up: a relayer test pinning it |
+| Nit | R1, R2 | `eslint-config-next` stays 16.3.4 while `next` is 16.4.6 | Accepted; lint green |
+| Nit | R2 (round 3) | This entry credited R2 with the zod default/catch/coerce/passthrough check, which R1 reported | Fixed: attributed to R1 in Missing |
+| Nit | R2 | zod 4 issue messages are worded differently (SourceSchemaError / Telegram alert text) | Accepted: `.issues`/`path`/`message` API unchanged; cosmetic |
+
+**Checked:**
+- **R1:** parsed `packages` maps of all three lockfiles base vs head (every change traced to a named upgrade; registry.npmjs.org + integrity everywhere; cdp-sdk/axios/agent-base/https-proxy-agent byte-identical to #114 `ea47c840821f`); each targeted copy at or above its fixed version; every relayer zod schema and ZodError use; override scope; relayer `tsc` + 181 tests, root `tsc` + 224 tests, `next build` on 16.4.6, lint, hardhat 55 passing; round 2: full packages-map diff `4a2b480`→`d7c2c70` (two keys) and committed flags vs npm's computed tree (0 differences).
+- **R2:** zod 3.25.76 vs 4.6.7 side-by-side probe on the real `relayer/src/schema.ts` (fixtures + 16 edge cases); relayer 181 tests + `tsc` (single zod 4.6.7 in the tree); root `npm run build` (only the pre-existing middleware→proxy deprecation warning), 224 tests, typecheck, lint; `hardhat compile` + 55 tests, `npm ls` clean, lodash 4.18.1 everywhere, ws dedupe; lockfile packages-map diff and registry/integrity sweep; round 2: dependency-graph flag walk.
+- **Author:** all app gates (lint with `LINT_EXCEPTIONS_TODAY=2026-10-30` until #130 lands, typecheck, arch 123/299, deadcode:ci, dup 0.85%, check:i18n, 224 tests, `npm run build`); relayer 181 tests + `tsc`; contracts `hardhat compile` + 55 passing + `test:gate`; `npm ci` + `npm ls --all` clean in all three trees; an `npm ci --omit=dev --ignore-scripts` copy keeps debug, ms, https-proxy-agent; alert set re-read before this entry; CI on `4a2b480`: `contracts` (slither), `relayer`, CodeQL, squawk, Vercel green, `app` red only on the expired exceptions #130 fixes. This entry linted with `node scripts/lint-review-log.mjs docs/REVIEW_LOG.md`.
+
+**verification-gap:** no run against the live UEFA feed or a deployed preview of the relayer; the zod probe covers recorded fixtures and synthetic edge cases. No test pins the zod 4 unsafe-integer rejection. Slither ran only in CI (Solidity and solc unchanged). Nothing mechanical fails if a future `npm install` drops the overrides; the Tier 3 floor on `contracts/package.json` is the control.
+
+**named-set:** alerts: all 52 open critical/high alerts are either covered here (45) or declined by the owner (7: 7, 17, 23, 94, 97, 188, 189). Lockfiles: root, relayer, contracts — all three diffed. Override targets: lodash (global), ws (only under `@ethersproject/providers`; hardhat's ws 7.5.11 is outside alert 18's range).
+
+**Missing:** looked for and did not find (R1, R2): a non-registry `resolved` URL or missing integrity; an unexplained package change; app code importing the relayer's zod; a gate, `.npmrc` or settings change. (R1) zod `default`/`catch`/`coerce`/`passthrough` semantics in the relayer schemas.
+
+**Dismissed:** none. **Disputes:** none.
+
+**Risk brief (R2).** This upgrades Next to 16.4.6 and sharp, moves the relayer's feed validator from zod 3 to 4, and patches axios, lodash, ws and similar packages, mostly in dev toolchains. The one path that could change what reaches the chain is relayer parsing, and on real fixtures it parses identically; a malformed feed now fails slightly more strictly, not more loosely. After the merge, watch the first relayer runs for SOURCE_SCHEMA_CHANGED alerts (the wording will look different) and the Vercel production build and middleware behaviour.
+
+**Gate.** Owner go/no-go pending, on reviewed sha `662257d` plus the `main` merge and this log-only entry; merges after #130 (then this branch is updated from `main` and CI re-runs green). Merge is the owner's click. After the merge: close the 12 superseded Dependabot PRs with a reason and comment the owner's Hardhat 3 decline on #127/#110.
+
 ## 2026-11-17 — PR #130 `chore/lint-exception-redate` (re-date the 11 lint exceptions to 2027-01-31; main's `app` check red since 2026-11-01)
 
 **Scope.** Expiry dates only: the 11 time-bounded ESLint exceptions (10 `complexity`, 1 `max-lines` on `relayer/src/insights.ts`) move from `expires 2026-10-31` to `expires 2027-01-31` in their directive comments and in `docs/REVIEW_TIERS.md` (11 table rows plus the two baseline rows, which gain a re-date note). +24/−24 across 11 files. Why: `scripts/check-lint-exceptions.mjs` fails every `app` run since 2026-11-01 (all 11 expired 2026-10-31), and with strict required checks no PR could merge, including the S100 security upgrades. Owner decision 2026-11-17 (candidate 1, S100/S101 batch question): "Re-date to 2027-01-31". Reviewed sha `e885dc7`; this entry is a log-only commit on top.
