@@ -23,12 +23,30 @@ concurrency:
   group: oracle-bot
   cancel-in-progress: false
 
+# The relayer only reads the repo; its writes go to the chain, Supabase and
+# Telegram with their own credentials. Explicit so a change to the repo
+# default cannot widen it.
+permissions:
+  contents: read
+
 jobs:
   relay:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The oracle key and the service credentials live in the `oracle`
+    # environment, whose deployment-branch policy admits `main` only — a
+    # workflow pushed on any other branch cannot read them. `deployment: false`
+    # keeps ~10 runs a day out of the Deployments list. TELEGRAM_OPS_CHAT_ID is
+    # a secret because step env is printed in the (public) run log; the
+    # `|| vars.` fallback only bridges the switchover — drop it once the
+    # Actions variable is deleted.
+    environment:
+      name: oracle
+      deployment: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -51,18 +69,21 @@ jobs:
           CHAIN_ID: "88888"
           ORACLE_MIN_CHZ: "20"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID || vars.TELEGRAM_OPS_CHAT_ID }}
           TELEGRAM_CHANNEL_ID: ${{ vars.TELEGRAM_CHANNEL_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Through env, never spliced into the script: a quote in the JSON
+          # would otherwise end the string and run as shell next to the key.
+          MANUAL_RESULTS: ${{ github.event.inputs.manual_results }}
         run: |
           # tag the run row so /admin can tell cron from watcher from operator
           EXTRA="--runner ${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'cron' }}"
           # daily 07:07 UTC schedule → heartbeat DM
           if [ "${{ github.event.schedule }}" = "7 7 * * *" ]; then EXTRA="$EXTRA --heartbeat"; fi
           # operator-dispatched manual results → degraded-mode fallback
-          if [ -n "${{ github.event.inputs.manual_results }}" ]; then
-            printf '%s' '${{ github.event.inputs.manual_results }}' > /tmp/manual-results.json
+          if [ -n "$MANUAL_RESULTS" ]; then
+            printf '%s' "$MANUAL_RESULTS" > /tmp/manual-results.json
             EXTRA="$EXTRA --manual /tmp/manual-results.json"
           fi
           node scripts/relay.mjs --map config/mainnet-map.json $EXTRA
@@ -80,15 +101,17 @@ jobs:
           OWNER_ADDRESS: "0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8"
           ORACLE_MIN_CHZ: "20"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID || vars.TELEGRAM_OPS_CHAT_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/check-balance.mjs
 
       # Ops sentinels: governance drift, solvency invariant, seasonal
-      # deadlines (+ site uptime and the deep stage scan on mainnet). Same
-      # 24h-per-type dedupe as the balance watch. EXPECTED_IMPL must be
-      # updated on every legitimate proxy upgrade.
+      # deadlines (+ site uptime, the deep stage scan and the repo-activity
+      # clock on mainnet). Same 24h-per-type dedupe as the balance watch.
+      # EXPECTED_IMPL must be updated on every legitimate proxy upgrade.
+      # LAST_COMMIT_AT is the checked-out commit's time — on a scheduled run,
+      # the tip of main.
       - name: Ops sentinel — Chiliz mainnet
         if: always()
         working-directory: relayer
@@ -100,13 +123,13 @@ jobs:
           EXPECTED_ORACLE: "0xB57Cb421E3B707d0970Ec758D40a4366DB317B15"
           EXPECTED_IMPL: "0x09FeC2eA6f5a1EeA5171cb0ffBC65Dcf76ed72f6"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID || vars.TELEGRAM_OPS_CHAT_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           EXTRA="--uptime"
           if [ "${{ github.event.schedule }}" = "7 7 * * *" ]; then EXTRA="$EXTRA --deep"; fi
-          node scripts/sentinel.mjs $EXTRA
+          LAST_COMMIT_AT="$(git log -1 --format=%ct)" node scripts/sentinel.mjs $EXTRA
 
       - name: Ops sentinel — Spicy staging
         if: always()
@@ -119,7 +142,7 @@ jobs:
           EXPECTED_ORACLE: "0xB57Cb421E3B707d0970Ec758D40a4366DB317B15"
           EXPECTED_IMPL: "0x888e98fC6ecEe5C8A086003956Cf7DAb7493bBd7"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID || vars.TELEGRAM_OPS_CHAT_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/sentinel.mjs
@@ -134,7 +157,7 @@ jobs:
           OWNER_ADDRESS: "0x47103b0FC04c91Ac388eaE3c4f91D038CBfD9CF8"
           ORACLE_MIN_CHZ: "20"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ vars.TELEGRAM_OPS_CHAT_ID }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID || vars.TELEGRAM_OPS_CHAT_ID }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/check-balance.mjs

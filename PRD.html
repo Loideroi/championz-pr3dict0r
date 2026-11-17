@@ -430,7 +430,7 @@
 <section id="deploy">
   <div class="sec-head"><div class="eyebrow">§18–19</div><h2>Deployment, domain &amp; free-tier matrix</h2></div>
   <ul>
-    <li><b>GitHub:</b> new repo under personal <b>Loideroi</b> (mark.verdegaal@gmail.com); public preferred (unlimited free Actions minutes). ⚠ Actions schedules auto-disable after 60 days of repo inactivity — calendar reminder for the winter break.</li>
+    <li><b>GitHub:</b> new repo under personal <b>Loideroi</b> (mark.verdegaal@gmail.com); public preferred (unlimited free Actions minutes). ⚠ Actions schedules auto-disable after 60 days of repo inactivity (undefined in the docs; a commit on main is the safe reading) — the mainnet sentinel warns the ops chat from day 46; land a real change on main, never an automated keep-alive.</li>
     <li><b>Vercel:</b> Loideroi Hobby account. Daily-cron limit respected (relayer lives on GitHub Actions).</li>
     <li><b>pr3dict0r.com (GoDaddy, purchased):</b> add the domain in Vercel first, copy the exact records it shows — typically apex <span class="mono">A @ → 216.198.79.1</span> (legacy 76.76.21.21 works), <span class="mono">CNAME www → cname.vercel-dns.com</span> — and <b>delete GoDaddy's default parked A record</b> or verification fails. ≤1h propagation typical.</li>
     <li><b>Contracts:</b> full staging pass on Spicy (relayer-driven fake matchday from archived UEFA fixtures) → mainnet → keyless Chiliscan verification.</li>

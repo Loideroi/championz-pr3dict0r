@@ -222,7 +222,7 @@ const REASONS_PENALTIES: readonly WinnerReason[] = ['WIN_ON_PENALTIES'];
  *
  * Returns null when the feed has no score for the match yet.
  */
-// eslint-disable-next-line complexity -- known debt: complexity 37 vs budget 15 (2026-09-12); expires 2026-10-31; burn-down tracked in docs/REVIEW_TIERS.md
+// eslint-disable-next-line complexity -- known debt: complexity 37 vs budget 15 (2026-09-12); expires 2027-01-31; burn-down tracked in docs/REVIEW_TIERS.md
 export const toMatchResult = (m: UefaMatch): MatchResult | null => {
   const score = m.score;
   if (!score) return null;
