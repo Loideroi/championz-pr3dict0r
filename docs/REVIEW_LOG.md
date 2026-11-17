@@ -16,11 +16,11 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 **Verdicts.**
 - Round 1 (`4a2b480`): R1 **pass-with-minors** (2 Minor, 1 Nit); R2 **pass-with-minors** (2 Minor, 2 Nit). R1 Minor 1 folded in `d7c2c70`.
 - Round 2 (`d7c2c70`, delta): R1 **pass**; R2 **pass-with-minors** (no new findings; the round-1 minors as dispositioned below).
-- Round 3 (`662257d`, delta: the undici bump): R1 and R2 results below.
+- Round 3 (`662257d`, delta: the undici bump, plus the `main` merge `31ab595`): R1 **pass** (one lockfile key; registry URL and integrity match `npm view`; hardhat's undici 5.29.0 unchanged; the merge brings in only #130's lines); R2 **pass-with-minors** (same checks, `npm ls --all` clean, hardhat 55 passing, the merge's non-log diff byte-identical to #130; 1 new Nit on this entry, applied).
 
-Verdict: see Round 3 (final).
+Verdict: R1 pass, R2 pass-with-minors at `662257d` (final).
 
-Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` Nit was raised by both).
+Tally: 0 Blocker / 0 Major / 4 Minor / 3 Nit (unique; the `eslint-config-next` Nit was raised by both).
 
 | Sev | Raised by | Finding | Disposition |
 |---|---|---|---|
@@ -29,6 +29,7 @@ Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` N
 | Minor | R2 | Alert 173 (undici 6.27.0 nested under `@openzeppelin/hardhat-upgrades` 3.9.1, `^6.11.1`) is fixable in-range (6.29.1) without Hardhat 3 | Fixed (`662257d`) on the owner’s approval (2026-11-17, "Add to #131"): only the nested copy moves; hardhat 2’s undici 5.29.0 (188/189) stays declined |
 | Minor | R2 | zod 4 `int()` rejects integers above 2^53 that zod 3 accepted | Accepted: on both match fixtures and 16 edge cases every other parse result is identical; unsafe integers now raise SOURCE_SCHEMA_CHANGED (fail loud), never a silently different push. Follow-up: a relayer test pinning it |
 | Nit | R1, R2 | `eslint-config-next` stays 16.3.4 while `next` is 16.4.6 | Accepted; lint green |
+| Nit | R2 (round 3) | This entry credited R2 with the zod default/catch/coerce/passthrough check, which R1 reported | Fixed: attributed to R1 in Missing |
 | Nit | R2 | zod 4 issue messages are worded differently (SourceSchemaError / Telegram alert text) | Accepted: `.issues`/`path`/`message` API unchanged; cosmetic |
 
 **Checked:**
@@ -40,7 +41,7 @@ Tally: 0 Blocker / 0 Major / 4 Minor / 2 Nit (unique; the `eslint-config-next` N
 
 **named-set:** alerts: all 52 open critical/high alerts are either covered here (45) or declined by the owner (7: 7, 17, 23, 94, 97, 188, 189). Lockfiles: root, relayer, contracts — all three diffed. Override targets: lodash (global), ws (only under `@ethersproject/providers`; hardhat's ws 7.5.11 is outside alert 18's range).
 
-**Missing:** looked for and did not find (R1, R2): a non-registry `resolved` URL or missing integrity; an unexplained package change; app code importing the relayer's zod; zod `default`/`catch`/`coerce`/`passthrough` semantics in the relayer schemas; a gate, `.npmrc` or settings change.
+**Missing:** looked for and did not find (R1, R2): a non-registry `resolved` URL or missing integrity; an unexplained package change; app code importing the relayer's zod; a gate, `.npmrc` or settings change. (R1) zod `default`/`catch`/`coerce`/`passthrough` semantics in the relayer schemas.
 
 **Dismissed:** none. **Disputes:** none.
 
