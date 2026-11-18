@@ -1,11 +1,46 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  // Scope: the Next.js app tree only. contracts/ and relayer/ are their own npm
-  // trees (same split as .dependency-cruiser.js; ESLint does lint relayer/ from
-  // the root since 2026-09-12 — relayer knip is a named follow-up in
-  // docs/REVIEW_TIERS.md); supabase/ holds SQL, not modules. knip's Next.js
-  // and next-intl plugins pick up app/**, middleware.ts and i18n/request.ts as
-  // entries on their own. scripts/*.mjs are CI tooling run directly by node.
-  "entry": ["scripts/*.mjs"],
-  "project": ["app/**", "components/**", "hooks/**", "lib/**", "i18n/**", "content/**", "scripts/**"]
+  // Two workspaces, one root config (same split as .dependency-cruiser.js;
+  // contracts/ is its own npm tree with its own toolchain and stays out;
+  // supabase/ holds SQL, not modules). CI runs `npm run deadcode:ci`
+  // (files, dependencies, unlisted, unresolved — the high-signal categories);
+  // unused exports/types stay informational via `npm run deadcode`.
+  "workspaces": {
+    ".": {
+      // The Next.js app tree. knip's Next.js and next-intl plugins pick up
+      // app/**, middleware.ts and i18n/request.ts as entries on their own.
+      // scripts/*.mjs are CI tooling run directly by node.
+      "entry": ["scripts/*.mjs"],
+      "project": ["app/**", "components/**", "hooks/**", "lib/**", "i18n/**", "content/**", "scripts/**"]
+    },
+    "relayer": {
+      // Entries (each with its reason):
+      // - scripts/*.mjs: all 11 are shebang CLIs with a usage contract in
+      //   their header, run directly by node — relay, check-balance, sentinel,
+      //   matchday-span by .github/workflows/oracle-bot.yml and
+      //   matchday-watch.yml; the other seven by the operator (five listed in
+      //   relayer/README.md; bot-poll and generate-insights document their own
+      //   invocation in the header).
+      // - vendor/uefa-api-types.ts: vendored, externally maintained type
+      //   reference (PRD §7.1) that nothing imports by design (src/schema.ts
+      //   mirrors it in zod). Modelled as an entry, NOT ignored: its exports are
+      //   not reported (entry-file exports never are), but a package import
+      //   added to it would still be checked against relayer/package.json.
+      // src/** needs no entry: the scripts reach it through `paths` below, and
+      // the vitest plugin adds test/**/*.test.ts as entries from vitest.config.ts.
+      "entry": ["scripts/*.mjs", "vendor/uefa-api-types.ts"],
+      "project": ["src/**", "scripts/**", "test/**", "vendor/**"],
+      // The scripts import the tsc output (`../dist/src/x.js`, gitignored and
+      // absent in the CI app job). Map it back to the sources so the graph is
+      // complete without a build (src/index.ts and the exports the scripts use
+      // count as used). Two things knip does NOT catch here, by design, and
+      // where the gate lives instead: (1) a package listed only in the root
+      // package.json counts as available to this workspace — dependency-
+      // cruiser's `relayer-no-unlisted-package` fails it; (2) an unresolved
+      // import whose target is gitignored (dist/) is never reported — the
+      // relayer's own `scripts/*.mjs — dist imports` test builds dist and
+      // checks every dist import and named export (required `relayer` check).
+      "paths": { "../dist/src/*": ["./src/*"] }
+    }
+  }
 }

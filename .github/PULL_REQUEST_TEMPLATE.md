@@ -10,13 +10,13 @@
 ## Author verification (before requesting review)
 
 - [ ] `npm run lint` green (blocking: zero warnings, complexity ≤ 15, max-lines ≤ 400; any `eslint-disable` carries `expires YYYY-MM-DD` and is listed in `docs/REVIEW_TIERS.md`)
-- [ ] `npm run arch` green (dependency-cruiser: layering, cycles, orphans, devDeps)
-- [ ] `npm run deadcode:ci` green (knip: unused files, dependencies, unlisted imports)
+- [ ] `npm run arch` green (dependency-cruiser: layering, cycles, orphans, devDeps — app tree and `relayer/`)
+- [ ] `npm run deadcode:ci` green (knip: unused files, dependencies, unlisted and unresolved imports — workspaces `.` and `relayer`)
 - [ ] `npm run dup` green (duplication under the 1% ratchet threshold)
 - [ ] `npm run typecheck` green
 - [ ] `npm test` green
 - [ ] `npm run check:i18n` green
-- [ ] Relayer touched → `npm run test:relayer` green
+- [ ] Relayer touched → in `relayer/`: `npm run typecheck && npm test && npm run build` green (the CI `relayer` job's sequence; `npm test` includes the scripts → dist import check)
 - [ ] Contracts touched → `npx hardhat compile && npx hardhat test && npm run slither` green in `contracts/` (slither: a new High/Medium finding or a moved triaged one fails — re-triage in `slither-triage.json` with the reason and a SECURITY_FINDINGS.md reference)
 - [ ] Migrations touched → `npx squawk` green on the new files (squawk fails on ANY finding; a deliberate exception is a commented, justified `.squawk.toml` exclusion in this PR)
 - [ ] Behavior exercised, not just generated — state what you ran:
