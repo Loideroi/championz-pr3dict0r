@@ -32,6 +32,51 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 
 **Delta re-check (2026-11-17, after merging main `333390b`).** Only merges of main since the reviewed `dfeece4`; the PR's changed lines vs main are identical per file to the reviewed ones; the `docs/REVIEW_TIERS.md` conflict kept main's two re-dated lint rows and this PR's dependency-cruiser/knip rows. R1 (interim stand-in for Codex, owner-directed while Codex is limited; the Codex pass is owed) and R2: fresh-context Claude subagents, `claude-opus-5-5`. R1: **pass-with-minors**; R2: **pass-with-minors** — one shared Minor: the baseline and the owner script said 412 dependencies, the merged tree has 414 (main's #111 added two viem edges); fixed above and in the REVIEW_TIERS row. R2 ran the gates on a throwaway worktree of `72e17ec` after `npm ci` (arch 177/414 and 174/414 without `relayer/node_modules`, `deadcode:ci` 0, relayer 195 tests, root typecheck/lint/dup/i18n/test green). Dated 2026-09-13 figures in the history lines and the `.dependency-cruiser.js` comment are left as history.
 
+## 2026-11-18 — PR #138 `fix/s100-security-overrides` (S100 batch 2: contracts overrides on Hardhat 2, vitest 4 drops tinypool)
+
+**Scope.** Owner-approved 2026-11-18 (S100 approval list, items 1 and 2: "Approve 1 (contracts overrides), approve 2 (vitest 4, dismiss as dev-only only if tests can't pass)"). Contracts: `overrides` adm-zip ^0.6.1, undici ^6.29.1, serialize-javascript ^7.1.3, tmp ^0.2.6, Hardhat 2 kept; resolves 0.6.1 / 6.29.1 / 7.1.4 / 0.2.7 and removes @fastify/busboy and os-tmpdir. Root and relayer: vitest ^3 → ^4.1.12 (no tinypool dependency) with `overrides` vite ^7.3.8 so vitest 4 does not resolve vite 8 (not approved). Closes critical/high alerts 7, 17, 23, 94, 97, 188, 189 and the critical tinypool alerts 197, 198, 201, 202; reviewers list further lower-severity closes in the PR body. Zod alert 174 was dismissed separately (tolerable_risk, owner-approved item 3). Commits `6bc4589`, `572e0da` (round 1) → `62a13dd` (fold); `62a13dd` is the reviewed sha; this entry is a log-only commit on top.
+
+**Tier.** 3 — all three `package.json` and lockfiles, `contracts/**`, `relayer/**`. Confirmed by both reviewers.
+
+**Roles and models.**
+- **Author:** Claude Code interactive, `claude-opus-5-5`.
+- **Reviewer 1:** interim stand-in for Codex, as for #130/#131 (owner direction 2026-11-17 for the S100 batch): fresh-context Claude Code subagent, `claude-opus-5-5`, no author reasoning, no R2 findings. **Deviation:** same vendor and model as the author; Codex CLI `gpt-5.6-sol` is at its usage limit until 2026-11-18 16:28. Codex R1 still owed within 48 h of the reset; a Blocker/Major from it is handled as a post-merge finding.
+- **Reviewer 2 (fresh context):** Claude Code subagent, `claude-opus-5-5`, ran every suite in its own clean worktree. Writes the risk brief.
+
+**Verdicts.**
+- Round 1 (`572e0da`): R1 **pass-with-minors** (2 Minor, 2 Nit); R2 **pass-with-minors** (1 Minor, 3 Nit).
+- Round 2 (`62a13dd`, delta: one manifest line): R1 **pass** (lockfile identical, serialize-javascript 7.1.4, `npm ls --all` clean).
+
+Verdict: R1 pass, R2 pass-with-minors at `62a13dd` (final).
+
+Tally: 0 Blocker / 0 Major / 2 Minor / 4 Nit (unique; the serialize-javascript floor was raised by both).
+
+| Sev | Raised by | Finding | Disposition |
+|---|---|---|---|
+| Minor | R1 | CI (Node 22, npm 10) is the only proof npm 10 `npm ci` accepts the relayer's first `overrides` block; the locks were written by npm 11 | Gate condition: `relayer` and `contracts` CI jobs green on the final head |
+| Minor | R2 | All four contracts overrides cross a major outside the parent's declared range (hardhat/hardhat-verify undici ^5, hardhat adm-zip ^0.4, mocha serialize-javascript ^6, solc tmp 0.0.33); `npm ls` stays silent by design | Accepted: R1 traced each consumer's API use, R2 exercised download/redirect, HttpProvider, hardhat-verify requests, adm-zip extraction and `hardhat test --parallel` offline; Fanbet runs the same overrides on Hardhat 2.29. Real solc download and real verify traffic remain a verification gap |
+| Nit | R1 (Minor), R2 | serialize-javascript floor ^7.0.5 is below alert 194's fix (<7.1.3); a fresh resolve could land below it | Fixed (`62a13dd`): ^7.1.3; lockfile unchanged |
+| Nit | R1, R2 | Commits name fewer alerts than the change closes | Fixed: full list in the PR body |
+| Nit | R2 | vitest reinstall carries in-range drift (esbuild 0.28.2, rollup 4.68.3, @types/estree; relayer vite 7.3.8, postcss 8.5.33, nanoid, picomatch) | Accepted: dev-only, within vite's ranges; R1 confirmed all versions are older than the release-age cooldown |
+| Nit | R1 | `docs/REVIEW_TIERS.md:69` names vitest 3.2.7 in a dated note | Accepted: historical note, left as is |
+
+**Checked:**
+- **R1:** `packages` maps of all three lockfiles base vs head (every change traced; registry.npmjs.org + integrity; no aliases or links); targeted versions; tinypool absent; `npm ls --all` in all three trees; versions vs the release-age cooldown (value compared, not printed); vitest 4 API use (`vi.fn` only, no `poolOptions`/workspace/coverage); CI workflows (no direct vitest/vite use); root 224 tests, relayer 181 + typecheck, hardhat 55, knip; an offline smoke script for undici (HttpProvider, hardhat-verify), serialize-javascript, tmp, adm-zip; round 2 delta.
+- **R2:** own worktree: `npm ci` + `npm ls --all` in all three trees; root typecheck, lint, arch, deadcode:ci, 224 tests (19 of 19 files); relayer 181 tests (15 of 15) + `tsc`; contracts compile, 55 tests, `--parallel` 55, `test:gate` 15; offline undici paths (302 download, 404, HttpProvider single/batch, hardhat-verify GET/POST) and adm-zip read/extract; production tree identical base vs head (`npm ci --omit=dev`).
+- **Author:** all app gates (lint, typecheck, arch 123/299, deadcode:ci, dup 0.85%, check:i18n, 224 tests); relayer 181 + `tsc`; contracts compile, 55 passing, `test:gate`; `npm ci` + `npm ls --all` clean in all three trees; lockfile package diff base vs head. This entry linted with `node scripts/lint-review-log.mjs docs/REVIEW_LOG.md`.
+
+**verification-gap:** no real solc download, no real `hardhat verify` against Routescan, no solc smtsolver path (tmp's only use there); npm 10 `npm ci` proven only by CI. R2 could not confirm the release-age cooldown key by itself (reading `.npmrc` key names was refused by the permission layer and not retried); R1's silent comparison is the evidence. Nothing mechanical fails if a future install drops the overrides; the Tier 3 floor on the manifests is the control.
+
+**named-set:** alerts: the 11 critical/high alerts left open after #131 (7, 17, 23, 94, 97, 188, 189, 197, 198, 201, 202) are all covered; 174 dismissed. Lockfiles: root, relayer, contracts — all three diffed. Override targets: adm-zip, undici, serialize-javascript, tmp (contracts, global); vite (root and relayer, global; vitest and @vitest/mocker are its only consumers).
+
+**Missing:** looked for and did not find (R1, R2): a non-registry `resolved` URL or missing integrity; an unexplained package change; a change to the production tree; a CI step that depends on vitest 3 or vite 8; mocha `--parallel` in the scripts; a `.npmrc`, gate or settings change.
+
+**Dismissed:** none. **Disputes:** none.
+
+**Risk brief (R2).** This updates the test runner (vitest 3→4) for the app and the relayer, and forces newer, patched versions of four libraries Hardhat uses for downloads, zip extraction and temp files. None of it ships in the production app; the production install is byte-identical. The main risk is Hardhat 2 running on library versions one major newer than it was built for: its download, RPC, verify and zip paths worked in local tests, but a real solc download or real contract verification has not been tried. After merge, watch the first CI contracts job that fetches a new compiler and the next `hardhat verify`, and confirm the related Dependabot alerts close.
+
+**Gate.** Owner go/no-go pending, on reviewed sha `62a13dd` plus this log-only entry; `relayer` and `contracts` CI green on the final head. Merge is the owner's click. After the merge: close superseded Dependabot PRs #134, #135, #136, #137, #110, #124, #125 with a reason.
+
 ## 2026-11-17 — PR #131 `chore/s100-security-upgrades` (S100: security upgrades for the open critical/high Dependabot alerts — next 16.4.6, zod 4.6.7, axios/cdp-sdk, contracts toolchain patches; Hardhat 2 kept)
 
 **Scope.** Owner-approved batch (2026-11-17, candidate 1 S100 question: "Recommended set"; Hardhat 3 declined). Three manifests, 8 hand-written lines outside the lockfiles. Root: next 16.3.4→16.4.6 (sharp 0.35.5), @coinbase/cdp-sdk 1.51.2→1.57.1 with axios 1.16.0→1.20.0 (entries carried from Dependabot #114's resolution; the package is optional, so `npm update` skips it), follow-redirects 1.16.3, source-map-js 1.2.2, vite 7.3.8. Relayer: zod 3.25.76→4.6.7 (major), vite 7.3.7, source-map-js 1.2.2 (Dependabot commits cherry-picked with `-x`). Contracts (dev toolchain): fast-uri 3.1.9, follow-redirects, handlebars 4.7.10, js-yaml 4.3.2/3.15.2 (cherry-picked); in-range axios 1.21.1, brace-expansion 1.1.22/2.1.8/5.0.13 and (added on owner approval in round 3) undici 6.27.0→6.29.1 under `@openzeppelin/hardhat-upgrades`; `overrides` lodash ^4.18.0 (global) and ws ^8.21.0 under `@ethersproject/providers` only. Covers alerts 13, 18, 24–26, 33, 37, 38, 50, 75, 76, 78, 79, 83, 84, 98, 115, 116, 121, 123, 132–136, 140, 147–149, 151, 154–157, 160, 161, 173, 176–181, 185, 186. Declined by the owner for now (dev-only, Hardhat 3 migration): 7, 17, 23, 94, 97, 188, 189. Supersedes Dependabot #129, #114, #121, #118, #123, #128, #122, #119, #126, #120, #117, #77. Commits `8493f93`…`4a2b480` (round 1) → `d7c2c70` (R1 fold) → `662257d` (undici, owner-approved), plus a merge of `main` after #130 landed (review-log conflict only, resolved by re-inserting this entry); `662257d` is the reviewed sha.
