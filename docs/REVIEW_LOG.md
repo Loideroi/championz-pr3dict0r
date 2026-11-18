@@ -31,6 +31,7 @@ Per-PR record required by the multi-agent code review contract (Loideroi LLM Wik
 **Human gate.** Owner script: `app` check green with "Architecture rules" showing 174 modules / 414 dependencies (412 at review; +2 from main's #111) and "Dead code (knip — files, dependencies, unlisted, unresolved)" green; `relayer` check green with `scripts-dist-imports.test.ts` in the Vitest output; no production workflow touched; merge. R1 PASS (high), R2 pass-with-minors → both Minors fixed and re-checked. **Pending owner go/no-go.**
 
 **Delta re-check (2026-11-17, after merging main `333390b`).** Only merges of main since the reviewed `dfeece4`; the PR's changed lines vs main are identical per file to the reviewed ones; the `docs/REVIEW_TIERS.md` conflict kept main's two re-dated lint rows and this PR's dependency-cruiser/knip rows. R1 (interim stand-in for Codex, owner-directed while Codex is limited; the Codex pass is owed) and R2: fresh-context Claude subagents, `claude-opus-5-5`. R1: **pass-with-minors**; R2: **pass-with-minors** — one shared Minor: the baseline and the owner script said 412 dependencies, the merged tree has 414 (main's #111 added two viem edges); fixed above and in the REVIEW_TIERS row. R2 ran the gates on a throwaway worktree of `72e17ec` after `npm ci` (arch 177/414 and 174/414 without `relayer/node_modules`, `deadcode:ci` 0, relayer 195 tests, root typecheck/lint/dup/i18n/test green). Dated 2026-09-13 figures in the history lines and the `.dependency-cruiser.js` comment are left as history.
+
 **Delta re-check (2026-11-18, S101, after merging main `d224a4b`).** Main gained PR #138, the S100 batch 2 dependency fixes: vitest `^3` → `^4.1.12` in the root and relayer manifests, a `vite ^7.3.8` override in both, and contracts overrides. That made this PR conflict, so the author (Claude Code session `claude-opus-5-5`) merged `origin/main` `d224a4b` as `8163d8b`.
 - Only this file conflicted, because the log is newest-first and both sides prepend. This entry stays first, as the earlier main merges kept it, and #138's entry follows with a blank line before its heading. Every line of both sides is kept.
 - `package.json` and the three lockfiles merged cleanly. Main's vitest/vite lines and this PR's `arch` and `deadcode:ci` script lines are in different places, so the PR's changed lines against main are unchanged in every other file.
@@ -40,6 +41,31 @@ The author ran, on `8163d8b`, all passing:
 - Root, after `npm ci`: lint (incl. `check-lint-exceptions`, 11 exceptions / 156 files), `arch` (174 modules / 414 dependencies, the baseline above; 177 / 414 once `relayer/node_modules` is installed), `deadcode:ci`, `check:i18n`, `typecheck`, Vitest (19 files / 224 tests), `dup` (0.85%, 9 clones).
 - Relayer, after `npm ci`: `typecheck`, Vitest (16 files / 195 tests, `scripts-dist-imports.test.ts` and `scripts.test.ts` confirmed by a verbose run), `build`.
 - The process judges (`check-agents-md` self-test 47 and AGENTS.md; `lint-review-log` self-test 43, 14 entries).
+Deviation: Codex `gpt-5.6-sol` was at its usage limit (reset 16:28 on 2026-11-18). Both roles were therefore fresh-context Claude Code subagents (`claude-opus-5-5`), the owner-directed interim, and the Codex pass is still owed. The two reviewers shared one checkout: R2's reverted probes briefly broke R1's first relayer runs (4, then 1 failure). R1 then moved to a private copy at `fbce64f`, where everything passed (195/195).
+Verdict: R1 pass-with-minors at `fbce64f`. R2 pass-with-minors at `fbce64f`.
+Tally: 0 Blocker / 0 Major / 1 Minor / 3 Nit (plus R1's shared-checkout note).
+Resolved:
+- R2 Minor: no blank line separated this paragraph from the 2026-11-17 one. Fixed in the commit that carries this verdict.
+- R2 Nit: the PR head on GitHub was still `decee87`. The push of this commit, with CI on it, answers it.
+- R1 Nit: no verdict yet. This paragraph records it.
+Checked:
+- Merge `8163d8b`: R1 and R2 each confirmed that only the log conflicted, with zero lines missing from either parent and this entry's earlier lines unchanged. The lockfiles and `contracts/` are identical to main. The 12 non-log files carry the same changed lines as `333390b..decee87`. vitest 4.1.12 and vite 7.3.8 resolve in both lockfiles.
+- R1, on a private copy at `fbce64f`, re-ran every gate the author listed. Counts match: 11/156, 174 and 177 / 414, 224, 195, 0.85% / 9, the judges.
+- `globalSetup` still cleans and rebuilds `dist` (a deleted `dist` and a planted stale file were both handled).
+- Red probes, each reverted:
+  - R1: a missing export in `check-balance.mjs` fails `scripts-dist-imports.test.ts`.
+  - R2: six probes fail as intended:
+    - a relayer → app-tree import (`relayer-does-not-import-app-tree`)
+    - app-tree → relayer (`app-tree-does-not-import-relayer`)
+    - vendor → src (`relayer-vendor-is-a-leaf`)
+    - src → scripts (`relayer-src-does-not-import-scripts`)
+    - a dead `relayer/src` file (`no-orphans` and knip)
+    - a root-only package (`relayer-no-unlisted-package`)
+  - R2: dist imports of a missing export and of a missing module both fail the dist-import test.
+Dismissed:
+- R2: an import of a package installed nowhere is caught by knip's unlisted check, not by `arch`. Both gates are blocking.
+- R1 and R2: the entry order follows the convention of the earlier main merges.
+- R1: the transient failures did not reproduce on a clean copy.
 
 ## 2026-11-18 — PR #138 `fix/s100-security-overrides` (S100 batch 2: contracts overrides on Hardhat 2, vitest 4 drops tinypool)
 
