@@ -67,6 +67,8 @@ Dismissed:
 - R1 and R2: the entry order follows the convention of the earlier main merges.
 - R1: the transient failures did not reproduce on a clean copy.
 
+**Merge re-check (2026-11-18, after PR #107 merged).** Main moved from `d224a4b` to `05c88a5`, and the only change was #107's review-log entry. The author merged it as `eb74164`. Only this file conflicted. This entry stays first and #107's entry follows; the merged log minus this entry equals main's log byte for byte, and this entry's lines are unchanged. No other file changed, so the code verdicts above stand. Judges: `lint-review-log` and `check-agents-md` pass.
+
 ## 2026-09-13 — PR #107 `docs/retroactive-review-p8` (retroactive review of the 16 Tier 3 PRs merged without review, 2026-08-28 → 2026-09-10)
 
 **Scope.** This entry only (Tier 3 by the floor map: `docs/REVIEW_LOG.md` is the review process itself). It records the owner-ordered retroactive review ("execute all 6, re P8 do a retroactive review", 2026-09-12) of the 15 Tier 3 PRs in the unlogged run named in the 2026-09-09 entry plus #93. Each PR's merged diff was reviewed as-if-pre-merge by two independent reviewers, grouped by surface; full verbatim verdicts (≈167 KB) are the raw evidence record in the Loideroi LLM Wiki, `raw/audits/2026-09-13-championz-retroactive-review-p8.md` (committed on the wiki branch `championz-escape-prevention`, landing with it).
