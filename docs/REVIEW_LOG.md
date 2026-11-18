@@ -83,6 +83,8 @@ Checked:
 - R2 checked the Markdown blank lines around the change.
 Dismissed: the newest-first order with #109 above #107 and #138 is the convention on this branch. The code suites were not re-run, because no code file changed.
 
+**Owner decision (2026-11-18).** The owner's words in the author's session: "OK: push … #109 … log-only main merge without a re-check; first confirm its non-log diff against main matches the reviewed fbce64f, and record this as my decision." So a log-only main merge into this PR may be pushed without a reviewer re-check, once that comparison holds. The author checked it at `59ee4d2`. For all 12 non-log files, `git diff 05c88a5 59ee4d2 -- <file>` is byte-identical (sha-256 of the diff) to the reviewed `git diff d224a4b fbce64f -- <file>`, and the file set is the same. The re-check above had already run before this decision; the decision covers any further log-only main merge before the merge click.
+
 ## 2026-09-13 — PR #107 `docs/retroactive-review-p8` (retroactive review of the 16 Tier 3 PRs merged without review, 2026-08-28 → 2026-09-10)
 
 **Scope.** This entry only (Tier 3 by the floor map: `docs/REVIEW_LOG.md` is the review process itself). It records the owner-ordered retroactive review ("execute all 6, re P8 do a retroactive review", 2026-09-12) of the 15 Tier 3 PRs in the unlogged run named in the 2026-09-09 entry plus #93. Each PR's merged diff was reviewed as-if-pre-merge by two independent reviewers, grouped by surface; full verbatim verdicts (≈167 KB) are the raw evidence record in the Loideroi LLM Wiki, `raw/audits/2026-09-13-championz-retroactive-review-p8.md` (committed on the wiki branch `championz-escape-prevention`, landing with it).
