@@ -67,7 +67,21 @@ Dismissed:
 - R1 and R2: the entry order follows the convention of the earlier main merges.
 - R1: the transient failures did not reproduce on a clean copy.
 
-**Merge re-check (2026-11-18, after PR #107 merged).** Main moved from `d224a4b` to `05c88a5`, and the only change was #107's review-log entry. The author merged it as `eb74164`. Only this file conflicted. This entry stays first and #107's entry follows; the merged log minus this entry equals main's log byte for byte, and this entry's lines are unchanged. No other file changed, so the code verdicts above stand. Judges: `lint-review-log` and `check-agents-md` pass.
+**Merge re-check (2026-11-18, after PR #107 merged).** Main moved from `d224a4b` to `05c88a5`, and the only change was #107's review-log entry. The author merged it as `eb74164`. Only this file conflicted. This entry stays first and #107's entry follows; the merged log minus this entry equals main's log byte for byte, and this entry's lines are unchanged. No non-log file differs from `049ccf7`, so the code verdicts above stand. Judges on `3bed8f4`: `lint-review-log` (self-test 43; 15 entries since 2026-09-12) and `check-agents-md` (AGENTS.md) pass; `git diff --check` is clean.
+Deviation: Codex was still limited when this re-check ran, so both roles were fresh-context Claude Code subagents (`claude-opus-5-5`). They ran one after the other and read-only in the author's checkout (owner's choice, 2026-11-18). An earlier attempt with a private clone per reviewer was denied by the permission system and was not retried (D57).
+Verdict: R1 pass at `3bed8f4`. R2 pass-with-minors at `3bed8f4`.
+Tally: 0 Blocker / 0 Major / 1 Minor / 3 Nit.
+Resolved:
+- R2 Minor: no verdict lines. These lines record them.
+- R2 Nits: no judge counts or sha; "the code verdicts stand" not spelled out. Both are fixed in the sentence above.
+- R1 Nit: R1 did not re-run `check-agents-md`; R2 did, and it passed.
+Checked:
+- R1 and R2 each confirmed that the remerge-diff of `eb74164` removes only the three conflict markers and adds one blank line before #107's heading.
+- `049ccf7..3bed8f4` is `docs/REVIEW_LOG.md` only, +79/−0: #107's 77-line entry, plus this paragraph and a blank line.
+- #107's own change (`gh pr view 107`, `d224a4b..05c88a5`) is that file only, +77/−0.
+- #109's earlier lines are unchanged.
+- R2 checked the Markdown blank lines around the change.
+Dismissed: the newest-first order with #109 above #107 and #138 is the convention on this branch. The code suites were not re-run, because no code file changed.
 
 ## 2026-09-13 — PR #107 `docs/retroactive-review-p8` (retroactive review of the 16 Tier 3 PRs merged without review, 2026-08-28 → 2026-09-10)
 
